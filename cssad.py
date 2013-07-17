@@ -4,8 +4,8 @@ from cvxopt.solvers import qp
 import numpy as np
 from kernel import Kernel  
 
-class Ocsvm:
-    """One-class support vector machine"""
+class Cssad:
+    """Convex semi-supervised anomaly detection"""
 
     MSG_ERROR = -1	# (scalar) something went wrong
     MSG_OK = 0	# (scalar) everything alright
@@ -43,14 +43,14 @@ class Ocsvm:
 
     	# init return variables
     	w = np.zeros((1,1))
-    	return Ocsvm.MSG_OK
+    	return Cssad.MSG_OK
 
 
     def train_dual(self):
     	"""Trains an one-class svm in dual with kernel."""
     	if (self.samples<1 & self.dims<1):
     		print('Invalid training data.')
-    		return Ocsvm.MSG_ERROR
+    		return Cssad.MSG_ERROR
 
     	# number of training examples
     	N = self.samples
@@ -89,7 +89,7 @@ class Ocsvm:
     			print('Threshold is {0}'.format(self.threshold))
     			break
 
-        return Ocsvm.MSG_OK
+        return Cssad.MSG_OK
 
     def get_threshold(self):
     	return self.threshold
@@ -106,15 +106,15 @@ class Ocsvm:
     	(tdims,tN) = Y.size
     	if (d!=tdims | tN<1):
     		print('Invalid test data')
-    		return 0, Ocsvm.MSG_ERROR
+    		return 0, Cssad.MSG_ERROR
 
     	if (self.isDualTrained!=True):
     		print('First train, then test.')
-    		return 0, Ocsvm.MSG_ERROR
+    		return 0, Cssad.MSG_ERROR
 
     	# generate a kernel matrix
     	P = Kernel.get_kernel(Y, self.X, self.ktype, self.kparam)
 
     	# apply trained classifier
     	res = matrix([dotu(P[i,:],self.alphas) for i in range(tN)]) 
-    	return res, Ocsvm.MSG_OK
+    	return res, Cssad.MSG_OK

@@ -4,8 +4,8 @@ from cvxopt.solvers import qp
 import numpy as np
 from kernel import Kernel  
 
-class Ocsvm:
-    """One-class support vector machine"""
+class Svdd:
+    """Support vector data description"""
 
     MSG_ERROR = -1	# (scalar) something went wrong
     MSG_OK = 0	# (scalar) everything alright
@@ -26,14 +26,14 @@ class Ocsvm:
 
     threshold = 0.0	# (scalar) the optimized threshold (rho)
 
-    def __init__(self, X, C=1.0, ktype='linear', param=1.0):
+    def __init__(self, X, C=1.0, type='linear', param=1.0):
     	self.X = X
     	self.C = C
-    	self.ktype = ktype
+    	self.ktype = type
     	self.kparam = param
     	(self.dims,self.samples) = X.size
     	print('Creating new one-class svm with {0}x{1} (dims x samples) and C={2}.'.format(self.dims,self.samples,C))
-    	print('Kernel is {0} with parameter (if any) set to {1}'.format(ktype,param))
+    	print('Kernel is {0} with parameter (if any) set to {1}'.format(type,param))
 
 
     def train_primal(self):
@@ -43,14 +43,14 @@ class Ocsvm:
 
     	# init return variables
     	w = np.zeros((1,1))
-    	return Ocsvm.MSG_OK
+    	return Svdd.MSG_OK
 
 
     def train_dual(self):
     	"""Trains an one-class svm in dual with kernel."""
     	if (self.samples<1 & self.dims<1):
     		print('Invalid training data.')
-    		return Ocsvm.MSG_ERROR
+    		return Svdd.MSG_ERROR
 
     	# number of training examples
     	N = self.samples
@@ -58,8 +58,8 @@ class Ocsvm:
 
     	# generate a kernel matrix
     	P = Kernel.get_kernel(self.X, self.X, self.ktype, self.kparam)
-    	# there is no linear part of the objective
-    	q = matrix(0.0, (N,1))
+    	# this is the diagonal of the <kernel matrix
+    	q = matrix([0.5*P[i,i] for i in range(N)], (N,1))
     
     	# sum_i alpha_i = A alpha = b = 1.0
     	A = matrix(1.0, (1,N))
@@ -89,7 +89,7 @@ class Ocsvm:
     			print('Threshold is {0}'.format(self.threshold))
     			break
 
-        return Ocsvm.MSG_OK
+        return Svdd.MSG_OK
 
     def get_threshold(self):
     	return self.threshold
@@ -106,15 +106,21 @@ class Ocsvm:
     	(tdims,tN) = Y.size
     	if (d!=tdims | tN<1):
     		print('Invalid test data')
-    		return 0, Ocsvm.MSG_ERROR
+    		return 0, Svdd.MSG_ERROR
 
     	if (self.isDualTrained!=True):
     		print('First train, then test.')
-    		return 0, Ocsvm.MSG_ERROR
+    		return 0, Svdd.MSG_ERROR
 
     	# generate a kernel matrix
     	P = Kernel.get_kernel(Y, self.X, self.ktype, self.kparam)
 
     	# apply trained classifier
-    	res = matrix([dotu(P[i,:],self.alphas) for i in range(tN)]) 
-    	return res, Ocsvm.MSG_OK
+    	Ps = Kernel.get_diag_kernel(Y, self.ktype, self.kparam)
+    	Pc = Kernel.get_kernel(self.X, self.X, self.ktype, self.kparam)
+
+    	resc = matrix([dotu(Pc[i,:],self.alphas) for i in range(N)]) 
+    	resc = dotu(resc,self.alphas)
+
+    	res = resc - 2*matrix([dotu(P[i,:],self.alphas) for i in range(tN)]) + Ps
+    	return res, Svdd.MSG_OK
