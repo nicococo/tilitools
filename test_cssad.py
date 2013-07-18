@@ -26,7 +26,7 @@ if __name__ == '__main__':
 	Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn]])
 
 	# train convex semi-supervised anomaly detection
-	svm = Cssad(Dtrain,Dy,1.01,1.0,1.0,1.0,'rbf',0.1)
+	svm = Cssad(Dtrain,Dy,0.01,10.0,1.0,1.0,'rbf',0.5)
 	#svm = Ocsvm(Dtrain,0.1,'rbf',1.1)
 	svm.train_dual()
 
