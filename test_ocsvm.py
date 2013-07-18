@@ -9,10 +9,10 @@ from svdd import Svdd
 
 if __name__ == '__main__':
 	Dtrain = co.normal(2,100)
-	svm = Ocsvm(Dtrain,0.1,'rbf',1.1)
+	svm = Ocsvm(Dtrain,0.1,'rbf',0.1)
 	svm.train_dual()
 
-	delta = 0.1
+	delta = 0.07
 	x = np.arange(-4.0, 4.0, delta)
 	y = np.arange(-4.0, 4.0, delta)
 	X, Y = np.meshgrid(x, y)    
@@ -28,6 +28,8 @@ if __name__ == '__main__':
 
 	Z = np.reshape(res,(sx,sy))
 	plt.contourf(X, Y, Z)
+	plt.contour(X, Y, Z, [np.array(svm.get_threshold())[0,0]])
+	plt.scatter(Dtrain[0,svm.get_support_dual()],Dtrain[1,svm.get_support_dual()],40,c='k') 
 	plt.scatter(Dtrain[0,:],Dtrain[1,:],10)
 	plt.show()
 
