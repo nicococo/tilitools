@@ -74,7 +74,7 @@ class Cssad:
 			self.kappa = 0.0
 
 		print('Creating new convex semi-supervised anomaly detection with {0}x{1} (dims x samples).'.format(self.dims,self.samples))
-		print('There are {0} positive, {1} unlabeled and {2} outlier examples present.'.format(npos,nunl,nneg))
+		print('There are {0} positive, {1} unlabeled and {2} outlier examples.'.format(npos,nunl,nneg))
 		print('Kernel is {0} with parameter (if any) set to {1}'.format(ktype,param))
 
 
@@ -125,7 +125,7 @@ class Cssad:
 		summe = 0.0
 		for i in self.svs: summe += self.alphas[i]*self.y[0,i]
 		print('Support vector should sum to 1.0 (approx error): {0}'.format(summe))
-		print('There are {0} support vectors present.'.format(len(self.svs)))
+		print('Found {0} support vectors.'.format(len(self.svs)))
 
 		# infer threshold (rho)
 		self.calculate_threshold_dual()

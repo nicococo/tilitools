@@ -11,7 +11,7 @@ if __name__ == '__main__':
 	# example constants (training set size and splitting)
 	N_pos = 50
 	N_neg = 50
-	N_unl = 500
+	N_unl = 1000
 
 	# generate training labels
 	yp = co.matrix(1,(1,N_pos),'i')
