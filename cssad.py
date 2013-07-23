@@ -57,7 +57,6 @@ class Cssad:
 		for i in range(self.samples):
 			if y[0,i]==0:
 				nunl += 1
-				self.cy[0,i] = 1.0
 				self.cl[0,i] = 0.0
 				self.cC[i,0] = Cu
 			if y[0,i]==-1:
@@ -92,18 +91,18 @@ class Cssad:
 		# there is no linear part of the objective
 		q = matrix(0.0, (N,1))
 	
-		# sum_i alpha_i = A alpha = b = 1.0
+		# sum_i y_i alpha_i = A alpha = b = 1.0
 		A = self.cy
 		b = matrix(1.0, (1,1))
 
 		# 0 <= alpha_i <= h = C_i
 		G1 = spmatrix(1.0, range(N), range(N))
 		G2 = -self.cl
-		G = sparse([G1,-G1,G2])
+		G  = sparse([G1,-G1,G2])
 		h1 = self.cC
 		h2 = matrix(0.0, (N,1))
 		h3 = -self.kappa
-		h = matrix([h1,h2,h3])
+		h  = matrix([h1,h2,h3])
 
 		# solve the quadratic programm
 		sol = qp(P,-q,G,h,A,b)
@@ -123,7 +122,7 @@ class Cssad:
 		
 		# these should sum to one
 		summe = 0.0
-		for i in self.svs: summe += self.alphas[i]*self.y[0,i]
+		for i in self.svs: summe += self.alphas[i]*self.cy[0,i]
 		print('Support vector should sum to 1.0 (approx error): {0}'.format(summe))
 		print('Found {0} support vectors.'.format(len(self.svs)))
 
