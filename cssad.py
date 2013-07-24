@@ -5,12 +5,17 @@ import numpy as np
 from kernel import Kernel  
 
 class Cssad:
-	"""Convex semi-supervised anomaly detection"""
+	"""Convex semi-supervised anomaly detection with hinge loss and L2 regularizer
+		as described in Goernitz et al., Towards Supervised Anomaly Detection, JAIR, 2013
+
+		minimize_{w,p,l,xi>=0} 0.5 ||w||^2 - p - kappa*l + Cu \sum_i xi + 
+
+	"""
 
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
 
-	PRECISION = 10**-6 # important: effects the threshold, support vectors and speed!
+	PRECISION = 10**-8 # important: effects the threshold, support vectors and speed!
 
 	X = [] 	# (matrix) our training data
 	y = []	# (vector) corresponding labels (+1,-1 and 0 for unlabeled)
@@ -95,13 +100,17 @@ class Cssad:
 		A = self.cy
 		b = matrix(1.0, (1,1))
 
-		# 0 <= alpha_i <= h = C_i
+		# inequality constraints: G alpha <= h
+		# 1) alpha_i  <= C_i  
+		# 2) -alpha_i <= 0
+		# 3) kappa <= \sum_i labeled_i alpha_i  -> -cl' alpha <= -kappa
 		G1 = spmatrix(1.0, range(N), range(N))
-		G2 = -self.cl
-		G  = sparse([G1,-G1,G2])
+		G3 = -self.cl
 		h1 = self.cC
 		h2 = matrix(0.0, (N,1))
 		h3 = -self.kappa
+
+		G  = sparse([G1,-G1,G3])
 		h  = matrix([h1,h2,h3])
 
 		# solve the quadratic programm
@@ -113,18 +122,45 @@ class Cssad:
 		# store solution
 		self.alphas = sol['x']
 
+		#print(self.alphas)
+		#print(sol['z'])
+
 		# 1. find all support vectors, i.e. 0 < alpha_i <= C
 		# 2. store all support vector with alpha_i < C in 'margins' 
 		self.svs = []
 		for i in range(N):
 			if (self.alphas[i]>Cssad.PRECISION):
 				self.svs.append(i)
+
+		print(self.alphas)
 		
 		# these should sum to one
+		print('Validate solution:')
+		print('- found {0} support vectors'.format(len(self.svs)))
+		
+		summe = 0.0
+		for i in range(N): summe += self.alphas[i]*self.cy[0,i]
+		print('- sum_(i) alpha_i cy_i = {0} = 1.0'.format(summe))
+
 		summe = 0.0
 		for i in self.svs: summe += self.alphas[i]*self.cy[0,i]
-		print('Support vector should sum to 1.0 (approx error): {0}'.format(summe))
-		print('Found {0} support vectors.'.format(len(self.svs)))
+		print('- sum_(i in sv) alpha_i cy_i = {0} ~ 1.0 (approx error)'.format(summe))
+		
+		summe = 0.0
+		for i in range(N): summe += self.alphas[i]*self.cl[0,i]
+		print('- sum_(i in labeled) alpha_i = {0} >= {1} = kappa'.format(summe,self.kappa))
+
+		summe = 0.0
+		for i in range(N): summe += self.alphas[i]*(1.0-self.cl[0,i])
+		print('- sum_(i in unlabeled) alpha_i = {0}'.format(summe))
+		summe = 0.0
+		for i in range(N): 
+			if (self.y[0,i]>=1.0): summe += self.alphas[i]
+		print('- sum_(i in positives) alpha_i = {0}'.format(summe))
+		summe = 0.0
+		for i in range(N): 
+			if (self.y[0,i]<=-1.0): summe += self.alphas[i]
+		print('- sum_(i in negatives) alpha_i = {0}'.format(summe))
 
 		# infer threshold (rho)
 		self.calculate_threshold_dual()
@@ -176,29 +212,40 @@ class Cssad:
 		if (flag==flag_p==flag_n==False):
 			print('Poor you, guessing threshold...')
 			(thres,MSG) = self.apply_dual(self.X[:,self.svs])
+			self.threshold = 0.0
 
 			idx = 0
-			unl = pos = neg = 0.0
+			unl = pos = neg = neg2 = 0.0
 			flag = flag_p = flag_n = False
 			for i in self.svs:
 				if (self.y[0,i]==0 and flag==False): 
 					unl=thres[idx,0]
 					flag=True
-				if (self.y[0,i]==0 and thres[idx,0]<unl): unl=thres[idx,0]
+				if (self.y[0,i]==0 and thres[idx,0]>unl): unl=thres[idx,0]
 				if (self.y[0,i]>=1 and flag_p==False): 
 					pos=thres[idx,0]
 					flag_p=True
-				if (self.y[0,i]>=1 and thres[idx,0]<pos): pos=thres[idx,0]
+				if (self.y[0,i]>=1 and thres[idx,0]>pos): pos=thres[idx,0]
 				if (self.y[0,i]<=-1 and flag_n==False): 
-					neg=thres[idx,0]
+					neg = neg2 =thres[idx,0]
 					flag_n=True
-				if (self.y[0,i]<=-1 and thres[idx,0]<neg): neg=thres[idx,0]
+				if (self.y[0,i]<=-1 and thres[idx,0]>neg): neg=thres[idx,0]
+				if (self.y[0,i]<=-1 and thres[idx,0]<neg2): neg2=thres[idx,0]
 				idx += 1
 
 			# now, check the possibilities
-			if (flag==True): self.threshold=unl
-			if (flag_p==True and self.threshold>pos): self.threshold=pos
-			if (flag_n==True and self.threshold>neg): self.threshold=neg
+			if (flag==True): 
+				print('Threshold: unlabeled')
+				self.threshold=unl
+			if (flag_p==True and self.threshold<pos): 
+				print('Threshold: positive {0}'.format(pos))
+				self.threshold=pos
+			if (flag_n==True and self.threshold<neg): 
+				print('Threshold: negative {0}'.format(neg))
+				self.threshold=neg
+			if (flag_n == flag_p == True):
+				self.threshold = 0.5*(pos + neg2)
+				print('Threshold: middle {0}'.format(self.threshold))
 
 		self.threshold = matrix(self.threshold)
 		print('New threshold is {0}'.format(self.threshold))

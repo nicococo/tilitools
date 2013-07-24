@@ -9,9 +9,9 @@ from ocsvm import Ocsvm
 
 if __name__ == '__main__':
 	# example constants (training set size and splitting)
-	N_pos = 5
-	N_neg = 5
-	N_unl = 1000
+	N_pos = 100
+	N_neg = 10
+	N_unl = 0
 
 	# generate training labels
 	yp = co.matrix(1,(1,N_pos),'i')
@@ -22,12 +22,12 @@ if __name__ == '__main__':
 	# generate training data
 	Dtrainp = co.normal(2,N_pos)*0.5
 	Dtrainu = co.normal(2,N_unl)*0.5
-	Dtrainn = co.normal(2,N_neg)*0.3+1.5
+	Dtrainn = co.normal(2,N_neg)*0.3+1.0
 	Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn]])
 
 	# train convex semi-supervised anomaly detection
-	svm = Cssad(Dtrain,Dy,0.025,10.0,1.0,1.0,'rbf',0.5)
-	#svm = Ocsvm(Dtrain,0.1,'rbf',1.1)
+	svm = Cssad(Dtrain,Dy,2.0,0.1,1.0,1.0,'rbf',0.5)
+	# svm = Ocsvm(Dtrain,1.0,'linear',1.1)
 	svm.train_dual()
 
 	# generate test data from a grid for nicer plots
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 	plt.contourf(X, Y, Z)
 	plt.contour(X, Y, Z, [np.array(svm.get_threshold())[0,0]])
 
-	plt.scatter(Dtrain[0,svm.get_support_dual()],Dtrain[1,svm.get_support_dual()],40,c='k') 
+	plt.scatter(Dtrain[0,svm.get_support_dual()],Dtrain[1,svm.get_support_dual()],60,c='w') 
 
 	plt.scatter(Dtrain[0,N_pos:N_pos+N_unl-1],Dtrain[1,N_pos:N_pos+N_unl-1],10,c='g') 
 	plt.scatter(Dtrain[0,0:N_pos],Dtrain[1,0:N_pos],20,c='r') 
