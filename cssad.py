@@ -15,13 +15,15 @@ class Cssad:
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
 
-	PRECISION = 10**-8 # important: effects the threshold, support vectors and speed!
+	PRECISION = 10**-5 # important: effects the threshold, support vectors and speed!
 
 	X = [] 	# (matrix) our training data
 	y = []	# (vector) corresponding labels (+1,-1 and 0 for unlabeled)
 	cy = [] # (vector) converted label vector (+1 for pos and unlabeled, -1 for outliers)
 	cl = [] # (vector) converted label vector (+1 for labeled examples, 0.0 for unlabeled)
+	
 	samples = -1 	# (scalar) amount of training data in X
+	labeled = -1 	# (scalar) amount of labeled data
 	dims = -1 	# (scalar) number of dimensions in input space
 
 	cC = [] # (vector) converted upper bound box constraint for each example
@@ -69,6 +71,7 @@ class Cssad:
 				self.cy[0,i] = -1.0
 				self.cC[i,0] = Cn
 		npos = self.samples - nneg - nunl
+		self.labeled = npos+nneg
 
 		# if there are no labeled examples, then set kappa to 0.0 otherwise
 		# the dual constraint kappa <= sum_{i \in labeled} alpha_i = 0.0 will
@@ -109,21 +112,23 @@ class Cssad:
 		h1 = self.cC
 		h2 = matrix(0.0, (N,1))
 		h3 = -self.kappa
-
+		
 		G  = sparse([G1,-G1,G3])
 		h  = matrix([h1,h2,h3])
+		if (self.labeled==0):
+			print('No labeled data found.')
+			G  = sparse([G1,-G1])
+			h  = matrix([h1,h2])
 
 		# solve the quadratic programm
 		sol = qp(P,-q,G,h,A,b)
-		
+
 		# mark dual as solved
 		self.isDualTrained = True
 
 		# store solution
 		self.alphas = sol['x']
-
-		#print(self.alphas)
-		#print(sol['z'])
+		print(self.alphas)
 
 		# 1. find all support vectors, i.e. 0 < alpha_i <= C
 		# 2. store all support vector with alpha_i < C in 'margins' 
@@ -132,8 +137,6 @@ class Cssad:
 			if (self.alphas[i]>Cssad.PRECISION):
 				self.svs.append(i)
 
-		print(self.alphas)
-		
 		# these should sum to one
 		print('Validate solution:')
 		print('- found {0} support vectors'.format(len(self.svs)))
@@ -164,6 +167,15 @@ class Cssad:
 
 		# infer threshold (rho)
 		self.calculate_threshold_dual()
+
+		(thres, MSG) = self.apply_dual(self.X[:,self.svs])
+		T = np.array(self.threshold)[0,0]
+		cnt = 0
+		for i in range(len(self.svs)):
+			if thres[i,0]<(T-Cssad.PRECISION):
+				cnt += 1
+		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
+
 		return Cssad.MSG_OK
 
 	def calculate_threshold_dual(self):

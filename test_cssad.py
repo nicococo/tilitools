@@ -10,7 +10,7 @@ from ocsvm import Ocsvm
 if __name__ == '__main__':
 	# example constants (training set size and splitting)
 	N_pos = 100
-	N_neg = 10
+	N_neg = 100
 	N_unl = 0
 
 	# generate training labels
@@ -22,12 +22,12 @@ if __name__ == '__main__':
 	# generate training data
 	Dtrainp = co.normal(2,N_pos)*0.5
 	Dtrainu = co.normal(2,N_unl)*0.5
-	Dtrainn = co.normal(2,N_neg)*0.3+1.0
+	Dtrainn = co.normal(2,N_neg)*0.3+1.4
 	Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn]])
 
 	# train convex semi-supervised anomaly detection
-	svm = Cssad(Dtrain,Dy,2.0,0.1,1.0,1.0,'rbf',0.5)
-	# svm = Ocsvm(Dtrain,1.0,'linear',1.1)
+	#svm = Cssad(Dtrain,Dy,0.0,0.1,1,0.1,'linear',0.5)
+	svm = Ocsvm(Dtrain,1.0,'linear',0.5)
 	svm.train_dual()
 
 	# generate test data from a grid for nicer plots

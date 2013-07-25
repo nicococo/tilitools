@@ -10,7 +10,7 @@ class Ocsvm:
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
 
-	PRECISION = 10**-8 # important: effects the threshold, support vectors and speed!
+	PRECISION = 10**-5 # important: effects the threshold, support vectors and speed!
 
 	X = [] 	# (matrix) our training data
 	samples = -1 	# (scalar) amount of training data in X
@@ -103,8 +103,17 @@ class Ocsvm:
 		# no threshold set yet?
 		if (flag==False):
 			(thres, MSG) = self.apply_dual(self.X[:,self.svs])          
-			self.threshold = matrix(min(thres))
+			self.threshold = matrix(max(thres))
 
+		(thres, MSG) = self.apply_dual(self.X[:,self.svs])
+		T = np.array(self.threshold)[0,0]
+		cnt = 0
+		for i in range(len(self.svs)):
+			if thres[i,0]<(T-Ocsvm.PRECISION):
+				cnt += 1
+	
+		print(self.alphas)
+		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
 		print('Threshold is {0}'.format(self.threshold))
 		return Ocsvm.MSG_OK
 
