@@ -11,7 +11,7 @@ if __name__ == '__main__':
 	Dtrain = co.normal(2,100)
 	svm = Svdd(Dtrain,0.9,'rbf',0.1)
 	svm.train_dual()
-
+1
 	delta = 0.1
 	x = np.arange(-4.0, 4.0, delta)
 	y = np.arange(-4.0, 4.0, delta)

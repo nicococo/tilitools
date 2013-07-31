@@ -2,17 +2,18 @@ import cvxopt as co
 import numpy as np
 import pylab as pl
 import matplotlib.pyplot as plt
+import mosek
 
-from cssad import Cssad
+from cssadmkl import CssadMKL
 from ocsvm import Ocsvm
 from errormeasures import ErrorMeasures
 
 
 if __name__ == '__main__':
-# example constants (training set size and splitting)
-	N_pos = 200
-	N_neg = 200
-	N_unl = 100
+	# example constants (training set size and splitting)
+	N_pos = 10
+	N_neg = 10
+	N_unl = 10
 
 	# generate training labels
 	yp = co.matrix(1,(1,N_pos),'i')
@@ -31,7 +32,7 @@ if __name__ == '__main__':
 	Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0], [Dtrainn-1.0], [Dtrain21], [Dtrain22]])
 
 	# train convex semi-supervised anomaly detection
-	svm = Cssad(Dtrain,Dy,0.2,1.0,1.0,1.0,'rbf',0.1)
+	svm = CssadMKL(Dtrain,Dy,1.5,1.0,1.0,1.0,'mkl_rbf',[0.01, 2.0, 4.0, 10.0])
 	#svm = Ocsvm(Dtrain,1.0,'rbf',0.5)
 	svm.train_dual()
 
@@ -40,8 +41,8 @@ if __name__ == '__main__':
 	#pred -= svm.get_threshold()
 	pred = np.array(pred)
 	pred = pred.transpose()
-	auc = ErrorMeasures(np.round(-0.5*Dy+0.2),-pred)
-	print('AUC score for the training data: {0}'.format(auc.auc()))
+	#auc = ErrorMeasures(np.round(-0.5*Dy+0.2),-pred)
+	#print('AUC score for the training data: {0}'.format(auc.auc()))
 
 	# generate test data from a grid for nicer plots
 	delta = 0.1

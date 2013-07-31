@@ -4,12 +4,10 @@ from cvxopt.solvers import qp
 import numpy as np
 from kernel import Kernel  
 
-class Cssad:
-	"""Convex semi-supervised anomaly detection with hinge loss and L2 regularizer
+
+class CssadMKL:
+	"""Convex semi-supervised anomaly detection with multiple kernels with hinge loss and L2 regularizer
 		as described in Goernitz et al., Towards Supervised Anomaly Detection, JAIR, 2013
-
-		minimize_{w,p,l,xi>=0} 0.5 ||w||^2 - p - kappa*l + Cu \sum_i xi + 
-
 	"""
 
 	MSG_ERROR = -1	# (scalar) something went wrong
@@ -33,20 +31,21 @@ class Cssad:
 
 	kappa = 1.0 # (scalar) regularizer for importance of the margin
 
-	ktype = 'linear' # (string) type of kernel to use
-	kparam = 1.0	# (scalar) additional parameter for the kernel
+	ktype = 'rbf' # (string) type of kernel to use
+	kparam = [1.0]	# (scalar) additional parameter for the kernel
 
-	isPrimalTrained = False	# (boolean) indicates if the oc-svm was trained in primal space
 	isDualTrained = False	# (boolean) indicates if the oc-svm was trained in dual space
-	isMKL = False
 
 	alphas = []	# (vector) dual solution vector
 	svs = []	# (vector) list of support vector (contains indices)
 
 	threshold = matrix(0.0)	# (scalar) the optimized threshold (rho)
 
+	kernel_ids = []
 
-	def __init__(self, X, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0, ktype='linear', param=1.0):
+	mix = 1.0
+
+	def __init__(self, X, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0, ktype='mkl_rbf', param=[1.0]):
 		self.X = X
 		self.y = y
 		self.kappa = kappa
@@ -56,7 +55,13 @@ class Cssad:
 		self.ktype = ktype
 		self.kparam = param
 		(self.dims,self.samples) = X.size
-		
+
+		if (ktype=='mkl_rbf'):
+			self.isMKL = True
+			self.ktype = 'rbf'
+			print('MKL RBF enabled')
+
+
 		# these are counters for pos,neg and unlabeled examples
 		npos = nunl = nneg = 0
 		# these vectors are used in the dual optimization algorithm
@@ -88,23 +93,67 @@ class Cssad:
 
 
 	def train_dual(self):
+		# generate the base kernel matrix 
+		self.kernel_ids = np.zeros((self.samples,), dtype=np.int)
+		P = matrix(1.0, (self.samples, self.samples))
+
+		t = self.mix
+
+		selected = range(self.samples)
+		for i in range(len(self.kparam)):
+			# 1. get next kernel parameter and generate corresponding kernel
+			par = self.kparam[i]
+			nsel = len(selected)
+			print('Current iteration {0}. Next parameter {1} for {2} examples..'.format(i,par,nsel))
+			Q = Kernel.get_kernel(self.X, self.X, self.ktype, par)
+			
+			sigma = t
+			if i==0: sigma = 1.0
+
+			# 2. augment kernels
+			for k in range(len(selected)):
+				j = selected[k]
+				P[j,:] = (1-sigma)*P[j,:] + sigma*Q[j,:]
+				foo = P[j,j]
+				P[:,j] = (1-sigma)*P[:,j] + sigma*Q[:,j]	
+				P[j,j] = foo
+
+			self.kernel_ids[selected] = i
+			
+			# train with current kernel
+			self.train_dual_inner(P)
+			# select examples
+			selected = []
+			(thres,MSG) = self.apply_dual(self.X)
+			T = np.array(self.get_threshold())[0,0]
+			for j in range(self.samples):
+				#if (self.y[j]==+1 and thres[j]<T):
+			#		selected.append(j)
+				#if (self.y[j]==-1 and thres[j]>(T-CssadMKL.PRECISION)):
+				if self.y[j]==-1:
+					selected.append(j)
+
+
+		print(self.kernel_ids[self.svs])
+		print(self.kernel_ids)
+
+		return CssadMKL.MSG_OK
+
+
+	def train_dual_inner(self, P):
 		"""Trains an one-class svm in dual with kernel."""
 		if (self.samples<1 & self.dims<1):
 			print('Invalid training data.')
-			return Cssad.MSG_ERROR
+			return CssadMKL.MSG_ERROR
 
 		# number of training examples
 		N = self.samples
-
-		# generate a kernel matrix
-		P = Kernel.get_kernel(self.X, self.X, self.ktype, self.kparam)
 
 		# generate the label kernel
 		Y = self.cy.trans()*self.cy
 		
 		# generate the final PDS kernel
 		P = mul(Y,P)
-
 
 		# there is no linear part of the objective
 		q = matrix(0.0, (N,1))
@@ -113,6 +162,13 @@ class Cssad:
 		A = self.cy
 		b = matrix(1.0, (1,1))
 
+		#from matplotlib.pyplot import *
+		#pcolor(np.array(P))
+		#show()
+		#print(b)
+		(u,s,v) = np.linalg.svd(np.array(P)) 
+		print(s)
+		
 		# inequality constraints: G alpha <= h
 		# 1) alpha_i  <= C_i  
 		# 2) -alpha_i <= 0
@@ -131,7 +187,7 @@ class Cssad:
 			h  = matrix([h1,h2])
 
 		# solve the quadratic programm
-		sol = qp(P,-q,G,h,A,b)
+		sol = qp(P,-q,G,h,A,b,solver="mosek")
 
 
 		# mark dual as solved
@@ -145,7 +201,7 @@ class Cssad:
 		# 2. store all support vector with alpha_i < C in 'margins' 
 		self.svs = []
 		for i in range(N):
-			if (self.alphas[i]>Cssad.PRECISION):
+			if (self.alphas[i]>CssadMKL.PRECISION):
 				self.svs.append(i)
 
 		# these should sum to one
@@ -183,18 +239,18 @@ class Cssad:
 		T = np.array(self.threshold)[0,0]
 		cnt = 0
 		for i in range(len(self.svs)):
-			if thres[i,0]<(T-Cssad.PRECISION):
+			if thres[i,0]<(T-CssadMKL.PRECISION):
 				cnt += 1
 		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
 
-		return Cssad.MSG_OK
+		return CssadMKL.MSG_OK
 
 	def calculate_threshold_dual(self):
 		# 1. find all support vectors, i.e. 0 < alpha_i <= C
 		# 2. store all support vector with alpha_i < C in 'margins' 
 		margins = []
 		for i in self.svs:
-			if (self.alphas[i]<(self.cC[i,0]-Cssad.PRECISION)):
+			if (self.alphas[i]<(self.cC[i,0]-CssadMKL.PRECISION)):
 				margins.append(i)
 
 		# 3. infer threshold from examples that have 0 < alpha_i < Cx
@@ -226,10 +282,10 @@ class Cssad:
 			self.threshold = 0.5*(pos+neg)
 		# b) there is only a negative example, approx with looser threshold  
 		if (flag==False and flag_n==True and flag_p==False):
-			self.threshold = neg-Cssad.PRECISION
+			self.threshold = neg-CssadMKL.PRECISION
 		# c) there is only a positive example, approx with tighter threshold
 		if (flag==False and flag_n==False and flag_p==True):
-			self.threshold = pos+Cssad.PRECISION
+			self.threshold = pos+CssadMKL.PRECISION
 
 		# d) no pos,neg or unlabeled example with 0<alpha<Cx found :(
 		if (flag==flag_p==flag_n==False):
@@ -272,7 +328,7 @@ class Cssad:
 
 		self.threshold = matrix(self.threshold)
 		print('New threshold is {0}'.format(self.threshold))
-		return Cssad.MSG_OK
+		return CssadMKL.MSG_OK
 
 	def get_threshold(self):
 		return self.threshold
@@ -284,21 +340,35 @@ class Cssad:
 		"""Application of a dual trained oc-svm."""
 		# number of support vectors
 		N = len(self.svs)
+		(Nd,Ny) = Y.size
 
 		# check number and dims of test data
 		(tdims,tN) = Y.size
 		if (self.dims!=tdims or tN<1):
 			print('Invalid test data')
-			return 0, Cssad.MSG_ERROR
+			return 0, CssadMKL.MSG_ERROR
 
 		if (self.isDualTrained!=True):
 			print('First train, then test.')
-			return 0, Cssad.MSG_ERROR
+			return 0, CssadMKL.MSG_ERROR
 
 		# generate a kernel matrix
-		P = Kernel.get_kernel(Y, self.X[:,self.svs], self.ktype, self.kparam)
+		#P = Kernel.get_kernel(Y, self.X[:,self.svs], self.ktype, self.kparam[0])
+
+		t = self.mix
+		P = matrix(1.0, (Ny,N))
+		for i in range(len(self.kparam)):
+			par = self.kparam[i]
+			sigma = t
+			if i==0: sigma = 1.0
+			print('Current iteration {0}. Next parameter {1}..'.format(i,par))
+			Q = Kernel.get_kernel(Y, self.X[:,self.svs], self.ktype, par)
+			for j in range(N):
+				if (self.kernel_ids[self.svs[j]]>=i):
+					P[:,j] = (1-sigma)*P[:,j] + sigma*Q[:,j]
+
 
 		# apply trained classifier
 		prod = matrix([self.alphas[i,0]*self.cy[0,i] for i in self.svs],(N,1))
 		res = matrix([dotu(P[i,:],prod) for i in range(tN)]) 
-		return res, Cssad.MSG_OK
+		return res, CssadMKL.MSG_OK
