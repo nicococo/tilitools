@@ -139,7 +139,7 @@ class Cssad:
 
 
 		# solve the quadratic programm
-		sol = qp(P,-q,G,h,A,b,solver="mosek")
+		sol = qp(P,-q,G,h,A,b)
 
 
 		# mark dual as solved
