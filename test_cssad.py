@@ -11,8 +11,8 @@ from errormeasures import ErrorMeasures
 if __name__ == '__main__':
 # example constants (training set size and splitting)
 	N_pos = 200
-	N_neg = 200
-	N_unl = 100
+	N_neg = 100
+	N_unl = 50
 
 	# generate training labels
 	yp = co.matrix(1,(1,N_pos),'i')
@@ -21,6 +21,7 @@ if __name__ == '__main__':
 	Dy = co.matrix([[yp], [yu], [yn], [yn], [yn], [yn]])
 	
 	# generate training data
+	co.setseed(11)
 	Dtrainp = co.normal(2,N_pos)*0.5
 	Dtrainu = co.normal(2,N_unl)*0.5
 	Dtrainn = co.normal(2,N_neg)*0.2
@@ -31,7 +32,7 @@ if __name__ == '__main__':
 	Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0], [Dtrainn-1.0], [Dtrain21], [Dtrain22]])
 
 	# train convex semi-supervised anomaly detection
-	svm = Cssad(Dtrain,Dy,0.2,1.0,1.0,1.0,'rbf',0.1)
+	svm = Cssad(Dtrain,Dy,3.2,0.5,0.5,0.6,'rbf',0.2)
 	#svm = Ocsvm(Dtrain,1.0,'rbf',0.5)
 	svm.train_dual()
 
@@ -40,8 +41,8 @@ if __name__ == '__main__':
 	#pred -= svm.get_threshold()
 	pred = np.array(pred)
 	pred = pred.transpose()
-	auc = ErrorMeasures(np.round(-0.5*Dy+0.2),-pred)
-	print('AUC score for the training data: {0}'.format(auc.auc()))
+	#auc = ErrorMeasures(np.round(-0.5*Dy+0.2),-pred)
+	#print('AUC score for the training data: {0}'.format(auc.auc()))
 
 	# generate test data from a grid for nicer plots
 	delta = 0.1

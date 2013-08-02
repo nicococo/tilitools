@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse
+from cvxopt import matrix,spmatrix,sparse,exp
 from cvxopt.blas import dot,dotu
 from cvxopt.solvers import qp
 import numpy as np
@@ -23,8 +23,9 @@ class Kernel:
 
 		if type=='rbf':
 			print('Calculating Gaussian kernel with size {0}x{1}.'.format(Xn,Yn))
-			kernel = matrix([ np.exp(-param*dotu(X[:,i]-Y[:,j],X[:,i]-Y[:,j])) for j in range(Yn) for i in range(Xn)], (Xn,Yn), 'd')
-
+			kernel = matrix([dotu(X[:,i]-Y[:,j],X[:,i]-Y[:,j]) for j in range(Yn) for i in range(Xn)], (Xn,Yn))
+			#kernel = matrix([dotu(X[:,i],X[:,i])-2*dotu(X[:,i],Y[:,j])+dotu(Y[:,j],Y[:,j]) for j in range(Yn) for i in range(Xn)], (Xn,Yn))
+			kernel = exp(-param*kernel)
 		return kernel
 
 

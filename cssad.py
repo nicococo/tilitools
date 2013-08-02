@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,mul
+from cvxopt import matrix,spmatrix,sparse,mul,spdiag
 from cvxopt.blas import dot,dotu
 from cvxopt.solvers import qp
 import numpy as np
@@ -101,10 +101,17 @@ class Cssad:
 
 		# generate the label kernel
 		Y = self.cy.trans()*self.cy
-		
-		# generate the final PDS kernel
-		P = mul(Y,P)
 
+		# generate the final PDS kernel
+		#P = mul(P,Y) + 0.1*spmatrix(1.0, range(N), range(N))
+		P = mul(P,Y) 
+
+		eigs = np.linalg.eigvalsh(np.array(P))
+		print(np.linalg.eigvalsh(np.array(P)))
+		if (eigs[0]<0.0):
+			print('Smallest eigenvalue is {0}'.format(eigs[0]))
+			P += spdiag([-eigs[0] for i in range(N)])
+			print(np.linalg.eigvalsh(np.array(P)))
 
 		# there is no linear part of the objective
 		q = matrix(0.0, (N,1))
@@ -123,15 +130,16 @@ class Cssad:
 		h2 = matrix(0.0, (N,1))
 		h3 = -self.kappa
 		
-		G  = sparse([G1,-G1,G3])
-		h  = matrix([h1,h2,h3])
-		if (self.labeled==0):
-			print('No labeled data found.')
-			G  = sparse([G1,-G1])
-			h  = matrix([h1,h2])
+		G  = sparse([G1,-G1])
+		h  = matrix([h1,h2])
+		if (self.labeled>0):
+			print('Labeled data found.')
+			G  = sparse([G1,-G1,G3])
+			h  = matrix([h1,h2,h3])
+
 
 		# solve the quadratic programm
-		sol = qp(P,-q,G,h,A,b)
+		sol = qp(P,-q,G,h,A,b,solver="mosek")
 
 
 		# mark dual as solved
