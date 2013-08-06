@@ -43,7 +43,7 @@ class CssadMKL:
 
     kernel_ids = []
 
-    mix = 0.4
+    mix = 1.0
     mk_coef = []
     USE_MK = False
 
@@ -153,6 +153,35 @@ class CssadMKL:
 
         return CssadMKL.MSG_OK
 
+
+    def train_dual_cc(self, theta=1.0):
+        # assume that there are exactly 2 kernels
+        if len(self.kparam)!=2:
+            print('Convex combination methods only works for exactly 2 kernels.')
+            return CssadMKL.MSG_ERROR
+
+        # generate the base kernel matrix 
+        P = matrix(0.0, (self.samples, self.samples))
+
+        self.USE_MK=True
+        self.mk_coef = [theta, (1.0-theta)]
+        self.mk_coef = matrix(self.mk_coef)
+        print(self.mk_coef)
+
+        for i in range(len(self.kparam)):
+            # 1. get next kernel parameter and generate corresponding kernel
+            par = self.kparam[i]
+            Q = Kernel.get_kernel(self.X, self.X, self.ktype, par)
+            
+            # 2. augment kernels        
+            sigma = self.mk_coef[i]
+            P = P + sigma*Q
+
+        print(P.size)
+        # train with current kernel
+        self.train_dual_inner(P)
+
+        return CssadMKL.MSG_OK
 
     def train_dual_mk(self):
         # generate the base kernel matrix 

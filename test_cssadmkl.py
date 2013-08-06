@@ -31,9 +31,9 @@ if __name__ == '__main__':
     Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0], [Dtrainn-1.0], [Dtrain21], [Dtrain22]])
 
     # train convex semi-supervised anomaly detection
-    svm = CssadMKL(Dtrain,Dy,8.1,0.1,1.0,1.0,'mkl_rbf',[0.1, 0.2, 1.4, 4.0, 8.0])
+    svm = CssadMKL(Dtrain,Dy,14.1,0.04,0.1,1.0,'mkl_rbf',[0.1, 8.0])
     #svm = Ocsvm(Dtrain,1.0,'rbf',0.5)
-    svm.train_dual_mk()
+    svm.train_dual_cc(0.3)
 
     thres = np.array(svm.get_threshold())[0,0]
     (pred,MSG) = svm.apply_dual(Dtrain)
