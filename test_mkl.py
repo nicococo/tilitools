@@ -11,7 +11,9 @@ from kernel import Kernel
 
 
 if __name__ == '__main__':
-	USE_OCSVM = True
+	USE_OCSVM = False # either use OCSVM or SSAD
+	P_NORM = 2.0 # mixing coefficient lp-norm regularizer
+
 	# example constants (training set size and splitting)
 	k_type = 'rbf'
 	# attention: this is the shape parameter of a Gaussian
@@ -19,9 +21,9 @@ if __name__ == '__main__':
 	k_param = 1.0
 
 
-	N_pos = 10
-	N_neg = 10
-	N_unl = 50
+	N_pos = 20
+	N_neg = 20
+	N_unl = 100
 
 	foo = [co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i')]
 	print(len(foo))
@@ -35,8 +37,8 @@ if __name__ == '__main__':
 	# generate training data
 	co.setseed(11)
 	Dtrainp = co.normal(2,N_pos)*0.4
-	Dtrainu = co.normal(2,N_unl)*0.5
-	Dtrainn = co.normal(2,N_neg)*0.3
+	Dtrainu = co.normal(2,N_unl)*0.4
+	Dtrainn = co.normal(2,N_neg)*0.2
 	Dtrain21 = Dtrainn-1
 	Dtrain21[0,:] = Dtrainn[0,:]+1
 	Dtrain22 = -Dtrain21
@@ -50,7 +52,7 @@ if __name__ == '__main__':
 	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param/100.0)
 
 	# MKL: (default) use SSAD
-	ad = SSAD(kernel1,Dy,1.0,1.0,1.0/(N_unl*0.05),1.0)
+	ad = SSAD(kernel1,Dy,1.0,1.0,1.0/(N_unl*0.05),P_NORM)
 	if (USE_OCSVM==True):
 		(foo,samples) = Dy.size 
 		Dy = co.matrix(1.0,(1,samples))
