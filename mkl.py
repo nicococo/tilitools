@@ -4,9 +4,9 @@ from cvxopt.solvers import qp
 import numpy as np
 import math
 from kernel import Kernel  
-from cssad import Cssad
+from ssad import SSAD
 
-class CssadMKLWrapper:
+class MKLWrapper:
 	"""Lp-norm Multiple Kernel Learning Wrapper for convex semi-supervised anomaly detection
 
 		Note: 
@@ -26,10 +26,10 @@ class CssadMKLWrapper:
 	y = []	# (vector) corresponding labels (+1,-1 and 0 for unlabeled)
 	cy = [] # (vector) converted label vector (+1 for pos and unlabeled, -1 for outliers)
 	dm = [] # (vector) kernel mixing coefficients
-	ssad = [] # (method) convex semi-supervised anomaly detection
+	ssad = [] # (method) 
 	num_kernels = 0 # (scalar) number of kernels used
 
-	def __init__(self, kernels, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0, pnorm=1.0):
+	def __init__(self, ssad, kernels, y, pnorm=1.0):
 		""" Constructor """
 		self.kernels = kernels
 		self.y = y
@@ -38,6 +38,8 @@ class CssadMKLWrapper:
 		self.num_kernels = len(kernels)
 		self.dm = [1.0] * self.num_kernels
 		self.dm = [i/float(self.num_kernels) for i in self.dm]
+		self.ssad = ssad
+		self.ssad.set_train_kernel(self.combine_kernels(kernels))
 		print('MKL with {0} kernels.'.format(self.num_kernels))
 		
 		# these vectors are used in the dual optimization algorithm
@@ -45,8 +47,6 @@ class CssadMKLWrapper:
 		for i in range(self.samples):
 			if y[0,i]==-1:
 				self.cy[0,i] = -1.0
-
-		self.ssad = Cssad(self.combine_kernels(kernels),y,kappa,Cp,Cu,Cn)
 
 
 	def combine_kernels(self,kernels):
@@ -101,7 +101,7 @@ class CssadMKLWrapper:
 			iter+=1
 
 		print('Num iterations = {0}.'.format(iter))
-		return CssadMKLWrapper.MSG_OK
+		return MKLWrapper.MSG_OK
 
 
 	def get_threshold(self):
@@ -118,4 +118,4 @@ class CssadMKLWrapper:
 		(dim1,dim2) = kernels[0].size
 		mixed = self.combine_kernels(kernels)
 		(res,msg) = self.ssad.apply_dual(mixed);
-		return res, Cssad.MSG_OK
+		return res, MKLWrapper.MSG_OK

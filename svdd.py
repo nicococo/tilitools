@@ -4,7 +4,7 @@ from cvxopt.solvers import qp
 import numpy as np
 from kernel import Kernel  
 
-class Svdd:
+class SVDD:
 	"""Support vector data description"""
 
 	MSG_ERROR = -1	# (scalar) something went wrong
@@ -12,45 +12,41 @@ class Svdd:
 
 	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
 
-	X = [] 	# (matrix) our training data
+	kernel = [] 	# (matrix) our training kernel
+	norms = []
 	samples = -1 	# (scalar) amount of training data in X
-	dims = -1 	# (scalar) number of dimensions in input space
 
 	C = 1.0	# (scalar) the regularization constant > 0
 
-	ktype = 'linear' # (string) type of kernel to use
-	kparam = 1.0	# (scalar) additional parameter for the kernel
-
-	isPrimalTrained = False	# (boolean) indicates if the oc-svm was trained in primal space
 	isDualTrained = False	# (boolean) indicates if the oc-svm was trained in dual space
-
 	alphas = []	# (vector) dual solution vector
 	svs = [] # (vector) support vector indices
-
 	threshold = 0.0	# (scalar) the optimized threshold (rho)
 
-	def __init__(self, X, C=1.0, type='linear', param=1.0):
-		self.X = X
+
+
+	def __init__(self, kernel, C=1.0):
+		self.kernel = kernel
 		self.C = C
-		self.ktype = type
-		self.kparam = param
-		(self.dims,self.samples) = X.size
-		print('Creating new one-class svm with {0}x{1} (dims x samples) and C={2}.'.format(self.dims,self.samples,C))
-		print('Kernel is {0} with parameter (if any) set to {1}'.format(type,param))
+		(self.samples,foo) = kernel.size
+		self.norms = [self.kernel[i,i] for i in range(self.samples)]
+		print('Creating new SVDD with {0} samples and C={1}.'.format(self.samples,C))
+
 
 
 	def train_dual(self):
 		"""Trains an one-class svm in dual with kernel."""
-		if (self.samples<1 & self.dims<1):
+		if (self.samples<1):
 			print('Invalid training data.')
-			return Svdd.MSG_ERROR
+			return SVDD.MSG_ERROR
 
 		# number of training examples
 		N = self.samples
 		C = self.C
 
 		# generate a kernel matrix
-		P = Kernel.get_kernel(self.X, self.X, self.ktype, self.kparam)
+		P = self.kernel
+
 		# this is the diagonal of the <kernel matrix
 		q = matrix([0.5*P[i,i] for i in range(N)], (N,1))
 	
@@ -76,58 +72,69 @@ class Svdd:
 		# find support vectors
 		self.svs = []
 		for i in range(N):
-			if self.alphas[i]>Svdd.PRECISION:
+			if self.alphas[i]>SVDD.PRECISION:
 				self.svs.append(i)
 
 		# find support vectors with alpha < C for threshold calculation
 		self.threshold = 10**8
 		flag = False
 		for i in self.svs:
-			if self.alphas[i]<(C-Svdd.PRECISION) and flag==False:
-				(self.threshold, MSG) = self.apply_dual(self.X[:,i])
+			if self.alphas[i]<(C-SVDD.PRECISION) and flag==False:
+				(self.threshold, MSG) = self.apply_dual(self.kernel[i,self.svs],self.norms[i])
 				flag=True
 				break
 
 		# no threshold set yet?
 		if (flag==False):
-			(thres, MSG) = self.apply_dual(self.X[:,self.svs])          
+			(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs],self.norms[self.svs])          
 			self.threshold = matrix(min(thres))
 
 		print('Threshold is {0}'.format(self.threshold))
-		return Svdd.MSG_OK
+		return SVDD.MSG_OK
+	
+
+
+	def set_train_kernel(self, kernel):
+		(dim1,dim2) = kernel.size
+		if (dim1!=dim2 and dim1!=self.samples):
+			print('(Kernel) Wrong format.')
+			return SVDD.MSG_ERROR
+		self.kernel = kernel;
+		self.norms = [self.kernel[i,i] for i in range(self.samples)]
+		return SVDD.MSG_OK
+
+	
 
 	def get_threshold(self):
 		return self.threshold
 
+	def get_alphas(self):
+		return self.alphas
+
+
 	def get_support_dual(self):
 		return self.svs
 
-	def apply_dual(self, Y):
-		"""Application of a dual trained oc-svm."""
 
+	def get_support_dual_values(self):
+		return self.alphas[self.svs]
+	
+
+	def apply_dual(self, k, norms):
+		"""Application of a dual trained SVDD.
+		   k \in m(test_data x train support vectors)
+		   norms \in (test_data x 1)
+		"""
 		# number of training examples
 		N = len(self.svs)
-		d = self.dims
-
-		# check number and dims of test data
-		(tdims,tN) = Y.size
-		if (d!=tdims | tN<1):
-			print('Invalid test data')
-			return 0, Svdd.MSG_ERROR
+		(tN,foo) = k.size
 
 		if (self.isDualTrained!=True):
 			print('First train, then test.')
-			return 0, Svdd.MSG_ERROR
+			return 0, SVDD.MSG_ERROR
 
-		# generate a kernel matrix
-		P = Kernel.get_kernel(Y, self.X[:,self.svs], self.ktype, self.kparam)
-
-		# apply trained classifier
-		Ps = Kernel.get_diag_kernel(Y, self.ktype, self.kparam)
-		Pc = Kernel.get_kernel(self.X[:,self.svs], self.X[:,self.svs], self.ktype, self.kparam)
-
+		Pc = self.kernel[self.svs,self.svs]
 		resc = matrix([dotu(Pc[i,:],self.alphas[self.svs]) for i in range(N)]) 
 		resc = dotu(resc,self.alphas[self.svs])
-
-		res = resc - 2*matrix([dotu(P[i,:],self.alphas[self.svs]) for i in range(tN)]) + Ps
-		return res, Svdd.MSG_OK
+		res = resc - 2*matrix([dotu(k[i,:],self.alphas[self.svs]) for i in range(tN)]) + norms
+		return res, SVDD.MSG_OK

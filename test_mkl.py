@@ -4,14 +4,14 @@ import pylab as pl
 import matplotlib.pyplot as plt
 import math
 
-from cssad import Cssad
-from cssadmklwrapper import CssadMKLWrapper
-from ocsvm import Ocsvm
-from errormeasures import ErrorMeasures
+from ssad import SSAD
+from ocsvm import OCSVM
+from mkl import MKLWrapper
 from kernel import Kernel
 
 
 if __name__ == '__main__':
+	USE_OCSVM = True
 	# example constants (training set size and splitting)
 	k_type = 'rbf'
 	# attention: this is the shape parameter of a Gaussian
@@ -19,8 +19,8 @@ if __name__ == '__main__':
 	k_param = 1.0
 
 
-	N_pos = 1000
-	N_neg = 100
+	N_pos = 10
+	N_neg = 10
 	N_unl = 50
 
 	foo = [co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i')]
@@ -49,8 +49,14 @@ if __name__ == '__main__':
 	kernel2 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param/10.0)
 	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param/100.0)
 
-	# MKL
-	ssad = CssadMKLWrapper([kernel1,kernel2,kernel3],Dy,1.0,1.0,1.0/(N_unl*0.05),1.0,1.0)
+	# MKL: (default) use SSAD
+	ad = SSAD(kernel1,Dy,1.0,1.0,1.0/(N_unl*0.05),1.0)
+	if (USE_OCSVM==True):
+		(foo,samples) = Dy.size 
+		Dy = co.matrix(1.0,(1,samples))
+		ad = OCSVM(kernel1,1.0)	
+
+	ssad = MKLWrapper(ad,[kernel1,kernel2,kernel3],Dy,2.0)
 	ssad.train_dual()
 
 	# build the test kernel

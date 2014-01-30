@@ -3,15 +3,23 @@ import numpy as np
 import pylab as pl
 import matplotlib.pyplot as plt
 
-from ocsvm import Ocsvm
-from svdd import Svdd
-
+from svdd import SVDD
+from kernel import Kernel
 
 if __name__ == '__main__':
+	# kernel parameter and type
+	kparam = 0.1
+	ktype = 'rbf'
+
+	# generate raw training data
 	Dtrain = co.normal(2,100)
-	svm = Svdd(Dtrain,0.9,'rbf',0.1)
-	svm.train_dual()
-1
+	# build kernel
+	kernel = Kernel.get_kernel(Dtrain,Dtrain,ktype,kparam)
+	# train svdd
+	svdd = SVDD(kernel,0.9)
+	svdd.train_dual()
+
+	# generate test data grid
 	delta = 0.1
 	x = np.arange(-4.0, 4.0, delta)
 	y = np.arange(-4.0, 4.0, delta)
@@ -22,14 +30,19 @@ if __name__ == '__main__':
 	Dtest = np.append(Xf,Yf,axis=0)
 	print(Dtest.shape)
 
-	(res,state) = svm.apply_dual(co.matrix(Dtest))
-	print(state)
+	# build test kernel	
+	kernel = Kernel.get_kernel(co.matrix(Dtest),Dtrain[:,svdd.get_support_dual()],ktype,kparam)
+	# for svdd we need the data norms additionally
+	norms = Kernel.get_diag_kernel(co.matrix(Dtest),ktype,kparam)
+
+	(res,state) = svdd.apply_dual(kernel,norms)
 	print(res.size)
 
+	# nice visualization
 	Z = np.reshape(res,(sx,sy))
 	plt.contourf(X, Y, Z)
-	plt.contour(X, Y, Z, [np.array(svm.get_threshold())[0,0]])
-	plt.scatter(Dtrain[0,svm.get_support_dual()],Dtrain[1,svm.get_support_dual()],40,c='k') 
+	plt.contour(X, Y, Z, [np.array(svdd.get_threshold())[0,0]])
+	plt.scatter(Dtrain[0,svdd.get_support_dual()],Dtrain[1,svdd.get_support_dual()],40,c='k') 
 	plt.scatter(Dtrain[0,:],Dtrain[1,:],10)
 	plt.show()
 

@@ -4,7 +4,7 @@ from cvxopt.solvers import qp
 import numpy as np
 from kernel import Kernel  
 
-class Cssad:
+class SSAD:
 	"""Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer
 		as described in Goernitz et al., Towards Supervised Anomaly Detection, JAIR, 2013
 
@@ -98,16 +98,16 @@ class Cssad:
 		(dim1,dim2) = kernel.size
 		if (dim1!=dim2 and dim1!=self.samples):
 			print('(Kernel) Wrong format.')
-			return Cssad.MSG_ERROR
+			return SSAD.MSG_ERROR
 		self.kernel = kernel;
-		return Cssad.MSG_OK
+		return SSAD.MSG_OK
 
 
 	def train_dual(self):
 		"""Trains an one-class svm in dual with kernel."""
 		if (self.samples<1):
 			print('Invalid training data.')
-			return Cssad.MSG_ERROR
+			return SSAD.MSG_ERROR
 
 		# number of training examples
 		N = self.samples
@@ -159,7 +159,7 @@ class Cssad:
 		# 2. store all support vector with alpha_i < C in 'margins' 
 		self.svs = []
 		for i in range(N):
-			if (self.alphas[i]>Cssad.PRECISION):
+			if (self.alphas[i]>SSAD.PRECISION):
 				self.svs.append(i)
 
 		# these should sum to one
@@ -197,13 +197,11 @@ class Cssad:
 		T = np.array(self.threshold)[0,0]
 		cnt = 0
 		for i in range(len(self.svs)):
-			if thres[i,0]<(T-Cssad.PRECISION):
+			if thres[i,0]<(T-SSAD.PRECISION):
 				cnt += 1
 		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
 
-		return Cssad.MSG_OK
-
-
+		return SSAD.MSG_OK
 
 
 	def calculate_threshold_dual(self):
@@ -211,7 +209,7 @@ class Cssad:
 		# 2. store all support vector with alpha_i < C in 'margins' 
 		margins = []
 		for i in self.svs:
-			if (self.alphas[i]<(self.cC[i,0]-Cssad.PRECISION)):
+			if (self.alphas[i]<(self.cC[i,0]-SSAD.PRECISION)):
 				margins.append(i)
 
 		# 3. infer threshold from examples that have 0 < alpha_i < Cx
@@ -245,10 +243,10 @@ class Cssad:
 			self.threshold = 0.5*(pos+neg)
 		# b) there is only a negative example, approx with looser threshold  
 		if (flag==False and flag_n==True and flag_p==False):
-			self.threshold = neg-Cssad.PRECISION
+			self.threshold = neg-SSAD.PRECISION
 		# c) there is only a positive example, approx with tighter threshold
 		if (flag==False and flag_n==False and flag_p==True):
-			self.threshold = pos+Cssad.PRECISION
+			self.threshold = pos+SSAD.PRECISION
 
 		# d) no pos,neg or unlabeled example with 0<alpha<Cx found :(
 		if (flag==flag_p==flag_n==False):
@@ -291,15 +289,11 @@ class Cssad:
 
 		self.threshold = matrix(self.threshold)
 		print('New threshold is {0}'.format(self.threshold))
-		return Cssad.MSG_OK
-
-
+		return SSAD.MSG_OK
 
 
 	def get_threshold(self):
 		return self.threshold
-
-
 
 
 	def get_support_dual(self):
@@ -309,8 +303,9 @@ class Cssad:
 	def get_alphas(self):
 		return self.alphas
 
+
 	def apply_dual(self, kernel):
-		""" Application of dual trained cssad.
+		""" Application of dual trained ssad.
 			kernel = Kernel.get_kernel(Y, X[:,cssad.svs], kernel_type, kernel_param)
 		"""
 		# number of support vectors
@@ -320,9 +315,9 @@ class Cssad:
 		(tN,talphas) = kernel.size
 		if (tN<1):
 			print('Invalid test data')
-			return 0, Cssad.MSG_ERROR
+			return 0, SSAD.MSG_ERROR
 
 		# apply trained classifier
 		prod = matrix([self.alphas[i,0]*self.cy[0,i] for i in self.svs],(N,1))
 		res = matrix([dotu(kernel[i,:],prod) for i in range(tN)]) 
-		return res, Cssad.MSG_OK
+		return res, SSAD.MSG_OK
