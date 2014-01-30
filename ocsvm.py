@@ -141,4 +141,7 @@ class Ocsvm:
 
 		# apply trained classifier
 		res = matrix([dotu(P[i,:],self.alphas[self.svs]) for i in range(tN)]) 
+
+		# apply trained classifier
+		#res = matrix([sum(P[i,:]) for i in range(tN)]) 
 		return res, Ocsvm.MSG_OK

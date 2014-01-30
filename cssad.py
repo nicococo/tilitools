@@ -5,11 +5,26 @@ import numpy as np
 from kernel import Kernel  
 
 class Cssad:
-	"""Convex semi-supervised anomaly detection with hinge loss and L2 regularizer
+	"""Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer
 		as described in Goernitz et al., Towards Supervised Anomaly Detection, JAIR, 2013
 
-		minimize_{w,p,l,xi>=0} 0.5 ||w||^2 - p - kappa*l + Cu \sum_i xi + 
+	           minimize 			0.5 ||w||^2_2 - rho - kappa*gamma 
+	    {w,rho,gamma>=0,xi>=0} 		+ eta_u sum_i xi_i + eta_l sum_j xi_j 
+   		subject to   <w,phi(x_i)> >= rho - xi_i 
+   				  y_j<w,phi(x_j)> >= y_j*rho + gamma - xi_j
 
+		And the corresponding dual optimization problem:
+
+   			maximize -0.5 sum_(i,j) alpha_i alpha_j y_i y_j k(x_i,x_j)   
+		{0<=alpha_i<=eta_i}
+		subject to 	kappa <= sum_j alpha_j  (for all labeled examples)
+
+		For better readability, we also introduce labels y_i=+1 for all unlabeled 
+		examples which enables us to combine sums.
+
+		Note: Only dual solution is supported.
+
+		Written by: Nico Goernitz, TU Berlin, 2013/14
 	"""
 
 	MSG_ERROR = -1	# (scalar) something went wrong
@@ -17,14 +32,11 @@ class Cssad:
 
 	PRECISION = 10**-5 # important: effects the threshold, support vectors and speed!
 
-	X = [] 	# (matrix) our training data
-	y = []	# (vector) corresponding labels (+1,-1 and 0 for unlabeled)
 	cy = [] # (vector) converted label vector (+1 for pos and unlabeled, -1 for outliers)
 	cl = [] # (vector) converted label vector (+1 for labeled examples, 0.0 for unlabeled)
 	
 	samples = -1 	# (scalar) amount of training data in X
 	labeled = -1 	# (scalar) amount of labeled data
-	dims = -1 	# (scalar) number of dimensions in input space
 
 	cC = [] # (vector) converted upper bound box constraint for each example
 	Cp = 1.0	# (scalar) the regularization constant for positively labeled samples > 0
@@ -33,12 +45,8 @@ class Cssad:
 
 	kappa = 1.0 # (scalar) regularizer for importance of the margin
 
-	ktype = 'linear' # (string) type of kernel to use
-	kparam = 1.0	# (scalar) additional parameter for the kernel
-
-	isPrimalTrained = False	# (boolean) indicates if the oc-svm was trained in primal space
-	isDualTrained = False	# (boolean) indicates if the oc-svm was trained in dual space
-	isMKL = False
+	kernel = []	# (matrix) kernel matrix
+	y = []	# (vector) corresponding labels (+1,-1 and 0 for unlabeled)
 
 	alphas = []	# (vector) dual solution vector
 	svs = []	# (vector) list of support vector (contains indices)
@@ -46,16 +54,16 @@ class Cssad:
 	threshold = matrix(0.0)	# (scalar) the optimized threshold (rho)
 
 
-	def __init__(self, X, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0, ktype='linear', param=1.0):
-		self.X = X
+
+	def __init__(self, kernel, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0):
+		""" Constructor """
+		self.kernel = kernel
 		self.y = y
 		self.kappa = kappa
 		self.Cp = Cp
 		self.Cu = Cu
 		self.Cn = Cn
-		self.ktype = ktype
-		self.kparam = param
-		(self.dims,self.samples) = X.size
+		(foo,self.samples) = y.size
 		
 		# these are counters for pos,neg and unlabeled examples
 		npos = nunl = nneg = 0
@@ -82,32 +90,36 @@ class Cssad:
 			print('There are no labeled examples hence, setting kappa=0.0')
 			self.kappa = 0.0
 
-		print('Creating new convex semi-supervised anomaly detection with {0}x{1} (dims x samples).'.format(self.dims,self.samples))
+		print('Creating new convex semi-supervised anomaly detection with {0} samples.'.format(self.samples))
 		print('There are {0} positive, {1} unlabeled and {2} outlier examples.'.format(npos,nunl,nneg))
-		print('Kernel is {0} with parameter (if any) set to {1}'.format(ktype,param))
+
+
+	def set_train_kernel(self,kernel):
+		(dim1,dim2) = kernel.size
+		if (dim1!=dim2 and dim1!=self.samples):
+			print('(Kernel) Wrong format.')
+			return Cssad.MSG_ERROR
+		self.kernel = kernel;
+		return Cssad.MSG_OK
 
 
 	def train_dual(self):
 		"""Trains an one-class svm in dual with kernel."""
-		if (self.samples<1 & self.dims<1):
+		if (self.samples<1):
 			print('Invalid training data.')
 			return Cssad.MSG_ERROR
 
 		# number of training examples
 		N = self.samples
 
-		# generate a kernel matrix
-		P = Kernel.get_kernel(self.X, self.X, self.ktype, self.kparam)
-
 		# generate the label kernel
 		Y = self.cy.trans()*self.cy
 
 		# generate the final PDS kernel
-		#P = mul(P,Y) + 0.1*spmatrix(1.0, range(N), range(N))
-		P = mul(P,Y) 
+		P = mul(self.kernel,Y) 
 
+		# check for PDS
 		eigs = np.linalg.eigvalsh(np.array(P))
-		print(np.linalg.eigvalsh(np.array(P)))
 		if (eigs[0]<0.0):
 			print('Smallest eigenvalue is {0}'.format(eigs[0]))
 			P += spdiag([-eigs[0] for i in range(N)])
@@ -137,17 +149,11 @@ class Cssad:
 			G  = sparse([G1,-G1,G3])
 			h  = matrix([h1,h2,h3])
 
-
 		# solve the quadratic programm
 		sol = qp(P,-q,G,h,A,b)
 
-
-		# mark dual as solved
-		self.isDualTrained = True
-
 		# store solution
 		self.alphas = sol['x']
-		#print(self.alphas)
 
 		# 1. find all support vectors, i.e. 0 < alpha_i <= C
 		# 2. store all support vector with alpha_i < C in 'margins' 
@@ -187,7 +193,7 @@ class Cssad:
 		# infer threshold (rho)
 		self.calculate_threshold_dual()
 
-		(thres, MSG) = self.apply_dual(self.X[:,self.svs])
+		(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
 		T = np.array(self.threshold)[0,0]
 		cnt = 0
 		for i in range(len(self.svs)):
@@ -196,6 +202,9 @@ class Cssad:
 		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
 
 		return Cssad.MSG_OK
+
+
+
 
 	def calculate_threshold_dual(self):
 		# 1. find all support vectors, i.e. 0 < alpha_i <= C
@@ -208,7 +217,9 @@ class Cssad:
 		# 3. infer threshold from examples that have 0 < alpha_i < Cx
 		# where labeled examples lie on the margin and 
 		# unlabeled examples on the threshold
-		(thres,MSG) = self.apply_dual(self.X[:,margins])
+	
+		# build the test kernel
+		(thres,MSG) = self.apply_dual(self.kernel[margins,self.get_support_dual()])
 
 		idx = 0
 		pos = neg = 0.0
@@ -242,7 +253,7 @@ class Cssad:
 		# d) no pos,neg or unlabeled example with 0<alpha<Cx found :(
 		if (flag==flag_p==flag_n==False):
 			print('Poor you, guessing threshold...')
-			(thres,MSG) = self.apply_dual(self.X[:,self.svs])
+			(thres,MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
 			self.threshold = 0.0
 
 			idx = 0
@@ -282,31 +293,36 @@ class Cssad:
 		print('New threshold is {0}'.format(self.threshold))
 		return Cssad.MSG_OK
 
+
+
+
 	def get_threshold(self):
 		return self.threshold
+
+
+
 
 	def get_support_dual(self):
 		return self.svs
 
-	def apply_dual(self, Y):
-		"""Application of a dual trained oc-svm."""
+
+	def get_alphas(self):
+		return self.alphas
+
+	def apply_dual(self, kernel):
+		""" Application of dual trained cssad.
+			kernel = Kernel.get_kernel(Y, X[:,cssad.svs], kernel_type, kernel_param)
+		"""
 		# number of support vectors
 		N = len(self.svs)
 
 		# check number and dims of test data
-		(tdims,tN) = Y.size
-		if (self.dims!=tdims or tN<1):
+		(tN,talphas) = kernel.size
+		if (tN<1):
 			print('Invalid test data')
 			return 0, Cssad.MSG_ERROR
 
-		if (self.isDualTrained!=True):
-			print('First train, then test.')
-			return 0, Cssad.MSG_ERROR
-
-		# generate a kernel matrix
-		P = Kernel.get_kernel(Y, self.X[:,self.svs], self.ktype, self.kparam)
-
 		# apply trained classifier
 		prod = matrix([self.alphas[i,0]*self.cy[0,i] for i in self.svs],(N,1))
-		res = matrix([dotu(P[i,:],prod) for i in range(tN)]) 
+		res = matrix([dotu(kernel[i,:],prod) for i in range(tN)]) 
 		return res, Cssad.MSG_OK

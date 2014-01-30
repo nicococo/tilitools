@@ -7,7 +7,7 @@ from kernel import Kernel
 from cssad import Cssad
 
 class CssadMKLWrapper:
-	"""Multiple Kernel Learning Wrapper for convex semi-supervised anomaly detection
+	"""Lp-norm Multiple Kernel Learning Wrapper for convex semi-supervised anomaly detection
 
 		Note: 
 		- p-norm mkl supported
@@ -21,7 +21,7 @@ class CssadMKLWrapper:
 	PRECISION = 10**-5 # important: effects the threshold, support vectors and speed!
 
 	samples = -1 	# (scalar) amount of training data in X
-	gamma = 1.0 # (scalar) mixing coefficient regularizer 
+	pnorm = 2.0 # (scalar) mixing coefficient regularizer norm
 	kernels = []	# (3-tensor) (=list of cvxopt.matrix) kernel matrices
 	y = []	# (vector) corresponding labels (+1,-1 and 0 for unlabeled)
 	cy = [] # (vector) converted label vector (+1 for pos and unlabeled, -1 for outliers)
@@ -29,11 +29,11 @@ class CssadMKLWrapper:
 	ssad = [] # (method) convex semi-supervised anomaly detection
 	num_kernels = 0 # (scalar) number of kernels used
 
-	def __init__(self, kernels, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0, gamma=1.0):
+	def __init__(self, kernels, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0, pnorm=1.0):
 		""" Constructor """
 		self.kernels = kernels
 		self.y = y
-		self.gamma = gamma
+		self.pnorm = pnorm
 		(foo,self.samples) = y.size
 		self.num_kernels = len(kernels)
 		self.dm = [1.0] * self.num_kernels
@@ -57,7 +57,7 @@ class CssadMKLWrapper:
 		return mixed
 
 	def train_dual(self):
-		pnorm = 1.0
+		pnorm = self.pnorm
 		iter = 0
 		lastsol = [0.0]*self.num_kernels
 		while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>0.001:
@@ -103,53 +103,6 @@ class CssadMKLWrapper:
 		print('Num iterations = {0}.'.format(iter))
 		return CssadMKLWrapper.MSG_OK
 
-
-	def train_dual_old(self):
-		iter = 0
-		lastsol = [0.0]*self.num_kernels
-		while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>0.001:
-			# train ssad with current kernel mixing coefficients
-			self.ssad.set_train_kernel(self.combine_kernels(self.kernels))
-			self.ssad.train_dual()
-
-			# calculate new kernel mixing coefficients
-			lastsol = self.dm
-			alphas = self.ssad.get_alphas();
-			cy = self.cy
-			# linear part of the objective
-			q = matrix(0.0,(self.num_kernels,1))
-			for j in range(self.samples):
-				for k in range(self.samples):
-					foo = float(cy[k])*float(cy[j])*alphas[k]*alphas[j]
-					for l in range(self.num_kernels):
-						q[l] -= foo*self.kernels[l][j,k]
-			print(q)
-			# quadratic part of the objective
-			P = spdiag([1.0]*self.num_kernels)
-
-			# inequality constraints: G d <= h
-			# 2) -d_i <= 0
-			G  = spdiag([-1.0]*self.num_kernels)
-			h  = matrix(0.0,(self.num_kernels,1))
-
-			# solve the quadratic programm
-			sol = qp(P,float(self.gamma)*q,G,h)
-			dm = sol['x']
-			#frac = float(sum(dm))
-			#dm = [i/frac for i in dm]
-			dm_norm = 0.0
-			for i in range(self.num_kernels):
-				dm_norm += math.pow(abs(dm[i]),2.0)
-			dm_norm = math.pow(dm_norm,0.5)
-
-			print('New mixing coefficients:')
-			print(dm)
-			print(dm_norm)
-			self.dm = dm
-			iter+=1
-
-		print('Num iterations = {0}.'.format(iter))
-		return Cssad.MSG_OK
 
 	def get_threshold(self):
 		return self.ssad.get_threshold()

@@ -9,7 +9,7 @@ from svdd import Svdd
 
 if __name__ == '__main__':
 	Dtrain = co.normal(2,100)
-	svm = Ocsvm(Dtrain,0.1,'linear',0.1)
+	svm = Ocsvm(Dtrain,0.1,'rbf',10.8)
 	svm.train_dual()
 
 	delta = 0.07
