@@ -23,13 +23,14 @@ class SVDD:
 	svs = [] # (vector) support vector indices
 	threshold = 0.0	# (scalar) the optimized threshold (rho)
 
-
+	obj_primal = 0.0 # (scalar) primal objective value
+	obj_dual = 0.0  # (scalar) dual objective value
 
 	def __init__(self, kernel, C=1.0):
 		self.kernel = kernel
 		self.C = C
 		(self.samples,foo) = kernel.size
-		self.norms = [self.kernel[i,i] for i in range(self.samples)]
+		self.norms = matrix([self.kernel[i,i] for i in range(self.samples)])
 		print('Creating new SVDD with {0} samples and C={1}.'.format(self.samples,C))
 
 
@@ -69,6 +70,9 @@ class SVDD:
 		# store solution
 		self.alphas = sol['x']
 
+		self.obj_primal = sol['primal objective']
+		self.obj_dual = sol['dual objective']
+
 		# find support vectors
 		self.svs = []
 		for i in range(N):
@@ -104,6 +108,8 @@ class SVDD:
 		return SVDD.MSG_OK
 
 	
+	def get_objectives(self):
+		return (self.obj_primal, self.obj_dual)
 
 	def get_threshold(self):
 		return self.threshold
