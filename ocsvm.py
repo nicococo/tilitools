@@ -5,7 +5,13 @@ import numpy as np
 from kernel import Kernel
 
 class OCSVM:
-	"""One-class support vector machine"""
+	"""One-class support vector machine
+		
+		'Estimating the support of a high-dimensional distribution.',
+		Sch\"{o}lkopf, B and Platt, J C and Shawe-Taylor, J and Smola, a J and Williamson, R C,
+		Microsoft, 1999
+
+	"""
 
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
