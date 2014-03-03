@@ -4,7 +4,7 @@ from cvxopt.solvers import qp
 import numpy as np
 import math as math
 
-from kernel import Kernel  
+from kernel import Kernel
 from svdd import SVDD
 
 class SSVM:
@@ -22,7 +22,7 @@ class SSVM:
 	C = 1.0	# (scalar) the regularization constant > 0
 	sobj = [] # structured object contains various functions
 			  # e.g. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
-	w = [] # (vector) solution vector 
+	w = [] # (vector) solution vector
 	slacks = [] # (vector) slack variables
 
 
@@ -42,7 +42,7 @@ class SSVM:
 		# quadratic regularizer
 		P = spdiag(matrix([[matrix(0.0,(1,N))],[matrix(1.0,(1,DIMS))]]))
 		q = self.C*matrix([matrix(1.0,(N,1)),matrix(0.0,(DIMS,1))])
-		
+
 		# inequality constraints inits Gx <= h
 		G1 = spdiag(matrix([[matrix(-1.0,(1,N))],[matrix(0.0,(1,DIMS))]]))
 		G1 = G1[0:N,:]
@@ -90,7 +90,7 @@ class SSVM:
 			G = sparse([G1,G2])
 			h = matrix([[h1],[h2]])
 			res = qp(P,q,G,h.trans())
-		
+
 			# obtain solution
 			obj_primal = res['primal objective']
 			sol = res['x']

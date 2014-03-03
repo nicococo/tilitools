@@ -2,7 +2,7 @@ from cvxopt import matrix,spmatrix,sparse
 from cvxopt.blas import dot,dotu
 from cvxopt.solvers import qp
 import numpy as np
-from kernel import Kernel  
+from kernel import Kernel
 
 class OCSVM:
 	"""One-class support vector machine"""
@@ -46,7 +46,7 @@ class OCSVM:
 		P = self.kernel
 		# there is no linear part of the objective
 		q = matrix(0.0, (N,1))
-	
+
 		# sum_i alpha_i = A alpha = b = 1.0
 		A = matrix(1.0, (1,N))
 		b = matrix(1.0, (1,1))
@@ -59,7 +59,7 @@ class OCSVM:
 		h = matrix([h1,h2])
 
 		sol = qp(P,-q,G,h,A,b)
-		
+
 		# mark dual as solved
 		self.isDualTrained = True
 
@@ -83,7 +83,7 @@ class OCSVM:
 
 		# no threshold set yet?
 		if (flag==False):
-			(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])          
+			(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
 			self.threshold = matrix(max(thres))
 
 		(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
@@ -92,7 +92,7 @@ class OCSVM:
 		for i in range(len(self.svs)):
 			if thres[i,0]<(T-OCSVM.PRECISION):
 				cnt += 1
-	
+
 		print(self.alphas)
 		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
 		print('Threshold is {0}'.format(self.threshold))
@@ -111,7 +111,7 @@ class OCSVM:
 
 	def get_support_dual_values(self):
 		return self.alphas[self.svs]
-	
+
 	def set_train_kernel(self,kernel):
 		(dim1,dim2) = kernel.size
 		if (dim1!=dim2 and dim1!=self.samples):
@@ -137,5 +137,5 @@ class OCSVM:
 			return 0, OCSVM.MSG_ERROR
 
 		# apply trained classifier
-		res = matrix([dotu(kernel[i,:],self.alphas[self.svs]) for i in range(tN)]) 
+		res = matrix([dotu(kernel[i,:],self.alphas[self.svs]) for i in range(tN)])
 		return res, OCSVM.MSG_OK

@@ -23,14 +23,14 @@ if __name__ == '__main__':
 	delta = 0.07
 	x = np.arange(-4.0, 4.0, delta)
 	y = np.arange(-4.0, 4.0, delta)
-	X, Y = np.meshgrid(x, y)    
+	X, Y = np.meshgrid(x, y)
 	(sx,sy) = X.shape
 	Xf = np.reshape(X,(1,sx*sy))
 	Yf = np.reshape(Y,(1,sx*sy))
 	Dtest = np.append(Xf,Yf,axis=0)
 	print(Dtest.shape)
 
-	# build test kernel	
+	# build test kernel
 	kernel = Kernel.get_kernel(co.matrix(Dtest),Dtrain[:,svm.get_support_dual()],ktype,kparam)
 
 	(res,state) = svm.apply_dual(kernel)
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 	Z = np.reshape(res,(sx,sy))
 	plt.contourf(X, Y, Z)
 	plt.contour(X, Y, Z, [np.array(svm.get_threshold())[0,0]])
-	plt.scatter(Dtrain[0,svm.get_support_dual()],Dtrain[1,svm.get_support_dual()],40,c='k') 
+	plt.scatter(Dtrain[0,svm.get_support_dual()],Dtrain[1,svm.get_support_dual()],40,c='k')
 	plt.scatter(Dtrain[0,:],Dtrain[1,:],10)
 	plt.show()
 

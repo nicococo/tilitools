@@ -12,7 +12,7 @@ from kernel import Kernel
 
 if __name__ == '__main__':
 	USE_OCSVM = False # either use OCSVM or SSAD
-	P_NORM = 2.0 # mixing coefficient lp-norm regularizer
+	P_NORM = 1.7 # mixing coefficient lp-norm regularizer
 
 	# example constants (training set size and splitting)
 	k_type = 'rbf'
@@ -52,13 +52,13 @@ if __name__ == '__main__':
 	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param/100.0)
 
 	# MKL: (default) use SSAD
-	ad = SSAD(kernel1,Dy,1.0,1.0,1.0/(N_unl*0.05),P_NORM)
+	ad = SSAD(kernel1,Dy,1.0,1.0,1.0/(N_unl*0.05),1.0)
 	if (USE_OCSVM==True):
 		(foo,samples) = Dy.size 
 		Dy = co.matrix(1.0,(1,samples))
 		ad = OCSVM(kernel1,1.0)	
 
-	ssad = MKLWrapper(ad,[kernel1,kernel2,kernel3],Dy,2.0)
+	ssad = MKLWrapper(ad,[kernel1,kernel2,kernel3],Dy,P_NORM)
 	ssad.train_dual()
 
 	# build the test kernel
@@ -90,12 +90,16 @@ if __name__ == '__main__':
 
 	# make a nice plot of it
 	Z = np.reshape(res,(sx,sy))
+	plt.figure()
 	plt.contourf(X, Y, Z, 20)
 	plt.contour(X, Y, Z, [np.array(ssad.get_threshold())[0,0]])
 	plt.scatter(Dtrain[0,ssad.get_support_dual()],Dtrain[1,ssad.get_support_dual()],60,c='w') 
 	plt.scatter(Dtrain[0,N_pos:N_pos+N_unl-1],Dtrain[1,N_pos:N_pos+N_unl-1],10,c='g') 
 	plt.scatter(Dtrain[0,0:N_pos],Dtrain[1,0:N_pos],20,c='r') 
 	plt.scatter(Dtrain[0,N_pos+N_unl:],Dtrain[1,N_pos+N_unl:],20,c='b') 
+
+	plt.figure()
+	plt.bar([i+1 for i in range(3)], ssad.get_mixing_coefficients())
 
 	plt.show()
 	print('finished')
