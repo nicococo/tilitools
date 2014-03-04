@@ -11,30 +11,38 @@ from kernel import Kernel
 
 
 if __name__ == '__main__':
-	USE_OCSVM = False # either use OCSVM or SSAD
+	"""
+	MKL is a wrapper around a specific method (here SSAD) and
+	takes a list of kernels as input argument. 
+
+	For training each of the kernels should have the same size,
+	say NxN. Each kernel 'is' a different feature representation 
+	of the very same training data points. E.g., kernel1 is a BOW
+	kernel, kernel2 is a Lexical Diversity kernel of the data points
+	x_1,...,x_N.
+
+	During training and testing, the order of the kernels
+	should stay the same, e.g. if kernel1 is a BOW kernel during
+	training, it must be kernel1 during testing as well.
+
+	For testing, the kernel should have size M x N_1:
+	M is the number of test samples and N_1 the number of 
+	support vectors (N_1 <= N).
+
+	"""
 	P_NORM = 1.7 # mixing coefficient lp-norm regularizer
+	N_pos = 10 
+	N_neg = 10
+	N_unl = 60
 
-	# example constants (training set size and splitting)
-	k_type = 'rbf'
-	# attention: this is the shape parameter of a Gaussian
-	# which is 1/sigma^2
-	k_param = 1.0
-
-
-	N_pos = 20
-	N_neg = 20
-	N_unl = 100
-
-	foo = [co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i')]
-	print(len(foo))
-
-	# generate training labels
+	# 1. STEP: TRAINING DATA
+	# 1.1. generate training labels
 	yp = co.matrix(1,(1,N_pos),'i')
 	yu = co.matrix(0,(1,N_unl),'i')
 	yn = co.matrix(-1,(1,N_neg),'i')
 	Dy = co.matrix([[yp], [yu], [yn], [yn], [yn], [yn]])
 	
-	# generate training data
+	# 1.2. generate training data
 	co.setseed(11)
 	Dtrainp = co.normal(2,N_pos)*0.4
 	Dtrainu = co.normal(2,N_unl)*0.4
@@ -43,35 +51,40 @@ if __name__ == '__main__':
 	Dtrain21[0,:] = Dtrainn[0,:]+1
 	Dtrain22 = -Dtrain21
 
-	# training data
+	# 1.3. concatenate training data
 	Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0], [Dtrainn-1.0], [Dtrain21], [Dtrain22]])
 
-	# build the training kernel
-	kernel1 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param)
-	kernel2 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param/10.0)
-	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type=k_type, param=k_param/100.0)
+	# 1.4. build the training kernels:
+	# - same training sample for each kernel = they have the same size
+	# - each kernel is a special feature representation of the samples Dtrain
+	#   e.g., kernel1 is a BOW kernel, kernel2 a Lexical Diversity kernel
+	#   here: kernel1 und kernel2 are Gaussian kernels with different shape parameters
+	# 	and kernel3 is a simple linear kernel
+	kernel1 = Kernel.get_kernel(Dtrain, Dtrain, type='rbf', param=1.0)
+	kernel2 = Kernel.get_kernel(Dtrain, Dtrain, type='rbf', param=1.0/100.0)
+	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type='linear')
 
 	# MKL: (default) use SSAD
-	ad = SSAD(kernel1,Dy,1.0,1.0,1.0/(N_unl*0.05),1.0)
-	if (USE_OCSVM==True):
-		(foo,samples) = Dy.size 
-		Dy = co.matrix(1.0,(1,samples))
-		ad = OCSVM(kernel1,1.0)	
+	ad = SSAD([],Dy,1.0,1.0,1.0/(N_unl*0.05),1.0)
 
+	# 2. STEP: TRAIN WITH A LIST OF KERNELS 
 	ssad = MKLWrapper(ad,[kernel1,kernel2,kernel3],Dy,P_NORM)
 	ssad.train_dual()
 
-	# build the test kernel
-	kernel1 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param)
-	kernel2 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param/10.0)
-	kernel3 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param/100.0)
+	# 3. TEST THE TRAINING DATA (just because we are curious)
+	# 3.1. build the test kernel
+	kernel1 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0)
+	kernel2 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/10.0)
+	kernel3 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='linear',)
 
+	# 3.2. apply the trained model
 	thres = np.array(ssad.get_threshold())[0,0]
 	(pred,MSG) = ssad.apply_dual([kernel1,kernel2,kernel3])
 	pred = np.array(pred)
 	pred = pred.transpose()
 
-	# generate test data from a grid for nicer plots
+	# 4. STEP: GENERATE A TEST DATA GRID
+	# 4.1. generate test data from a grid for nicer plots
 	delta = 0.1
 	x = np.arange(-3.0, 3.0, delta)
 	y = np.arange(-3.0, 3.0, delta)
@@ -82,14 +95,19 @@ if __name__ == '__main__':
 	Dtest = np.append(Xf,Yf,axis=0)
 	print(Dtest.shape)
 
-	# build the test kernel
-	kernel1 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param)
-	kernel2 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param/10.0)
-	kernel3 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param/100.0)
+	# 4.2. build the test kernels
+	kernel1 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0)
+	kernel2 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/10.0)
+	kernel3 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='linear')
+
+	# 4.3. apply the trained model on the test data
 	(res,state) = ssad.apply_dual([kernel1,kernel2,kernel3])
 
+	# 5. STEP: PLOT RESULTS
 	# make a nice plot of it
 	Z = np.reshape(res,(sx,sy))
+
+	# 5.1. plot training and test data
 	plt.figure()
 	plt.contourf(X, Y, Z, 20)
 	plt.contour(X, Y, Z, [np.array(ssad.get_threshold())[0,0]])
@@ -98,6 +116,7 @@ if __name__ == '__main__':
 	plt.scatter(Dtrain[0,0:N_pos],Dtrain[1,0:N_pos],20,c='r') 
 	plt.scatter(Dtrain[0,N_pos+N_unl:],Dtrain[1,N_pos+N_unl:],20,c='b') 
 
+	# 5.2. plot the influence of each kernel
 	plt.figure()
 	plt.bar([i+1 for i in range(3)], ssad.get_mixing_coefficients())
 
