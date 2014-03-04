@@ -16,7 +16,7 @@ if __name__ == '__main__':
 	takes a list of kernels as input argument. 
 
 	For training each of the kernels should have the same size,
-	say NxN. Each kernel 'is' a different feature representation 
+	say NxN. Each kernel captures a different feature representation 
 	of the very same training data points. E.g., kernel1 is a BOW
 	kernel, kernel2 is a Lexical Diversity kernel of the data points
 	x_1,...,x_N.
@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
 	# 1.4. build the training kernels:
 	# - same training sample for each kernel = they have the same size
-	# - each kernel is a special feature representation of the samples Dtrain
+	# - each kernel captures a feature representation of the samples Dtrain
 	#   e.g., kernel1 is a BOW kernel, kernel2 a Lexical Diversity kernel
 	#   here: kernel1 und kernel2 are Gaussian kernels with different shape parameters
 	# 	and kernel3 is a simple linear kernel
