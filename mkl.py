@@ -18,7 +18,7 @@ class MKLWrapper:
 
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
-	PRECISION = 10**-5 # important: effects the threshold, support vectors and speed!
+	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
 
 	samples = -1 	# (scalar) amount of training data in X
 	pnorm = 2.0 # (scalar) mixing coefficient regularizer norm
@@ -60,7 +60,7 @@ class MKLWrapper:
 		pnorm = self.pnorm
 		iter = 0
 		lastsol = [0.0]*self.num_kernels
-		while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>0.001:
+		while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>self.PRECISION:
 			# train ssad with current kernel mixing coefficients
 			self.ssad.set_train_kernel(self.combine_kernels(self.kernels))
 			self.ssad.train_dual()
