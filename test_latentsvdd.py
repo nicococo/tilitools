@@ -15,7 +15,7 @@ if __name__ == '__main__':
 	Dtrain = co.matrix([[Dtrain1], [Dtrain2], [Dtrain3], [Dtrain3/2-2]])
 
 	# generate structured object
-	sobj = SOMultiClass(Dtrain,14)
+	sobj = SOMultiClass(Dtrain,co.matrix([14]))
 
 	# train svdd
 	lsvdd = LatentSVDD(sobj,0.0025)
@@ -35,13 +35,13 @@ if __name__ == '__main__':
 	print(Dtest.shape)
 
 	# generate structured object
-	predsobj = SOMultiClass(co.matrix(Dtest),14)
+	predsobj = SOMultiClass(co.matrix(Dtest),co.matrix([14]))
 
 	(res,lats,msg) = lsvdd.apply(predsobj)
 	print(res.size)
 
 	# nice visualization
-	Z = np.reshape(lats,(sx,sy))
+	Z = np.reshape(res,(sx,sy))
 	plt.contourf(X, Y, Z)
 	plt.contour(X, Y, Z, [np.array(lsvdd.get_threshold())[0,0]])
 	plt.scatter(Dtrain[0,:],Dtrain[1,:],10)

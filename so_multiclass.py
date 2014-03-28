@@ -20,7 +20,7 @@ class SOMultiClass:
 		self.X = X
 		self.y = y
 		(self.dims, self.samples) = X.size
-		self.num_classes = int(max(y)+1)
+		self.num_classes = int(max(y) + 1)
 
 		(d1,d2) = y.size
 		if (d1==d2==1):
