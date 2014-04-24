@@ -29,6 +29,8 @@ if __name__ == '__main__':
 	Yf = np.reshape(Y,(1,sx*sy))
 	Dtest = np.append(Xf,Yf,axis=0)
 	print(Dtest.shape)
+	print('halloooo')
+	foo = 3 * delta
 
 	# build test kernel
 	kernel = Kernel.get_kernel(co.matrix(Dtest),Dtrain[:,svm.get_support_dual()],ktype,kparam)

@@ -2,6 +2,8 @@ from cvxopt import matrix,spmatrix,sparse
 import numpy as np
 import math as math
 
+
+
 class SOMultiClass:
 	""" Multi class structured object."""
 
@@ -12,29 +14,18 @@ class SOMultiClass:
 	num_classes = -1 # (scalar) number of classes 
 
 
-
-
-	def __init__(self, X, y):
-		""" Constructor for unlabeled multi-class problems.
-		"""
+	def __init__(self, X, classes, y=[]):
 		self.X = X
 		self.y = y
 		(self.dims, self.samples) = X.size
-		self.num_classes = int(max(y) + 1)
-
-		(d1,d2) = y.size
-		if (d1==d2==1):
-			self.y = sparse(matrix(0.0,(1,self.samples)))
-			self.num_classes = np.single(y)
-
-		
+		self.num_classes = classes		
 
 	def argmin(self, sol, idx, type='linear'):
-		return self._argm(sol,idx,type,'min')
+		return self._argm(sol,idx,type)
 
 
 	def argmax(self, sol, idx):
-		return self._argm(sol,idx,'linear','max')
+		return self._argm(sol,idx,type='linear',opt='max')
 
 
 	def _argm(self, sol, idx, type='linear', opt='min'):
@@ -50,6 +41,7 @@ class SOMultiClass:
 			if (type=='quadratic'):
 				foo = sol[d:d+nd].trans()*sol[d:d+nd] - 2*foo + self.X[:,idx].trans()*self.X[:,idx]
 			d += nd
+			a = min(np.single(foo),np.single(val))
 			if (opt=='min' and np.single(foo)<np.single(val)):
 				val = foo
 				cls = c

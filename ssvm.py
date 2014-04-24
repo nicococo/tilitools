@@ -12,16 +12,9 @@ class SSVM:
 		Written by Nico Goernitz, TU Berlin, 2014
 	"""
 
-	MSG_ERROR = -1	# (scalar) something went wrong
-	MSG_OK = 0	# (scalar) everything alright
-
-	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
-
-	HEURISTIC_CONSTR = 0.1
-
 	C = 1.0	# (scalar) the regularization constant > 0
 	sobj = [] # structured object contains various functions
-			  # e.g. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
+			  # e.g. get_num_dims(), get_num_samples(), get_sample(i), argmax(sol,i)
 	w = [] # (vector) solution vector
 	slacks = [] # (vector) slack variables
 
@@ -31,7 +24,7 @@ class SSVM:
 		self.sobj = sobj
 
 
-	def train(self):
+	def train(self,heur_constr=0.1):
 		N = self.sobj.get_num_samples()
 		DIMS = self.sobj.get_num_dims()
 
@@ -81,17 +74,16 @@ class SSVM:
 			# skip fullfilled constraints for this run (heuristic)
 			if (iter>0):
 				diffs = np.array(delta - (G2*sol).trans())
-				inds = np.where(diffs<self.HEURISTIC_CONSTR)[1]
+				inds = np.where(diffs<heur_constr)[1]
 				G2 = G2[inds.tolist(),:]
 				h2 = delta[:,inds.tolist()]
 				print('Iter{0}: Solving with {1} of {2} constraints.'.format(iter,inds.shape[0],diffs.shape[1]))
 
-			# qp solve
+			# Solve the intermediate QP using cvxopt
 			G = sparse([G1,G2])
 			h = matrix([[h1],[h2]])
 			res = qp(P,q,G,h.trans())
 
-			# obtain solution
 			obj_primal = res['primal objective']
 			sol = res['x']
 			slacks = sol[0:N]
@@ -106,15 +98,16 @@ class SSVM:
 
 
 	def apply(self, pred_sobj):
-		""" Application of the SSVM.
+		""" Application of the SSVM:
+
+				value = max_y <w,\Psi(x,y)>
+				struct = argmanx_y <w,\Psi(x,y)>
 		"""
-		# number of training examples
 		N = pred_sobj.get_num_samples()
-		DIMS = pred_sobj.get_num_dims()
 
 		vals = matrix(0.0, (1,N))
 		structs = matrix(0.0, (1,N))
 		for i in range(N):
 			(vals[i], structs[i], foo) = pred_sobj.argmax(self.w,i)
 
-		return (vals, structs, SSVM.MSG_OK)
+		return (vals, structs)

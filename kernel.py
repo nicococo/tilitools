@@ -5,7 +5,6 @@ import numpy as np
 import pylab as pl
 
 class Kernel:
-	"""Construct kernels."""
 
 	def __init__(self):
 		pass
@@ -24,7 +23,6 @@ class Kernel:
 		if type=='rbf':
 			print('Calculating Gaussian kernel with size {0}x{1}.'.format(Xn,Yn))
 			kernel = matrix([dotu(X[:,i]-Y[:,j],X[:,i]-Y[:,j]) for j in range(Yn) for i in range(Xn)], (Xn,Yn))
-			#kernel = matrix([dotu(X[:,i],X[:,i])-2*dotu(X[:,i],Y[:,j])+dotu(Y[:,j],Y[:,j]) for j in range(Yn) for i in range(Xn)], (Xn,Yn))
 			kernel = exp(-param*kernel)
 		return kernel
 
@@ -44,3 +42,15 @@ class Kernel:
 			kernel = matrix(1.0, (Xn,1), 'd')
 
 		return kernel
+
+
+	@staticmethod
+	def center_kernel(K):
+		print('IMPLEMENTED ME')
+		return K
+
+
+	@staticmethod 
+	def normalize_kernel(K):
+		print('IMPLEMENTED ME')		
+		return K
