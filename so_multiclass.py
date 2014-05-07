@@ -20,38 +20,33 @@ class SOMultiClass:
 		(self.dims, self.samples) = X.size
 		self.num_classes = classes		
 
-	def argmin(self, sol, idx, type='linear'):
-		return self._argm(sol,idx,type)
+	def argmin(self, sol, idx):
+		return self.argmax(sol,idx, opt_type='quadratic')
 
-
-	def argmax(self, sol, idx):
-		return self._argm(sol,idx,type='linear',opt='max')
-
-
-	def _argm(self, sol, idx, type='linear', opt='min'):
+	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
 		nd = self.dims
 		d = 0  # start of dimension in sol
-		val = 10**10 # smallest function value
-		if opt=='max':
-			val = -10**10
+		val = -10**10
 		cls = -1 # best class
 
 		for c in range(self.num_classes):
 			foo = sol[d:d+nd].trans()*self.X[:,idx]
-			if (type=='quadratic'):
-				foo = sol[d:d+nd].trans()*sol[d:d+nd] - 2*foo + self.X[:,idx].trans()*self.X[:,idx]
+			# the argmax of the above function
+			# is equal to the argmax of the quadratic function
+			# foo = + 2*foo - normPsi
+			# since ||\Psi(x_i,z)|| = ||\phi(x_i)|| = y \forall z   
 			d += nd
-			a = min(np.single(foo),np.single(val))
-			if (opt=='min' and np.single(foo)<np.single(val)):
+			if (np.single(foo)>np.single(val)):
 				val = foo
 				cls = c
-			if (opt=='max' and np.single(foo)>np.single(val)):
-				val = foo
-				cls = c
+
+		if (opt_type=='quadratic'):
+			normPsi = self.X[:,idx].trans()*self.X[:,idx]
+			val = 2*val - normPsi
 
 		jfm = self.get_joint_feature_map(idx,cls)
 		return (val,cls,jfm)
-
+		
 
 	def calc_loss(self, idx, y):
 		return self.y[idx]!=y

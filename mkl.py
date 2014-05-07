@@ -11,14 +11,10 @@ class MKLWrapper:
 
 		Note: 
 		- p-norm mkl supported
-		- only dual solution is supported.
+		- dual solution is supported.
 
 		Written by: Nico Goernitz, TU Berlin, 2013/14
 	"""
-
-	MSG_ERROR = -1	# (scalar) something went wrong
-	MSG_OK = 0	# (scalar) everything alright
-	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
 
 	samples = -1 	# (scalar) amount of training data in X
 	pnorm = 2.0 # (scalar) mixing coefficient regularizer norm
@@ -29,8 +25,7 @@ class MKLWrapper:
 	ssad = [] # (method) 
 	num_kernels = 0 # (scalar) number of kernels used
 
-	def __init__(self, ssad, kernels, y, pnorm=1.0):
-		""" Constructor """
+	def __init__(self, ssad, kernels, y, pnorm=2.0):
 		self.kernels = kernels
 		self.y = y
 		self.pnorm = pnorm
@@ -56,11 +51,11 @@ class MKLWrapper:
 			mixed += self.dm[i] * kernels[i] 
 		return mixed
 
-	def train_dual(self):
+	def train_dual(self,precision=10**-3):
 		pnorm = self.pnorm
 		iter = 0
 		lastsol = [0.0]*self.num_kernels
-		while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>self.PRECISION:
+		while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>precision:
 			# train ssad with current kernel mixing coefficients
 			self.ssad.set_train_kernel(self.combine_kernels(self.kernels))
 			self.ssad.train_dual()
@@ -101,7 +96,7 @@ class MKLWrapper:
 			iter+=1
 
 		print('Num iterations = {0}.'.format(iter))
-		return MKLWrapper.MSG_OK
+		return 0
 
 
 	def get_threshold(self):
@@ -118,4 +113,4 @@ class MKLWrapper:
 		(dim1,dim2) = kernels[0].size
 		mixed = self.combine_kernels(kernels)
 		(res,msg) = self.ssad.apply_dual(mixed);
-		return res, MKLWrapper.MSG_OK
+		return res

@@ -30,10 +30,10 @@ if __name__ == '__main__':
 	support vectors (N_1 <= N).
 
 	"""
-	P_NORM = 1.7 # mixing coefficient lp-norm regularizer
-	N_pos = 10 
-	N_neg = 10
-	N_unl = 60
+	P_NORM = 2.1 # mixing coefficient lp-norm regularizer
+	N_pos = 100 
+	N_neg = 100
+	N_unl = 200
 
 	# 1. STEP: TRAINING DATA
 	# 1.1. generate training labels
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 	co.setseed(11)
 	Dtrainp = co.normal(2,N_pos)*0.4
 	Dtrainu = co.normal(2,N_unl)*0.4
-	Dtrainn = co.normal(2,N_neg)*0.2
+	Dtrainn = co.normal(2,N_neg)*0.3
 	Dtrain21 = Dtrainn-1
 	Dtrain21[0,:] = Dtrainn[0,:]+1
 	Dtrain22 = -Dtrain21
@@ -61,25 +61,28 @@ if __name__ == '__main__':
 	#   here: kernel1 und kernel2 are Gaussian kernels with different shape parameters
 	# 	and kernel3 is a simple linear kernel
 	kernel1 = Kernel.get_kernel(Dtrain, Dtrain, type='rbf', param=1.0)
-	kernel2 = Kernel.get_kernel(Dtrain, Dtrain, type='rbf', param=1.0/100.0)
-	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type='linear')
+	kernel2 = Kernel.get_kernel(Dtrain, Dtrain, type='rbf', param=1.0/50.0)
+	kernel3 = Kernel.get_kernel(Dtrain, Dtrain, type='rbf', param=1.0/100.0)
+	kernel4 = Kernel.get_kernel(Dtrain, Dtrain, type='linear')
 
 	# MKL: (default) use SSAD
 	ad = SSAD([],Dy,1.0,1.0,1.0/(N_unl*0.05),1.0)
+	#ad = OCSVM(kernel1,C=0.02)
 
 	# 2. STEP: TRAIN WITH A LIST OF KERNELS 
-	ssad = MKLWrapper(ad,[kernel1,kernel2,kernel3],Dy,P_NORM)
+	ssad = MKLWrapper(ad,[kernel1,kernel2,kernel3,kernel4],Dy,P_NORM)
 	ssad.train_dual()
 
 	# 3. TEST THE TRAINING DATA (just because we are curious)
 	# 3.1. build the test kernel
 	kernel1 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0)
-	kernel2 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/10.0)
-	kernel3 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='linear',)
+	kernel2 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/50.0)
+	kernel3 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/100.0)
+	kernel4 = Kernel.get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type='linear',)
 
 	# 3.2. apply the trained model
 	thres = np.array(ssad.get_threshold())[0,0]
-	(pred,MSG) = ssad.apply_dual([kernel1,kernel2,kernel3])
+	pred = ssad.apply_dual([kernel1,kernel2,kernel3,kernel4])
 	pred = np.array(pred)
 	pred = pred.transpose()
 
@@ -97,11 +100,12 @@ if __name__ == '__main__':
 
 	# 4.2. build the test kernels
 	kernel1 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0)
-	kernel2 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/10.0)
-	kernel3 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='linear')
+	kernel2 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/50.0)
+	kernel3 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='rbf', param=1.0/100.0)
+	kernel4 = Kernel.get_kernel(co.matrix(Dtest), Dtrain[:,ssad.get_support_dual()], type='linear')
 
 	# 4.3. apply the trained model on the test data
-	(res,state) = ssad.apply_dual([kernel1,kernel2,kernel3])
+	res = ssad.apply_dual([kernel1,kernel2,kernel3,kernel4])
 
 	# 5. STEP: PLOT RESULTS
 	# make a nice plot of it
@@ -118,7 +122,7 @@ if __name__ == '__main__':
 
 	# 5.2. plot the influence of each kernel
 	plt.figure()
-	plt.bar([i+1 for i in range(3)], ssad.get_mixing_coefficients())
+	plt.bar([i+1 for i in range(4)], ssad.get_mixing_coefficients())
 
 	plt.show()
 	print('finished')

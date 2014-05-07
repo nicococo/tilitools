@@ -24,7 +24,7 @@ class SSVM:
 		self.sobj = sobj
 
 
-	def train(self,heur_constr=0.1):
+	def train(self,heur_constr=10.1):
 		N = self.sobj.get_num_samples()
 		DIMS = self.sobj.get_num_dims()
 
@@ -51,7 +51,7 @@ class SSVM:
 
 			newConstr=0
 			for i in range(N):
-				(val,ypred,psi_i) = self.sobj.argmax(w,i)
+				(val,ypred,psi_i) = self.sobj.argmax(w,i,add_loss=True)
 				psi_true = self.sobj.get_joint_feature_map(i)
 
 				v_true = w.trans()*psi_true
@@ -72,7 +72,7 @@ class SSVM:
 			h2 = delta
 
 			# skip fullfilled constraints for this run (heuristic)
-			if (iter>0):
+			if (iter>100):
 				diffs = np.array(delta - (G2*sol).trans())
 				inds = np.where(diffs<heur_constr)[1]
 				G2 = G2[inds.tolist(),:]
@@ -106,8 +106,9 @@ class SSVM:
 		N = pred_sobj.get_num_samples()
 
 		vals = matrix(0.0, (1,N))
-		structs = matrix(0.0, (1,N))
+		structs = []
 		for i in range(N):
-			(vals[i], structs[i], foo) = pred_sobj.argmax(self.w,i)
+			(vals[i], struct, foo) = pred_sobj.argmax(self.w, i)
+			structs.append(struct)
 
 		return (vals, structs)
