@@ -113,7 +113,7 @@ class LatentSVDD:
 		# latent variables
 		latent = [0.0]*N
 
-		sol = normal(DIMS,1)
+		sol = 10*normal(DIMS,1)
 		phi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		old_phi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		threshold = 0
@@ -132,12 +132,12 @@ class LatentSVDD:
 			# for the current solution compute the 
 			# most likely latent variable configuration
 			for i in range(N):
-				(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
-				#if i<100:
-				#	(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
-				#else:
-				#	phi[:,i] = self.sobj.get_joint_feature_map(i)
-				#	latent[i] = self.sobj.y[i]
+				#(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
+				if i<15:
+					(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
+				else:
+					phi[:,i] = self.sobj.get_joint_feature_map(i)
+					latent[i] = self.sobj.y[i]
 
 			# 2. solve the intermediate convex optimization problem 
 			kernel = Kernel.get_kernel(phi,phi)

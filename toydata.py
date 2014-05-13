@@ -17,7 +17,7 @@ class ToyData:
 		return data
 
 	@staticmethod
-	def get_2state_gaussian_seq(lens,dims=2,means1=[-1,-1],means2=[1,1],vars1=[1,1],vars2=[1,1]):
+	def get_2state_gaussian_seq(lens,dims=2,means1=[4,4],means2=[5,5],vars1=[1,1],vars2=[1,0.5]):
 		
 		seqs = co.matrix(0.0,(dims,lens))
 		lbls = co.matrix(0,(1,lens))

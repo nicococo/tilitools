@@ -61,7 +61,7 @@ class MKLWrapper:
 			self.ssad.train_dual()
 
 			# calculate new kernel mixing coefficients
-			lastsol = self.dm
+			lastsol = matrix(self.dm)
 			alphas = self.ssad.get_alphas();
 			cy = self.cy
 

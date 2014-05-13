@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse
+from cvxopt import matrix,spmatrix,sparse,exp
 import numpy as np
 import math as math
 
@@ -101,6 +101,9 @@ class SOHMM:
 		F = self.dims
 		scores = matrix(0.0, (1, T))
 
+		score = sol.trans()*self.get_joint_feature_map(idx)
+		print score
+
 		# transition matrix
 		A = matrix(0.0, (N, N))
 		for i in xrange(N):
@@ -119,8 +122,10 @@ class SOHMM:
 		for t in range(1,T):
 			scores[t] = A[int(y[0,t-1]),int(y[0,t])] + em[int(y[0,t]),t]
 
-		scores = matrix([scores[i]*scores[i] for i in xrange(T)])
-		scores = scores / max(scores)
+		#scores = matrix([scores[i]*scores[i] for i in xrange(T)])
+		#scores = exp(scores/score)
+		scores = scores/max(abs(scores) )
+		#print scores
 		return scores
 
 
