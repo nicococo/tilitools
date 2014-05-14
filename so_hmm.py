@@ -124,7 +124,7 @@ class SOHMM:
 
 		#scores = matrix([scores[i]*scores[i] for i in xrange(T)])
 		#scores = exp(scores/score)
-		scores = exp(-(scores/max(abs(scores))+1.0))
+		scores = exp(-abs(scores/max(abs(scores))))
 		#print scores
 		return scores
 
