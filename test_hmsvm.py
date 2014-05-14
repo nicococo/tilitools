@@ -10,8 +10,8 @@ from toydata import ToyData
 
 if __name__ == '__main__':
 	DIMS = 2
-	LENS = 250
-	EXMS = 100
+	LENS = 150
+	EXMS = 120
 
 	# training data
 	mean = 0.0
@@ -28,6 +28,10 @@ if __name__ == '__main__':
 	mean = mean / float(cnt)
 	print mean
 	for i in range(EXMS):
+		if (i<10):
+			pos = int(np.single(co.uniform(1))*float(LENS)*0.8 + 4.0)
+			print pos
+			trainX[i][1,pos] = 100.0
 		for d in range(DIMS):
 			trainX[i][d,:] = trainX[i][d,:]-mean[d]
 
@@ -44,10 +48,9 @@ if __name__ == '__main__':
 	print hmm.get_jfm_norm2(0,trainY[1])
 	print '----------'
 
-	lsvm = LatentSVDD(hmm, C=100.01)
+	lsvm = LatentSVDD(hmm, C=10.01)
 	#(lsol, lats, thres) = lsvm.train_dc_svm()
 	(lsol, lats, thres) = lsvm.train_dc_svm()
-	print lsol
 
 
 	# test data

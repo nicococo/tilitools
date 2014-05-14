@@ -22,7 +22,7 @@ class SOHMM:
 		self.samples = len(X)
 		(self.dims, foo) = X[0].size
 
-		self.pi = matrix(1.0, (self.states, 1))
+		self.pi = matrix(0.0, (self.states, 1))
 
 		print('#{0} training examples with #{1} features.'.format(self.samples,self.dims))
 
@@ -124,7 +124,7 @@ class SOHMM:
 
 		#scores = matrix([scores[i]*scores[i] for i in xrange(T)])
 		#scores = exp(scores/score)
-		scores = scores/max(abs(scores) )
+		scores = exp(-(scores/max(abs(scores))+1.0))
 		#print scores
 		return scores
 

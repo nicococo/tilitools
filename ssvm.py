@@ -72,7 +72,7 @@ class SSVM:
 			h2 = delta
 
 			# skip fullfilled constraints for this run (heuristic)
-			if (iter>100):
+			if (iter>2):
 				diffs = np.array(delta - (G2*sol).trans())
 				inds = np.where(diffs<heur_constr)[1]
 				G2 = G2[inds.tolist(),:]

@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,normal
+from cvxopt import matrix,spmatrix,sparse,normal,setseed
 from cvxopt.blas import dot,dotu
 from cvxopt.solvers import qp
 from cvxopt.lapack import syev
@@ -113,7 +113,8 @@ class LatentSVDD:
 		# latent variables
 		latent = [0.0]*N
 
-		sol = 10*normal(DIMS,1)
+		setseed(0)
+		sol = 10.1*normal(DIMS,1)
 		phi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		old_phi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		threshold = 0
@@ -132,12 +133,12 @@ class LatentSVDD:
 			# for the current solution compute the 
 			# most likely latent variable configuration
 			for i in range(N):
-				#(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
-				if i<15:
-					(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
-				else:
-					phi[:,i] = self.sobj.get_joint_feature_map(i)
-					latent[i] = self.sobj.y[i]
+				(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
+				#if i>=0:
+				#	(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
+				#else:
+				#	phi[:,i] = self.sobj.get_joint_feature_map(i)
+				#	latent[i] = self.sobj.y[i]
 
 			# 2. solve the intermediate convex optimization problem 
 			kernel = Kernel.get_kernel(phi,phi)
@@ -147,6 +148,7 @@ class LatentSVDD:
 			inds = svm.get_support_dual()
 			alphas = svm.get_support_dual_values()
 			sol = phi[:,inds]*alphas
+			print sol
 
 		print(sum(sum(abs(np.array(phi-old_phi)))))
 		self.sol = sol
