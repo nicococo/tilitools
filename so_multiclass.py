@@ -1,27 +1,18 @@
 from cvxopt import matrix,spmatrix,sparse
 import numpy as np
 import math as math
+from so_interface import SOInterface
 
 
-
-class SOMultiClass:
+class SOMultiClass(SOInterface):
 	""" Multi class structured object."""
 
-	X = [] # (matrix) data 
-	y = [] # (vector) labels (if present)
-	samples = -1 # (scalar) number of training data samples
-	dims = -1 # (scalar) number of input dimensions
 	num_classes = -1 # (scalar) number of classes 
 
 
 	def __init__(self, X, classes, y=[]):
-		self.X = X
-		self.y = y
-		(self.dims, self.samples) = X.size
+		SOInterface.__init__(self, X, y)
 		self.num_classes = classes		
-
-	def argmin(self, sol, idx):
-		return self.argmax(sol,idx, opt_type='quadratic')
 
 	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
 		nd = self.dims
@@ -47,7 +38,6 @@ class SOMultiClass:
 		jfm = self.get_joint_feature_map(idx,cls)
 		return (val,cls,jfm)
 		
-
 	def calc_loss(self, idx, y):
 		return self.y[idx]!=y
 
@@ -60,10 +50,6 @@ class SOMultiClass:
 		phi = matrix(0.0,(nd*mc,1))
 		phi[nd*y:nd*(y+1)] = self.X[:,idx]
 		return phi
-
-	def get_num_samples(self):
-		return self.samples
-
 
 	def get_num_dims(self):
 		return self.dims*self.num_classes

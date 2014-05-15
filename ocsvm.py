@@ -16,7 +16,7 @@ class OCSVM:
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
 
-	PRECISION = 10**-5 # important: effects the threshold, support vectors and speed!
+	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
 
 	kernel = [] 	# (matrix) our training kernel
 	samples = -1 	# (scalar) amount of training data in X
@@ -46,7 +46,6 @@ class OCSVM:
 
 		# number of training examples
 		N = self.samples
-		C = self.C
 
 		# generate a kernel matrix
 		P = self.kernel
@@ -60,7 +59,7 @@ class OCSVM:
 		# 0 <= alpha_i <= h = C
 		G1 = spmatrix(1.0, range(N), range(N))
 		G = sparse([G1,-G1])
-		h1 = matrix(C, (N,1))
+		h1 = matrix(self.C, (N,1))
 		h2 = matrix(0.0, (N,1))
 		h = matrix([h1,h2])
 
@@ -79,27 +78,29 @@ class OCSVM:
 				self.svs.append(i)
 
 		# find support vectors with alpha < C for threshold calculation
-		self.threshold = 10**8
-		flag = False
-		for i in self.svs:
-			if self.alphas[i]<(C-OCSVM.PRECISION) and flag==False:
-				(self.threshold, MSG) = self.apply_dual(self.kernel[i,self.svs])
-				flag=True
-				break
+		#self.threshold = 10**8
+		#flag = False
+		#for i in self.svs:
+		#	if self.alphas[i]<(C-OCSVM.PRECISION) and flag==False:
+		#		(self.threshold, MSG) = self.apply_dual(self.kernel[i,self.svs])
+		#		flag=True
+		#		break
 
 		# no threshold set yet?
-		if (flag==False):
-			(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
-			self.threshold = matrix(max(thres))
+		#if (flag==False):
+		#	(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
+		#	self.threshold = matrix(max(thres))
 
 		(thres, MSG) = self.apply_dual(self.kernel[self.svs,self.svs])
-		T = np.array(self.threshold)[0,0]
+		self.threshold = matrix(max(thres))
+
+		T = np.single(self.threshold)
 		cnt = 0
 		for i in range(len(self.svs)):
 			if thres[i,0]<(T-OCSVM.PRECISION):
 				cnt += 1
 
-		print(self.alphas)
+		#print(self.alphas)
 		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
 		print('Threshold is {0}'.format(self.threshold))
 		return OCSVM.MSG_OK

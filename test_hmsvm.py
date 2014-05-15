@@ -11,7 +11,7 @@ from toydata import ToyData
 if __name__ == '__main__':
 	DIMS = 2
 	LENS = 150
-	EXMS = 120
+	EXMS = 100
 
 	# training data
 	mean = 0.0
@@ -20,6 +20,8 @@ if __name__ == '__main__':
 	trainY = []
 	for i in range(EXMS):
 		(exm,lbl) = ToyData.get_2state_gaussian_seq(LENS,dims=DIMS)
+		if i<4:
+			(exm,lbl) = ToyData.get_2state_gaussian_seq(LENS,dims=DIMS,means1=[1,-3],means2=[3,7],vars1=[1,1],vars2=[1,1])
 		mean += co.matrix(1.0, (1,LENS))*exm.trans()
 		cnt += LENS
 		trainX.append(exm)
@@ -27,6 +29,7 @@ if __name__ == '__main__':
 
 	mean = mean / float(cnt)
 	print mean
+	#mean = co.matrix([0,0])
 	for i in range(EXMS):
 		if (i<10):
 			pos = int(np.single(co.uniform(1))*float(LENS)*0.8 + 4.0)
@@ -40,17 +43,21 @@ if __name__ == '__main__':
 	ssvm = SSVM(hmm)
 	(sol, slacks) = ssvm.train()
 	jfm = hmm.get_joint_feature_map(0)
-	print jfm
+	#print jfm
 
 
-	print '----------'
-	print hmm.get_jfm_norm2(0,trainY[0])
-	print hmm.get_jfm_norm2(0,trainY[1])
-	print '----------'
+	#print '----------'
+	#print hmm.get_jfm_norm2(0,trainY[0])
+	#print hmm.get_jfm_norm2(0,trainY[1])
+	#print '----------'
 
-	lsvm = LatentSVDD(hmm, C=10.01)
+	lsvm = LatentSVDD(hmm, C=1.0/(EXMS*0.01))
 	#(lsol, lats, thres) = lsvm.train_dc_svm()
-	(lsol, lats, thres) = lsvm.train_dc_svm()
+	(lsol, lats, thres) = lsvm.train_dc_svm(max_iter=20)
+
+	print '----------'
+	(f1,f2,f3) = hmm.argmin(lsol,1)
+	print '----------'
 
 
 	# test data
@@ -61,7 +68,7 @@ if __name__ == '__main__':
 	for d in range(DIMS):
 		plt.plot(range(LENS),exm[d,:].trans() + 5.0*d,'-r')
 	
-	scores = hmm.get_scores(lsol,EXMS-1)
+	(anom_score, scores) = hmm.get_scores(lsol,EXMS-1)
 	plt.plot(range(LENS),scores.trans() + 5.0,'-b')
 
 	plt.plot(range(LENS),pred[0].trans() - 5,'-g')
@@ -73,7 +80,7 @@ if __name__ == '__main__':
 		plt.plot(range(LENS),lats[i].trans() + i*4,'-r')
 		plt.plot(range(LENS),trainY[i].trans() + i*4,'-b')
 		
-		scores = hmm.get_scores(lsol,i)
+		(anom_score, scores) = hmm.get_scores(lsol,i)
 		plt.plot(range(LENS),scores.trans() + i*4,'-g')
 	plt.show()
 

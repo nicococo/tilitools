@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,normal,setseed
+from cvxopt import matrix,spmatrix,sparse,uniform,normal,setseed
 from cvxopt.blas import dot,dotu
 from cvxopt.solvers import qp
 from cvxopt.lapack import syev
@@ -114,7 +114,8 @@ class LatentSVDD:
 		latent = [0.0]*N
 
 		setseed(0)
-		sol = 10.1*normal(DIMS,1)
+		sol = 10000.0*normal(DIMS,1)
+		#sol = matrix(1.0, (DIMS,1))
 		phi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		old_phi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		threshold = 0
@@ -122,13 +123,15 @@ class LatentSVDD:
 		obj = -1
 		iter = 0 
 
+		allobjs = []
+
 		# terminate if objective function value doesn't change much
-		while iter<max_iter and (iter<5 or sum(sum(abs(np.array(phi-old_phi))))>=0.001):
+		while iter<max_iter and (iter<3 or sum(sum(abs(np.array(phi-old_phi))))>=0.001):
 			print('Starting iteration {0}.'.format(iter))
 			print(sum(sum(abs(np.array(phi-old_phi)))))
 			iter += 1
 			old_phi = matrix(phi)
-
+			old_sol = sol
 			# 1. linearize
 			# for the current solution compute the 
 			# most likely latent variable configuration
@@ -145,15 +148,34 @@ class LatentSVDD:
 			svm = OCSVM(kernel,self.C)
 			svm.train_dual()
 			threshold = svm.get_threshold()
-			inds = svm.get_support_dual()
-			alphas = svm.get_support_dual_values()
-			sol = phi[:,inds]*alphas
-			print sol
+			#inds = svm.get_support_dual()
+			#alphas = svm.get_support_dual_values()
+			#sol = phi[:,inds]*alphas
 
+			#inds = svm.get_support_dual()
+			#alphas = svm.get_support_dual_values()
+			sol = phi*svm.get_alphas()
+			print matrix([sol.trans(),old_sol.trans()]).trans()
+
+			# calculate objective
+			slacks = [max([0.0, np.single(threshold - sol.trans()*phi[:,i]) ]) for i in xrange(N)]
+			obj = 0.5*np.single(sol.trans()*sol) - np.single(threshold) + self.C*sum(slacks)
+			print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(int(iter),np.single(threshold),np.single(sum(slacks)),np.single(obj)))
+			allobjs.append(float(np.single(obj)))
+
+		print '+++++++++'
+		print threshold
+		print slacks
+		print obj
+		print '+++++++++'
+
+		print allobjs
 		print(sum(sum(abs(np.array(phi-old_phi)))))
 		self.sol = sol
 		self.latent = latent
 		return (sol, latent, threshold)
+
+
 
 
 	def train_dc(self, max_iter=50):
