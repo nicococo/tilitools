@@ -11,6 +11,8 @@ class SOMultiClass(SOInterface):
 
 
 	def __init__(self, X, classes, y=[]):
+		# the class also acts as indices therefore:
+		# y >= 0!
 		SOInterface.__init__(self, X, y)
 		self.num_classes = classes		
 
@@ -35,8 +37,8 @@ class SOMultiClass(SOInterface):
 			normPsi = self.X[:,idx].trans()*self.X[:,idx]
 			val = 2*val - normPsi
 
-		jfm = self.get_joint_feature_map(idx,cls)
-		return (val,cls,jfm)
+		psi_idx = self.get_joint_feature_map(idx,cls)
+		return (val, cls, psi_idx)
 		
 	def calc_loss(self, idx, y):
 		return self.y[idx]!=y
@@ -47,9 +49,9 @@ class SOMultiClass(SOInterface):
 
 		nd = self.dims
 		mc = self.num_classes
-		phi = matrix(0.0,(nd*mc,1))
-		phi[nd*y:nd*(y+1)] = self.X[:,idx]
-		return phi
+		psi = matrix(0.0,(nd*mc,1))
+		psi[nd*y:nd*(y+1)] = self.X[:,idx]
+		return psi
 
 	def get_num_dims(self):
 		return self.dims*self.num_classes

@@ -12,16 +12,10 @@ from ocsvm import OCSVM
 import pylab as pl
 import matplotlib.pyplot as plt
 
-class LatentSVDD:
-	""" Latent variable support vector data description.
+class StructuredOCSVM:
+	""" Structured One-class SVM (a.k.a Structured Anomaly Detection).
 		Written by Nico Goernitz, TU Berlin, 2014
-
-		For more information see:
-		'Learning and Evaluation with non-i.i.d Label Noise'
-		Goernitz et al., AISTATS & JMLR W&CP, 2014 
 	"""
-	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
-
 	C = 1.0	# (scalar) the regularization constant > 0
 	sobj = [] # structured object contains various functions
 			  # i.e. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
@@ -32,9 +26,8 @@ class LatentSVDD:
 		self.C = C
 		self.sobj = sobj
 
-
 	def train_dc(self, max_iter=50):
-		""" Solve the LatentSVDD optimization problem with a  
+		""" Solve the optimization problem with a  
 		    sequential convex programming/DC-programming
 		    approach: 
 		    Iteratively, find the most likely configuration of
@@ -46,8 +39,9 @@ class LatentSVDD:
 		
 		# intermediate solutions
 		# latent variables
-		latent = [0]*N
+		latent = [0.0]*N
 
+		setseed(0)
 		sol = 10.0*normal(DIMS,1)
 		psi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		old_psi = matrix(0.0, (DIMS,N)) # (dim x exm)
@@ -55,52 +49,70 @@ class LatentSVDD:
 
 		obj = -1
 		iter = 0 
+		allobjs = []
 
 		# terminate if objective function value doesn't change much
-		while iter<max_iter and (iter<2 or sum(sum(abs(np.array(psi-old_psi))))>=0.001):
+		while iter<max_iter and (iter<3 or sum(sum(abs(np.array(psi-old_psi))))>=0.001):
 			print('Starting iteration {0}.'.format(iter))
 			print(sum(sum(abs(np.array(psi-old_psi)))))
 			iter += 1
 			old_psi = matrix(psi)
-
+			old_sol = sol
+			
 			# 1. linearize
 			# for the current solution compute the 
 			# most likely latent variable configuration
 			for i in range(N):
-				# min_z ||sol - Psi(x,z)||^2 = ||sol||^2 + min_z -2<sol,Psi(x,z)> + ||Psi(x,z)||^2
-				# Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
-				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, opt_type='quadratic')
+				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i)
+				#if i>=0:
+				#	(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
+				#else:
+				#	phi[:,i] = self.sobj.get_joint_feature_map(i)
+				#	latent[i] = self.sobj.y[i]
 
 			# 2. solve the intermediate convex optimization problem 
-			kernel = Kernel.get_kernel(psi,psi)			
-			svdd = SVDD(kernel, self.C)
-			svdd.train_dual()
-			threshold = svdd.get_threshold()
-			inds = svdd.get_support_dual()
-			alphas = svdd.get_support_dual_values()
-			sol = psi[:,inds]*alphas
+			kernel = Kernel.get_kernel(psi, psi)
+			svm = OCSVM(kernel, self.C)
+			svm.train_dual()
+			threshold = svm.get_threshold()
+			#inds = svm.get_support_dual()
+			#alphas = svm.get_support_dual_values()
+			#sol = phi[:,inds]*alphas
 
+			#inds = svm.get_support_dual()
+			#alphas = svm.get_support_dual_values()
+			sol = psi*svm.get_alphas()
+			print matrix([sol.trans(), old_sol.trans()]).trans()
+
+			# calculate objective
+			slacks = [max([0.0, np.single(threshold - sol.trans()*psi[:,i]) ]) for i in xrange(N)]
+			obj = 0.5*np.single(sol.trans()*sol) - np.single(threshold) + self.C*sum(slacks)
+			print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(int(iter),np.single(threshold),np.single(sum(slacks)),np.single(obj)))
+			allobjs.append(float(np.single(obj)))
+
+		print '+++++++++'
+		print threshold
+		print slacks
+		print obj
+		print '+++++++++'
+
+		print allobjs
+		print(sum(sum(abs(np.array(psi-old_psi)))))
 		self.sol = sol
 		self.latent = latent
 		return (sol, latent, threshold)
 
 
 	def apply(self, pred_sobj):
-		""" Application of the LatentSVDD:
+		""" Application of the StructuredOCSVM:
 
-			anomaly_score = min_z ||c*-\Psi(x,z)||^2 
-			latent_state = argmin_z ||c*-\Psi(x,z)||^2 
+			anomaly_score = max_z <sol*,\Psi(x,z)> 
+			latent_state = argmax_z <sol*,\Psi(x,z)> 
 		"""
-
 		N = pred_sobj.get_num_samples()
-		norm2 = self.sol.trans()*self.sol
-
 		vals = matrix(0.0, (1,N))
 		lats = matrix(0.0, (1,N))
 		for i in range(N):
-			# min_z ||sol - Psi(x,z)||^2 = ||sol||^2 + min_z -2<sol,Psi(x,z)> + ||Psi(x,z)||^2
-			# Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
-			(max_obj, lats[i], foo) = pred_sobj.argmax(self.sol, i, opt_type='quadratic')
-			vals[i] = norm2 - max_obj
+			(vals[i], lats[i], foo) = pred_sobj.argmax(self.sol, i)
 
 		return (vals, lats)

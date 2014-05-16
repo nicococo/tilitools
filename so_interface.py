@@ -26,11 +26,10 @@ class SOInterface:
 		print('Create structured object with #{0} training examples, each consiting of #{1} features.'.format(self.samples,self.dims))
 
 
-	def argmin(self, sol, idx):
-		return self.argmax(sol, idx, opt_type='quadratic')
-
 	def argmax(self, sol, idx, add_loss=False, opt_type='linear'): raise NotImplementedError
 		
+	def logsumexp(self, sol, idx, add_loss, opt_type='linear'): raise NotImplementedError
+
 	def calc_loss(self, idx, y): raise NotImplementedError
 
 	def get_joint_feature_map(self, idx, y=[]): raise NotImplementedError

@@ -6,35 +6,22 @@ import numpy as np
 import math as math
 
 from kernel import Kernel  
-from svdd import SVDD
-from ocsvm import OCSVM
 
-import pylab as pl
-import matplotlib.pyplot as plt
-
-class LatentSVDD:
-	""" Latent variable support vector data description.
+class StructuredPCA:
+	""" Structured Extension for Principle Component Analysis.
 		Written by Nico Goernitz, TU Berlin, 2014
-
-		For more information see:
-		'Learning and Evaluation with non-i.i.d Label Noise'
-		Goernitz et al., AISTATS & JMLR W&CP, 2014 
 	"""
-	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
-
-	C = 1.0	# (scalar) the regularization constant > 0
 	sobj = [] # structured object contains various functions
 			  # i.e. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
 	sol = [] # (vector) solution vector (after training, of course) 
 
 
-	def __init__(self, sobj, C=1.0):
-		self.C = C
+	def __init__(self, sobj):
 		self.sobj = sobj
 
 
 	def train_dc(self, max_iter=50):
-		""" Solve the LatentSVDD optimization problem with a  
+		""" Solve the optimization problem with a  
 		    sequential convex programming/DC-programming
 		    approach: 
 		    Iteratively, find the most likely configuration of
@@ -46,12 +33,12 @@ class LatentSVDD:
 		
 		# intermediate solutions
 		# latent variables
-		latent = [0]*N
+		latent = [0.0]*N
 
-		sol = 10.0*normal(DIMS,1)
+		sol = normal(DIMS,1)
 		psi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		old_psi = matrix(0.0, (DIMS,N)) # (dim x exm)
-		threshold = 0
+		threshold = matrix(0.0)
 
 		obj = -1
 		iter = 0 
@@ -66,41 +53,47 @@ class LatentSVDD:
 			# 1. linearize
 			# for the current solution compute the 
 			# most likely latent variable configuration
+			mean = matrix(0.0, (DIMS, 1))
 			for i in range(N):
-				# min_z ||sol - Psi(x,z)||^2 = ||sol||^2 + min_z -2<sol,Psi(x,z)> + ||Psi(x,z)||^2
-				# Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
-				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, opt_type='quadratic')
+				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i)
+				mean += psi[:,i]
+
+			mpsi = matrix(psi)
+			mean /= float(N)
+			#for i in range(N):
+				#mphi[:,i] -= mean
 
 			# 2. solve the intermediate convex optimization problem 
-			kernel = Kernel.get_kernel(psi,psi)			
-			svdd = SVDD(kernel, self.C)
-			svdd.train_dual()
-			threshold = svdd.get_threshold()
-			inds = svdd.get_support_dual()
-			alphas = svdd.get_support_dual_values()
-			sol = psi[:,inds]*alphas
+			A = mpsi*mpsi.trans()
+			print A.size
+			W = matrix(0.0, (DIMS,DIMS))
+			syev(A,W,jobz='V')
+			print W
+			print A
+			print A*A.trans()
+			#sol = (W[3:,0].trans() * A[:,3:].trans()).trans()
+			#sol = (W[3:,0].trans() * A[:,3:].trans()).trans()
+			sol = A[:,DIMS-1]
+			print sol
 
+		print(sum(sum(abs(np.array(psi-old_psi)))))
 		self.sol = sol
 		self.latent = latent
 		return (sol, latent, threshold)
 
 
+
+
 	def apply(self, pred_sobj):
-		""" Application of the LatentSVDD:
+		""" Application of the StructuredPCA:
 
-			anomaly_score = min_z ||c*-\Psi(x,z)||^2 
-			latent_state = argmin_z ||c*-\Psi(x,z)||^2 
+			score = max_z <sol*,\Psi(x,z)> 
+			latent_state = argmax_z <sol*,\Psi(x,z)> 
 		"""
-
 		N = pred_sobj.get_num_samples()
-		norm2 = self.sol.trans()*self.sol
-
 		vals = matrix(0.0, (1,N))
 		lats = matrix(0.0, (1,N))
 		for i in range(N):
-			# min_z ||sol - Psi(x,z)||^2 = ||sol||^2 + min_z -2<sol,Psi(x,z)> + ||Psi(x,z)||^2
-			# Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
-			(max_obj, lats[i], foo) = pred_sobj.argmax(self.sol, i, opt_type='quadratic')
-			vals[i] = norm2 - max_obj
+			(vals[i], lats[i], foo) = pred_sobj.argmax(self.sol, i)
 
 		return (vals, lats)
