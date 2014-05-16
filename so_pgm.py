@@ -4,16 +4,36 @@ import math as math
 from so_interface import SOInterface
 
 
-class SOHMM(SOInterface):
-	""" Hidden Markov Structured Object."""
+class SOPGM(SOInterface):
+	""" Hidden Markov based Procaryotic Gene Model.
 
-	start_p = [] # (vector) start probabilities
-	states = -1 # (scalar) number transition states
+		- State 0 = Intergenic and always start and end state
+		- State 1 = Exon start
+		- State 2 = Exon end
+		- State 3,4,5 = Inner exon  
 
-	def __init__(self, X, y=[], num_states=2):
+		8 Allowed Transitions:
+			0 -> 0 (intergenic to intergenic)
+			0 -> 1 (intergenic to exon start)
+			1 -> 4 (exon start to inner exon 2)
+			4 -> 5 (inner exon 2 to inner exon 3)
+			3 -> 4 (inner exon 1 to inner exon 2)
+			5 -> 3 (inner exon 3 to inner exon 1)
+			5 -> 2 (inner exon 3 to exon end) 
+			2 -> 0 (exon end to intergenic)
+	"""
+	ninf = -10.0**15
+
+	start_p = 0 # start state index
+	stop_p   = 0 # end state index
+
+	states = 6 # (scalar) number transition states
+	transitions = 8 # (scalar) number of allowed transitions
+	dims = 4^3 # (scalar) number of k-mers {A,C,G,T} for k=3 
+
+	def __init__(self, X, y=[]):
 		SOInterface.__init__(self, X, y)	
-		self.states = num_states
-		self.start_p = matrix(0.0, (self.states, 1))
+
 
 	def calc_emission_matrix(self, sol, idx, augment_loss=False):
 		T = len(self.X[idx][0,:])
@@ -24,7 +44,7 @@ class SOHMM(SOInterface):
 		for t in xrange(T):
 			for s in xrange(N):
 				for f in xrange(F):
-					em[s,t] += sol[N*N + s*F] * self.X[idx][f,t]
+					em[s,t] += sol[self.transitions + s*F] * self.X[idx][f,t]
 
 		# augment with loss 
 		if (augment_loss==True):
@@ -36,12 +56,15 @@ class SOHMM(SOInterface):
 
 	def get_transition_matrix(self, sol):
 		N = self.states
-
-		# transition matrix
-		A = matrix(0.0, (N, N))
-		for i in xrange(N):
-			for j in xrange(N):
-				A[i,j] = sol[i*N+j]
+		A = matrix(self.ninf, (N, N))
+		A[0,0] = sol[0] # 0 -> 0 (intergenic to intergenic)
+		A[0,1] = sol[1] # 0 -> 1 (intergenic to exon start)
+		A[1,4] = sol[2] # 1 -> 4 (exon start to inner exon 2)
+		A[4,5] = sol[3] # 4 -> 5 (inner exon 2 to inner exon 3)
+		A[3,4] = sol[4] # 3 -> 4 (inner exon 1 to inner exon 2)
+		A[5,3] = sol[5] # 5 -> 3 (inner exon 3 to inner exon 1)
+		A[5,2] = sol[6] # 5 -> 2 (inner exon 3 to exon end) 
+		A[2,0] = sol[7] # 2 -> 0 (exon end to intergenic)
 		return A
 
 	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
@@ -59,15 +82,24 @@ class SOHMM(SOInterface):
 
 		delta = matrix(0.0, (N, T));
 		psi = matrix(0, (N, T));
+		
 		# initialization
 		for i in xrange(N):
-			delta[i,0] = self.start_p[i] + em[i,0]
-			
+			if i==self.start_p:
+				delta[i,0] = 0.0 + em[i,0]
+			else: 
+				delta[i,0] = self.ninf
+
 		# recursion
-		for t in xrange(1,T):    
+		for t in xrange(1,T-1):    
 			for i in xrange(N):
 				(delta[i,t], psi[i,t]) = max([(delta[j,t-1] + A[j,i] + em[i,t], j) for j in xrange(N)]);
-		
+		for i in xrange(N):
+			if i==self.stop_p:
+				(delta[i,T-1], psi[i,T-1]) = max([(delta[j,T-1-1] + A[j,i] + em[i,T-1], j) for j in xrange(N)]);
+			else: 
+				delta[i,T-1] = self.ninf
+
 		states = matrix(0, (1, T))
 		(prob, states[T-1])  = max([delta[i,T-1], i] for i in xrange(N));    
 			
@@ -107,7 +139,7 @@ class SOHMM(SOInterface):
 		em = self.calc_emission_matrix(sol, idx, augment_loss=False);
 		
 		# store scores for each position of the sequence		
-		scores[0] = self.start_p[int(y[0,0])] + em[int(y[0,0]),0]
+		scores[0] = 0.0 + em[int(y[0,0]),0]
 		for t in range(1,T):
 			scores[t] = A[int(y[0,t-1]),int(y[0,t])] + em[int(y[0,t]),t]
 
@@ -126,17 +158,18 @@ class SOHMM(SOInterface):
 		jfm = matrix(0.0, (self.get_num_dims(), 1))
 		
 		# transition part
+		trans = matrix(0.0, (N,N))
 		for i in range(N):
 			(foo, inds) = np.where([y[0,1:T]==i])
 			for j in range(N):
 				(foo, indsj) = np.where([y[0,inds]==j]) 
-				jfm[j*N+i] = len(indsj)
+				trans[j,i] = len(indsj)
 
 		# emission parts
 		for t in range(T):
 			for f in range(F):
-				jfm[int(y[0,t])*F + f + N*N] += self.X[idx][f,t]
+				jfm[int(y[0,t])*F + f + self.transitions] += self.X[idx][f,t]
 		return jfm
 
 	def get_num_dims(self):
-		return self.dims*self.states + self.states*self.states
+		return self.dims*self.states + self.transitions
