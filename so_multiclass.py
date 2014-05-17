@@ -16,6 +16,7 @@ class SOMultiClass(SOInterface):
 		SOInterface.__init__(self, X, y)
 		self.num_classes = classes		
 
+
 	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
 		nd = self.dims
 		d = 0  # start of dimension in sol
@@ -39,9 +40,21 @@ class SOMultiClass(SOInterface):
 
 		psi_idx = self.get_joint_feature_map(idx,cls)
 		return (val, cls, psi_idx)
+
 		
+	def logsumexp(self, sol, idx, add_loss=False, opt_type='linear'):
+		nd = self.dims
+		d = 0  # start of dimension in sol
+		val = 0.0
+		for c in xrange(self.num_classes):
+			val += exp(sol[d:d+nd].trans()*self.X[:,idx])
+			d += nd
+		return log(val)
+
+
 	def calc_loss(self, idx, y):
 		return self.y[idx]!=y
+
 
 	def get_joint_feature_map(self, idx, y=-1):
 		if y==-1:

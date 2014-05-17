@@ -56,7 +56,7 @@ if __name__ == '__main__':
 	#print hmm.get_jfm_norm2(0,trainY[1])
 	#print '----------'
 
-	lsvm = StructuredOCSVM(pgm, C=1.0/(EXMS*0.01))
+	lsvm = StructuredOCSVM(pgm, C=1.0/(EXMS*0.9))
 	#(lsol, lats, thres) = lsvm.train_dc_svm()
 	(lsol, lats, thres) = lsvm.train_dc(max_iter=20)
 

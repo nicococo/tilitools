@@ -21,6 +21,8 @@ class SOPGM(SOInterface):
 			5 -> 3 (inner exon 3 to inner exon 1)
 			5 -> 2 (inner exon 3 to exon end) 
 			2 -> 0 (exon end to intergenic)
+	
+		written by Nico Goernitz, TU Berlin, 2014
 	"""
 	ninf = -10.0**15
 
