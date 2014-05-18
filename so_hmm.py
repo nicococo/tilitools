@@ -24,7 +24,7 @@ class SOHMM(SOInterface):
 		for t in xrange(T):
 			for s in xrange(N):
 				for f in xrange(F):
-					em[s,t] += sol[N*N + s*F] * self.X[idx][f,t]
+					em[s,t] += sol[N*N + s*F + f] * self.X[idx][f,t]
 
 		# augment with loss 
 		if (augment_loss==True):

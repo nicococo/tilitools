@@ -64,10 +64,10 @@ class StructuredOCSVM:
 			# most likely latent variable configuration
 			for i in range(N):
 				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i)
-				#if i>=0:
-				#	(foo, latent[i], phi[:,i]) = self.sobj.argmax(sol,i)
+				#if i<50:
+				#	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)
 				#else:
-				#	phi[:,i] = self.sobj.get_joint_feature_map(i)
+				#	psi[:,i] = self.sobj.get_joint_feature_map(i)
 				#	latent[i] = self.sobj.y[i]
 
 			# 2. solve the intermediate convex optimization problem 

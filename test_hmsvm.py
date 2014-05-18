@@ -10,12 +10,11 @@ from structured_pca import StructuredPCA
 from toydata import ToyData
 
 from so_hmm import SOHMM
-from so_pgm import SOPGM
 
 if __name__ == '__main__':
 	DIMS = 2
 	LENS = 150
-	EXMS = 100
+	EXMS = 200
 
 	# training data
 	mean = 0.0
@@ -43,7 +42,6 @@ if __name__ == '__main__':
 			trainX[i][d,:] = trainX[i][d,:]-mean[d]
 
 	hmm = SOHMM(trainX,trainY,num_states=2)
-	pgm = SOPGM(trainX, trainY)
 
 	ssvm = SSVM(hmm)
 	(sol, slacks) = ssvm.train()
@@ -56,9 +54,9 @@ if __name__ == '__main__':
 	#print hmm.get_jfm_norm2(0,trainY[1])
 	#print '----------'
 
-	lsvm = StructuredOCSVM(pgm, C=1.0/(EXMS*0.9))
+	lsvm = StructuredOCSVM(hmm, C=1.0/(EXMS*0.9))
 	#(lsol, lats, thres) = lsvm.train_dc_svm()
-	(lsol, lats, thres) = lsvm.train_dc(max_iter=20)
+	(lsol, lats, thres) = lsvm.train_dc(max_iter=40)
 
 
 	# test data
@@ -69,7 +67,7 @@ if __name__ == '__main__':
 	for d in range(DIMS):
 		plt.plot(range(LENS),exm[d,:].trans() + 5.0*d,'-r')
 	
-	(anom_score, scores) = pgm.get_scores(lsol,EXMS-1)
+	(anom_score, scores) = hmm.get_scores(lsol,EXMS-1)
 	plt.plot(range(LENS),scores.trans() + 5.0,'-b')
 
 	plt.plot(range(LENS),pred[0].trans() - 5,'-g')
@@ -81,7 +79,7 @@ if __name__ == '__main__':
 		plt.plot(range(LENS),lats[i].trans() + i*4,'-r')
 		plt.plot(range(LENS),trainY[i].trans() + i*4,'-b')
 		
-		(anom_score, scores) = pgm.get_scores(lsol,i)
+		(anom_score, scores) = hmm.get_scores(lsol,i,lats[i])
 		plt.plot(range(LENS),scores.trans() + i*4,'-g')
 	plt.show()
 

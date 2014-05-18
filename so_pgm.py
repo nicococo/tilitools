@@ -46,15 +46,17 @@ class SOPGM(SOInterface):
 		for t in xrange(T):
 			for s in xrange(N):
 				for f in xrange(F):
-					em[s,t] += sol[self.transitions + s*F] * self.X[idx][f,t]
+					em[s,t] += sol[self.transitions + s*F + f] * self.X[idx][f,t]
 
 		# augment with loss 
 		if (augment_loss==True):
 			loss = matrix(1.0, (N, T))
 			for t in xrange(T):
 				loss[self.y[idx][t],t] = 0.0
+			loss[0,:] = 0.01
 			em += loss
 		return em
+
 
 	def get_transition_matrix(self, sol):
 		N = self.states
@@ -68,6 +70,7 @@ class SOPGM(SOInterface):
 		A[5,2] = sol[6] # 5 -> 2 (inner exon 3 to exon end) 
 		A[2,0] = sol[7] # 2 -> 0 (exon end to intergenic)
 		return A
+
 
 	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
 		# if labels are present, then argmax will solve
@@ -112,6 +115,7 @@ class SOPGM(SOInterface):
 		val = sol.trans()*psi_idx
 		return (val, states, psi_idx)
 
+
 	def get_jfm_norm2(self, idx, y=[]):
 		y = np.array(y)
 		if (y.size==0):
@@ -119,8 +123,10 @@ class SOPGM(SOInterface):
 		jfm = self.get_joint_feature_map(idx,y)
 		return jfm.trans()*jfm
 
+
 	def calc_loss(self, idx, y):
 		return float(sum([np.single(self.y[idx][i])!=np.single(y[i]) for i in xrange(len(y))]))
+
 
 	def get_scores(self, sol, idx, y=[]):
 		y = np.array(y)
@@ -149,6 +155,7 @@ class SOPGM(SOInterface):
 		scores = exp(-(scores/max(abs(scores)) +1.0) )
 		return (anom_score, scores)
 
+
 	def get_joint_feature_map(self, idx, y=[]):
 		y = np.array(y)
 		if (y.size==0):
@@ -160,18 +167,28 @@ class SOPGM(SOInterface):
 		jfm = matrix(0.0, (self.get_num_dims(), 1))
 		
 		# transition part
-		trans = matrix(0.0, (N,N))
+		A = matrix(0.0, (N,N))
 		for i in range(N):
 			(foo, inds) = np.where([y[0,1:T]==i])
 			for j in range(N):
 				(foo, indsj) = np.where([y[0,inds]==j]) 
-				trans[j,i] = len(indsj)
+				A[j,i] = len(indsj)
+
+		jfm[0] = A[0,0] # 0 -> 0 (intergenic to intergenic)
+		jfm[1] = A[0,1] # 0 -> 1 (intergenic to exon start)
+		jfm[2] = A[1,4] # 1 -> 4 (exon start to inner exon 2)
+		jfm[3] = A[4,5] # 4 -> 5 (inner exon 2 to inner exon 3)
+		jfm[4] = A[3,4] # 3 -> 4 (inner exon 1 to inner exon 2)
+		jfm[5] = A[5,3] # 5 -> 3 (inner exon 3 to inner exon 1)
+		jfm[6] = A[5,2] # 5 -> 2 (inner exon 3 to exon end) 
+		jfm[7] = A[2,0] # 2 -> 0 (exon end to intergenic)
 
 		# emission parts
 		for t in range(T):
 			for f in range(F):
 				jfm[int(y[0,t])*F + f + self.transitions] += self.X[idx][f,t]
 		return jfm
+
 
 	def get_num_dims(self):
 		return self.dims*self.states + self.transitions

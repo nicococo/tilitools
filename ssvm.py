@@ -24,7 +24,7 @@ class SSVM:
 		self.sobj = sobj
 
 
-	def train(self,heur_constr=10.1):
+	def train(self,heur_constr=4.4):
 		N = self.sobj.get_num_samples()
 		DIMS = self.sobj.get_num_dims()
 
