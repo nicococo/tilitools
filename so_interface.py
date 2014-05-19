@@ -28,7 +28,7 @@ class SOInterface:
 
 	def argmax(self, sol, idx, add_loss=False, opt_type='linear'): raise NotImplementedError
 		
-	def logsumexp(self, sol, idx, add_loss, opt_type='linear'): raise NotImplementedError
+	def logsumexp(self, sol, idx, add_loss=False, opt_type='linear'): raise NotImplementedError
 
 	def calc_loss(self, idx, y): raise NotImplementedError
 
@@ -38,3 +38,5 @@ class SOInterface:
 		return self.samples
 
 	def get_num_dims(self): raise NotImplementedError
+
+	def evaluate(self, pred): raise NotImplementedError

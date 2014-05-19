@@ -53,8 +53,11 @@ class SOPGM(SOInterface):
 			loss = matrix(1.0, (N, T))
 			for t in xrange(T):
 				loss[self.y[idx][t],t] = 0.0
-			loss[0,:] = 0.01
 			em += loss
+
+		#prior = matrix(0.0, (N, T))
+		#prior[0,:] = 0.1
+		#em += prior
 		return em
 
 

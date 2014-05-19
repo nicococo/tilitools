@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,exp
+from cvxopt import matrix,spmatrix,sparse,exp,uniform
 import numpy as np
 import math as math
 from so_interface import SOInterface
@@ -32,11 +32,14 @@ class SOHMM(SOInterface):
 			for t in xrange(T):
 				loss[self.y[idx][t],t] = 0.0
 			em += loss
+
+		#prior = matrix(0.0, (N, T))
+		#prior[1,:] = 1.0
+		#em += prior
 		return em
 
 	def get_transition_matrix(self, sol):
 		N = self.states
-
 		# transition matrix
 		A = matrix(0.0, (N, N))
 		for i in xrange(N):
@@ -112,8 +115,11 @@ class SOHMM(SOInterface):
 			scores[t] = A[int(y[0,t-1]),int(y[0,t])] + em[int(y[0,t]),t]
 
 		# transform for better interpretability
-		scores = exp(-(scores/max(abs(scores)) +1.0) )
-		return (anom_score, scores)
+		if max(abs(scores))>10.0**(-8):
+			scores = exp(-(scores/max(abs(scores)) +1.0) )
+		else:
+			scores = matrix(0.0, (1,T))
+		return (float(np.single(anom_score)), scores)
 
 	def get_joint_feature_map(self, idx, y=[]):
 		y = np.array(y)
@@ -138,5 +144,32 @@ class SOHMM(SOInterface):
 				jfm[int(y[0,t])*F + f + N*N] += self.X[idx][f,t]
 		return jfm
 
+
 	def get_num_dims(self):
 		return self.dims*self.states + self.states*self.states
+
+
+	def evaluate(self, pred): 
+		""" Currently, this works only for 2-state models. """
+
+		N = self.samples
+		# assume 'pred' to be correspinding to 'y'
+		if len(pred)!=N:
+			raise Exception('Wrong number of examples!')
+
+		cnt = 0
+		base1 = 0
+		base2 = 0
+		loss_all = 0
+		loss_exm = []
+		for i in xrange(N):
+			lens = len(pred[i])
+			loss = self.calc_loss(i, pred[i])
+			base1 += self.calc_loss(i, matrix(0, (1,lens)))
+			base2 += self.calc_loss(i, matrix(1, (1,lens)))
+			loss = min(loss, lens-loss)
+			loss_exm.append(float(loss)/float(lens))
+			loss_all += loss
+			cnt += lens
+
+		return (float(loss_all)/float(cnt), loss_exm, float(min(base1,base2))/float(cnt))
