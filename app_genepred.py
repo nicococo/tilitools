@@ -12,9 +12,41 @@ from toydata import ToyData
 
 from so_pgm import SOPGM
 
+
+def add_intergenic(trainX, trainY, mean, region_start, region_end, num_exm, exm_lens, distr, DIST_LEN):
+	for i in range(num_exm):
+		inds = range(region_start+i*exm_lens,region_start+(i+1)*exm_lens)
+		lens = len(inds)
+
+		print('Index {0}: #{1}'.format(i,lens))
+		error = 0
+		mod = 1
+		lbl = co.matrix(0, (1, lens))
+		exm = co.matrix(-1.0, (DIMS, lens))
+		for t in range(lens):
+			start_ind = max(0,t-DIST_LEN)
+			end_ind = min(lens-1,t+DIST_LEN-1)
+			start = start_ind - (t-DIST_LEN)
+			end = start + (end_ind-start_ind)
+
+			#exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
+			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] += distr[start:end]
+			# labels to states
+			val = max(0, label[0,inds[t]])
+			error += val
+			lbl[t] = int(val)
+
+		if (error>0):
+			print 'ERROR loading integenic regions: gene found!'
+		mean += co.matrix(1.0, (1, lens))*exm.trans()
+		trainX.append(exm)
+		trainY.append(lbl)
+	return (trainX, trainY, mean)
+
+
 if __name__ == '__main__':
 	# load data file
-	data = io.loadmat('../ecoli/data.mat')
+	data = io.loadmat('/home/nico/Data/data.mat')
 	exm_id_intervals = data['exm_id_intervals']
 	exm_id = data['exm_id']
 	label = data['label']
@@ -24,9 +56,9 @@ if __name__ == '__main__':
 	DIMS = 4**3
 	print('There are {0} gene examples.'.format(EXMS))
 
-	DIST_LEN = 80
-	distr1 = 10.0*np.logspace(-5,0,DIST_LEN)
-	distr2 = 10.0*np.logspace(0,-5,DIST_LEN)
+	DIST_LEN = 160
+	distr1 = 20.0*np.logspace(-5,0,DIST_LEN)
+	distr2 = 20.0*np.logspace(0,-5,DIST_LEN)
 	distr = np.concatenate([distr1, distr2[1:]])
 
 	# training data
@@ -43,7 +75,7 @@ if __name__ == '__main__':
 		inds = range(exm_id_intervals[i,1]-1,exm_id_intervals[i,2])
 		lens = len(inds)
 
-		if lens>1000 or lens<=10:
+		if lens>300 or lens<=10:
 			continue
 
 		print('Index {0}: #{1}'.format(i,lens))
@@ -77,8 +109,25 @@ if __name__ == '__main__':
 		trainX.append(exm)
 		trainY.append(lbl)
 
-	# for i in range(60):
-		
+	exm_lens = 300
+	num = 25
+	exm_cnt += num
+	cnt += num*exm_lens
+	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 8500, 16700, num, exm_lens,distr,DIST_LEN)
+
+	exm_lens = 300
+	num = 10
+	exm_cnt += num
+	cnt += num*exm_lens
+	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 4700, 7600, num, exm_lens,distr,DIST_LEN)
+
+	exm_lens = 300
+	num = 57
+	exm_cnt += num
+	cnt += num*exm_lens
+	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 44400, 62000, num, exm_lens,distr,DIST_LEN)
+
+	# for i in range(100):
 	# 	# convert signal to binary feature array
 	# 	# convert labels to states
 	# 	#(foo,inds) = np.where([exm_id[0,:]==i])
@@ -129,6 +178,24 @@ if __name__ == '__main__':
 
 	# train
 	pgm = SOPGM(trainX, trainY)
+	(fscore, fscore_exm) = pgm.evaluate(trainY)
+	print fscore/float(EXMS)
+
+	base_zeros = []
+	base_rnd = []
+	for i in xrange(EXMS):
+		lens = len(trainY[i])
+		foo = co.matrix(0, (1,lens))
+		base_zeros.append(foo)
+		base_rnd.append(np.round(co.uniform(1, lens)))
+
+	(fscore, fscore_exm) = pgm.evaluate(base_rnd)
+	print fscore/float(EXMS)
+
+	(fscore, fscore_exm) = pgm.evaluate(base_zeros)
+	print fscore/float(EXMS)
+
+
 	lsvm = StructuredOCSVM(pgm, C=1.0/(EXMS*0.5))
 	lpca = StructuredPCA(pgm)
 	ssvm = SSVM(pgm,C=1.0)
@@ -137,6 +204,8 @@ if __name__ == '__main__':
 	#(lsol,slacks) = ssvm.train()
 	#(vals, lats) = ssvm.apply(pgm)
 
+	(fscore, fscore_exm) = pgm.evaluate(lats)
+	print fscore/float(EXMS)
 
 	# visualization
 	plt.figure()

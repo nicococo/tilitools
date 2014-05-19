@@ -64,14 +64,16 @@ class StructuredOCSVM:
 			# most likely latent variable configuration
 			for i in range(N):
 				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i)
-				#if i<50:
+				#if i<70:
 				#	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)
 				#else:
 				#	psi[:,i] = self.sobj.get_joint_feature_map(i)
 				#	latent[i] = self.sobj.y[i]
 
 			# 2. solve the intermediate convex optimization problem 
-			kernel = Kernel.get_kernel(psi, psi)
+			psi_star = matrix(psi)
+			psi_star[1:,:] = 0.08*psi_star[1:,:]
+			kernel = Kernel.get_kernel(psi_star, psi_star)
 			svm = OCSVM(kernel, self.C)
 			svm.train_dual()
 			threshold = svm.get_threshold()
@@ -81,7 +83,7 @@ class StructuredOCSVM:
 
 			#inds = svm.get_support_dual()
 			#alphas = svm.get_support_dual_values()
-			sol = psi*svm.get_alphas()
+			sol = psi_star*svm.get_alphas()
 			print matrix([sol.trans(), old_sol.trans()]).trans()
 
 			# calculate objective

@@ -55,9 +55,9 @@ class SOPGM(SOInterface):
 				loss[self.y[idx][t],t] = 0.0
 			em += loss
 
-		#prior = matrix(0.0, (N, T))
-		#prior[0,:] = 0.1
-		#em += prior
+		prior = matrix(-500.0, (N, T))
+		prior[0,:] = 0.0
+		em += prior
 		return em
 
 
@@ -195,3 +195,56 @@ class SOPGM(SOInterface):
 
 	def get_num_dims(self):
 		return self.dims*self.states + self.transitions
+
+	def evaluate(self, pred): 
+		""" Convert state sequences into intergenic (negative) and genic (positive) regions
+			and check for true- and false positives. """
+
+		N = self.samples
+		# assume 'pred' to be correspinding to 'y'
+		if len(pred)!=N:
+			print len(pred)
+			raise Exception('Wrong number of examples!')
+
+		fscore_all = 0
+		fscore_exm = []
+		for i in xrange(N):
+			# 1. convert into genic and intergenic regions
+			seq_true = np.uint(np.sign(self.y[i]))
+			seq_pred = np.uint(np.sign(pred[i]))
+			lens = len(seq_pred[0,:])
+
+			# error measures
+			tp = fp = tn = fn = 0
+			for t in xrange(lens):
+				fp += float(seq_true[0,t]==0 and seq_pred[0,t]==1)
+				fn += float(seq_true[0,t]==1 and seq_pred[0,t]==0)
+				tp += float(seq_true[0,t]==1 and seq_pred[0,t]==1)
+				tn += float(seq_true[0,t]==0 and seq_pred[0,t]==0)
+			if tp+fp+tn+fn!=lens:
+				print 'error'
+			#print fp
+			#print fn
+			#print tp
+			#print tn
+
+			if tp+fn>0:
+				sensitivity = tp / (tp+fn)
+			else:
+				sensitivity = 1.0
+
+			#specificity = tn / (tn+fp)
+
+			if tp+fp>0:
+				precision = tp / (tp+fp)
+			else:
+				precision = 1.0
+			
+			if precision+sensitivity>0.0:
+				fscore = 2.0*precision*sensitivity / (precision+sensitivity)
+			else:
+				fscore = 0.0
+			fscore_all += fscore
+			fscore_exm.append(fscore)
+
+		return (fscore_all, fscore_exm)

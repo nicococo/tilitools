@@ -15,8 +15,7 @@ from so_hmm import SOHMM
 def get_model(num_exm, num_train, lens, feats):
 	mean = 0.0
 	cnt = 0 
-	X = []
-	Y = []
+	X = Y = []
 	for i in range(num_exm):
 		(exm,lbl) = ToyData.get_2state_gaussian_seq(lens,dims=feats,anom_prob=0.15)
 		#if i<4:
