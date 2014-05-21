@@ -7,15 +7,17 @@ from so_interface import SOInterface
 class SOHMM(SOInterface):
 	""" Hidden Markov Structured Object."""
 
+	ninf = -10.0**15
 	start_p = [] # (vector) start probabilities
 	states = -1 # (scalar) number transition states
 
 	def __init__(self, X, y=[], num_states=2):
 		SOInterface.__init__(self, X, y)	
 		self.states = num_states
-		self.start_p = matrix(0.0, (self.states, 1))
+		self.start_p = matrix(self.ninf, (self.states, 1))
+		#self.start_p[0] = 0.0
 
-	def calc_emission_matrix(self, sol, idx, augment_loss=False):
+	def calc_emission_matrix(self, sol, idx, augment_loss=False, augment_prior=False):
 		T = len(self.X[idx][0,:])
 		N = self.states
 		F = self.dims
@@ -32,10 +34,12 @@ class SOHMM(SOInterface):
 			for t in xrange(T):
 				loss[self.y[idx][t],t] = 0.0
 			em += loss
+		
+		if (augment_prior==True):
+			prior = matrix(0.0, (N, T))
+			prior[0,:] = 1.0
+			em += prior
 
-		#prior = matrix(0.0, (N, T))
-		#prior[1,:] = 1.0
-		#em += prior
 		return em
 
 	def get_transition_matrix(self, sol):
@@ -47,7 +51,7 @@ class SOHMM(SOInterface):
 				A[i,j] = sol[i*N+j]
 		return A
 
-	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
+	def argmax(self, sol, idx, add_loss=False, add_prior=False, opt_type='linear'):
 		# if labels are present, then argmax will solve
 		# the loss augmented programm
 		T = len(self.X[idx][0,:])
@@ -58,7 +62,7 @@ class SOHMM(SOInterface):
 		A = self.get_transition_matrix(sol)
 		# calc emission matrix from current solution, data points and
 		# augment with loss if requested
-		em = self.calc_emission_matrix(sol, idx, augment_loss=add_loss)
+		em = self.calc_emission_matrix(sol, idx, augment_loss=add_loss, augment_prior=add_prior)
 
 		delta = matrix(0.0, (N, T));
 		psi = matrix(0, (N, T));

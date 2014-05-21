@@ -63,7 +63,7 @@ class StructuredOCSVM:
 			# for the current solution compute the 
 			# most likely latent variable configuration
 			for i in range(N):
-				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i)
+				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
 				#if i<70:
 				#	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)
 				#else:
@@ -73,8 +73,8 @@ class StructuredOCSVM:
 			# 2. solve the intermediate convex optimization problem 
 			psi_star = matrix(psi)
 			#psi_star[0:7,:] *= 4.0
-			#psi_star[0,:] *= 25.0
-			#psi_star[5,:] *= 5.0
+			#psi_star[0,:] *= 1.2
+			#psi_star[2,:] *= 2.4
 			
 			kernel = Kernel.get_kernel(psi_star, psi_star)
 			svm = OCSVM(kernel, self.C)
@@ -115,9 +115,10 @@ class StructuredOCSVM:
 			latent_state = argmax_z <sol*,\Psi(x,z)> 
 		"""
 		N = pred_sobj.get_num_samples()
-		vals = matrix(0.0, (1,N))
-		lats = matrix(0.0, (1,N))
+		vals = matrix(0.0, (N,1))
+		structs = []
 		for i in range(N):
-			(vals[i], lats[i], foo) = pred_sobj.argmax(self.sol, i)
+			(vals[i], struct, foo) = pred_sobj.argmax(self.sol, i, add_prior=True)
+			structs.append(struct)
 
-		return (vals, lats)
+		return (vals, structs)

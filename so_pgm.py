@@ -26,6 +26,9 @@ class SOPGM(SOInterface):
 	"""
 	ninf = -10.0**15
 
+	FEATS_EXO_START = [0]
+	FEATS_EXO_STOP = [61,62,63]
+
 	start_p = 0 # start state index
 	stop_p   = 0 # end state index
 
@@ -37,7 +40,7 @@ class SOPGM(SOInterface):
 		SOInterface.__init__(self, X, y)	
 
 
-	def calc_emission_matrix(self, sol, idx, augment_loss=False):
+	def calc_emission_matrix(self, sol, idx, augment_loss=False, augment_prior=False):
 		T = len(self.X[idx][0,:])
 		N = self.states
 		F = self.dims
@@ -55,9 +58,11 @@ class SOPGM(SOInterface):
 				loss[self.y[idx][t],t] = 0.0
 			em += loss
 
-		#prior = matrix(-0.1, (N, T))
-		#prior[0,:] = 0.0
-		#em += prior
+		if (augment_prior==True):
+			prior = matrix(0.0, (N, T))
+			prior[0,:] = 0.0
+			em += prior
+
 		return em
 
 
@@ -75,7 +80,7 @@ class SOPGM(SOInterface):
 		return A
 
 
-	def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
+	def argmax(self, sol, idx, add_loss=False, add_prior=False, opt_type='linear'):
 		# if labels are present, then argmax will solve
 		# the loss augmented programm
 		T = len(self.X[idx][0,:])
@@ -86,7 +91,7 @@ class SOPGM(SOInterface):
 		A = self.get_transition_matrix(sol)
 		# calc emission matrix from current solution, data points and
 		# augment with loss if requested
-		em = self.calc_emission_matrix(sol, idx, augment_loss=add_loss)
+		em = self.calc_emission_matrix(sol, idx, augment_loss=add_loss, augment_prior=add_prior)
 
 		delta = matrix(0.0, (N, T));
 		psi = matrix(0, (N, T));
@@ -197,8 +202,10 @@ class SOPGM(SOInterface):
 		return self.dims*self.states + self.transitions
 
 	def evaluate(self, pred): 
-		""" Convert state sequences into intergenic (negative) and genic (positive) regions
-			and check for true- and false positives. """
+		""" Convert state sequences into negative and positive regions
+			and check for true- and false positives (fscore, precision, etc pp). 
+			Warning! This only work for 2-state problems.
+		"""
 
 		N = self.samples
 		# assume 'pred' to be correspinding to 'y'
@@ -206,47 +213,66 @@ class SOPGM(SOInterface):
 			print len(pred)
 			raise Exception('Wrong number of examples!')
 
-		fscore_all = 0
-		fscore_exm = []
+		err = {}
+		err['fscore'] = 0.0
+		err['sensitivity'] = 0.0
+		err['specificity'] = 0.0
+		err['precision'] = 0.0
+
+		err_exm = {}
+		err_exm['fscore'] = []
+		err_exm['sensitivity'] = []
+		err_exm['specificity'] = []
+		err_exm['precision'] = []
 		for i in xrange(N):
-			# 1. convert into genic and intergenic regions
+			#  convert into genic and intergenic regions
 			seq_true = np.uint(np.sign(self.y[i]))
 			seq_pred = np.uint(np.sign(pred[i]))
 			lens = len(seq_pred[0,:])
 
 			# error measures
-			tp = fp = tn = fn = 0
+			tp = fp = tn = fn = 0.0
+			isPosAvail = False
 			for t in xrange(lens):
+				if (seq_true[0,t]==1):
+					isPosAvail = True
 				fp += float(seq_true[0,t]==0 and seq_pred[0,t]==1)
 				fn += float(seq_true[0,t]==1 and seq_pred[0,t]==0)
 				tp += float(seq_true[0,t]==1 and seq_pred[0,t]==1)
 				tn += float(seq_true[0,t]==0 and seq_pred[0,t]==0)
 			if tp+fp+tn+fn!=lens:
 				print 'error'
-			#print fp
-			#print fn
-			#print tp
-			#print tn
 
 			if tp+fn>0:
-				sensitivity = tp / (tp+fn)
+				sensitivity = float(tp) / float(tp+fn)
 			else:
 				sensitivity = 1.0
+				if isPosAvail:
+					sensitivity = 0.0
 
-			#specificity = tn / (tn+fp)
+			specificity = float(tn) / float(tn+fp)
 
 			if tp+fp>0:
-				precision = tp / (tp+fp)
+				precision = float(tp) / float(tp+fp)
 			else:
 				precision = 1.0
+				if isPosAvail:
+					precision = 0.0
 			
 			if precision+sensitivity>0.0:
-				fscore = 2.0*precision*sensitivity / (precision+sensitivity)
+				fscore = 2.0*precision*sensitivity / float(precision+sensitivity)
 			else:
 				fscore = 0.0
-			#fscore_all += fscore
-			#fscore_exm.append(fscore)
-			fscore_all += precision
-			fscore_exm.append(precision)
+			
+			err['fscore'] += fscore/float(N)
+			err['sensitivity'] += sensitivity/float(N)
+			err['specificity'] += specificity/float(N)
+			err['precision'] += precision/float(N)
 
-		return (fscore_all, fscore_exm)
+			err_exm['fscore'].append(fscore)
+			err_exm['sensitivity'].append(sensitivity)
+			err_exm['specificity'].append(specificity)
+			err_exm['precision'].append(precision)
+
+
+		return (err, err_exm)

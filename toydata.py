@@ -31,8 +31,8 @@ class ToyData:
 		if prob<anom_prob:		
 			# add second state blocks
 			while (True):
-				max_block_len = 0.4*lens
-				min_block_len = 0.05*lens
+				max_block_len = 0.6*lens
+				min_block_len = 0.1*lens
 				block_len = np.int(max_block_len*np.single(co.uniform(1))+3)
 				block_start = np.int(lens*np.single(co.uniform(1)))
 

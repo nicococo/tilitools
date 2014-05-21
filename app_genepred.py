@@ -77,7 +77,7 @@ if __name__ == '__main__':
 		inds = range(exm_id_intervals[i,1]-1,exm_id_intervals[i,2])
 		lens = len(inds)
 
-		if lens>300 or lens<=10:
+		if lens>900 or lens<=600:
 			continue
 
 		print('Index {0}: #{1}'.format(i,lens))
@@ -118,27 +118,30 @@ if __name__ == '__main__':
 		trainX.append(exm)
 		trainY.append(lbl)
 
+
+	print '###################'
 	print start_symbs
 	print stop_symbs 
 
-	exm_lens = 300
-	num = 25
+	exm_lens = 600
+	num = 12
 	exm_cnt += num
 	cnt += num*exm_lens
 	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 8500, 16700, num, exm_lens,distr,DIST_LEN)
 
-	exm_lens = 300
-	num = 10
+	exm_lens = 600
+	num = 5
 	exm_cnt += num
 	cnt += num*exm_lens
 	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 4700, 7600, num, exm_lens,distr,DIST_LEN)
 
-	exm_lens = 300
+	exm_lens = 600
 	num = 7 #57
 	exm_cnt += num
 	cnt += num*exm_lens
 	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 44400, 62000, num, exm_lens,distr,DIST_LEN)
 
+	trainX
 	# for i in range(100):
 	# 	# convert signal to binary feature array
 	# 	# convert labels to states

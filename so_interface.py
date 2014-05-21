@@ -26,9 +26,9 @@ class SOInterface:
 		print('Create structured object with #{0} training examples, each consiting of #{1} features.'.format(self.samples,self.dims))
 
 
-	def argmax(self, sol, idx, add_loss=False, opt_type='linear'): raise NotImplementedError
+	def argmax(self, sol, idx, add_loss=False, add_prior=False, opt_type='linear'): raise NotImplementedError
 		
-	def logsumexp(self, sol, idx, add_loss=False, opt_type='linear'): raise NotImplementedError
+	def logsumexp(self, sol, idx, add_loss=False, add_prior=False, opt_type='linear'): raise NotImplementedError
 
 	def calc_loss(self, idx, y): raise NotImplementedError
 

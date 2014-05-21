@@ -55,7 +55,7 @@ class StructuredPCA:
 			# most likely latent variable configuration
 			mean = matrix(0.0, (DIMS, 1))
 			for i in range(N):
-				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i)
+				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
 				mean += psi[:,i]
 
 			mpsi = matrix(psi)
@@ -91,9 +91,11 @@ class StructuredPCA:
 			latent_state = argmax_z <sol*,\Psi(x,z)> 
 		"""
 		N = pred_sobj.get_num_samples()
-		vals = matrix(0.0, (1,N))
-		lats = matrix(0.0, (1,N))
+		vals = []
+		structs = []
 		for i in range(N):
-			(vals[i], lats[i], foo) = pred_sobj.argmax(self.sol, i)
+			(val, struct, foo) = pred_sobj.argmax(self.sol, i, add_prior=True)
+			vals.append(np.float(val))
+			structs.append(struct)
 
-		return (vals, lats)
+		return (vals, structs)

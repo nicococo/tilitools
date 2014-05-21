@@ -105,10 +105,11 @@ class SSVM:
 		"""
 		N = pred_sobj.get_num_samples()
 
-		vals = matrix(0.0, (1,N))
+		vals = []
 		structs = []
 		for i in range(N):
-			(vals[i], struct, foo) = pred_sobj.argmax(self.w, i)
+			(val, struct, foo) = pred_sobj.argmax(self.w, i)
+			vals.append(val)
 			structs.append(struct)
 
 		return (vals, structs)
