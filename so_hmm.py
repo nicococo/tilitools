@@ -89,7 +89,7 @@ class SOHMM(SOInterface):
 		return jfm.trans()*jfm
 
 	def calc_loss(self, idx, y):
-		return float(sum([np.single(self.y[idx][i])!=np.single(y[i]) for i in xrange(len(y))]))
+		return float(sum([np.uint(self.y[idx][i])!=np.uint(y[i]) for i in xrange(len(y))]))
 
 	def get_scores(self, sol, idx, y=[]):
 		y = np.array(y)
@@ -148,28 +148,89 @@ class SOHMM(SOInterface):
 	def get_num_dims(self):
 		return self.dims*self.states + self.states*self.states
 
-
 	def evaluate(self, pred): 
-		""" Currently, this works only for 2-state models. """
+		""" Convert state sequences into negative and positive regions
+			and check for true- and false positives (fscore, precision, etc pp). 
+			Warning! This only work for 2-state problems.
+		"""
 
 		N = self.samples
 		# assume 'pred' to be correspinding to 'y'
 		if len(pred)!=N:
+			print len(pred)
 			raise Exception('Wrong number of examples!')
 
-		cnt = 0
-		base1 = 0
-		base2 = 0
-		loss_all = 0
-		loss_exm = []
-		for i in xrange(N):
-			lens = len(pred[i])
-			loss = self.calc_loss(i, pred[i])
-			base1 += self.calc_loss(i, matrix(0, (1,lens)))
-			base2 += self.calc_loss(i, matrix(1, (1,lens)))
-			loss = min(loss, lens-loss)
-			loss_exm.append(float(loss)/float(lens))
-			loss_all += loss
-			cnt += lens
+		err = {}
+		err['fscore'] = 0.0
+		err['sensitivity'] = 0.0
+		err['specificity'] = 0.0
+		err['precision'] = 0.0
 
-		return (float(loss_all)/float(cnt), loss_exm, float(min(base1,base2))/float(cnt))
+		err_exm = {}
+		err_exm['fscore'] = []
+		err_exm['sensitivity'] = []
+		err_exm['specificity'] = []
+		err_exm['precision'] = []
+		for i in xrange(N):
+			loss1 = self.calc_loss(i, pred[i])
+			loss2 = self.calc_loss(i, -pred[i]+1)
+			#print('{2}: loss1={0} loss2={1}'.format(loss1, loss2, i))
+
+			#  convert into genic and intergenic regions
+			seq_true = np.uint(np.sign(self.y[i]))
+			seq_pred = np.uint(np.sign(pred[i]))
+			if loss2<loss1:
+				# switch states
+				seq_pred = np.uint(np.sign(-pred[i]+1))
+			lens = len(seq_pred[0,:])
+
+			# error measures
+			tp = fp = tn = fn = 0.0
+			isPosAvail = False
+			for t in xrange(lens):
+				if (seq_true[0,t]==1):
+					isPosAvail = True
+				fp += float(seq_true[0,t]==0 and seq_pred[0,t]==1)
+				fn += float(seq_true[0,t]==1 and seq_pred[0,t]==0)
+				tp += float(seq_true[0,t]==1 and seq_pred[0,t]==1)
+				tn += float(seq_true[0,t]==0 and seq_pred[0,t]==0)
+			if tp+fp+tn+fn!=lens:
+				print 'error'
+			#print fp
+			#print fn
+			#print tp
+			#print tn
+
+			if tp+fn>0:
+				sensitivity = float(tp) / float(tp+fn)
+			else:
+				sensitivity = 1.0
+				if isPosAvail:
+					sensitivity = 0.0
+
+			specificity = float(tn) / float(tn+fp)
+
+			if tp+fp>0:
+				precision = float(tp) / float(tp+fp)
+			else:
+				precision = 1.0
+				if isPosAvail:
+					precision = 0.0
+			
+			if precision+sensitivity>0.0:
+				fscore = 2.0*precision*sensitivity / float(precision+sensitivity)
+			else:
+				fscore = 0.0
+			
+			err['fscore'] += fscore/float(N)
+			err['sensitivity'] += sensitivity/float(N)
+			err['specificity'] += specificity/float(N)
+			err['precision'] += precision/float(N)
+
+			err_exm['fscore'].append(fscore)
+			err_exm['sensitivity'].append(sensitivity)
+			err_exm['specificity'].append(specificity)
+			err_exm['precision'].append(precision)
+
+
+		return (err, err_exm)

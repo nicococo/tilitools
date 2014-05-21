@@ -55,9 +55,9 @@ class SOPGM(SOInterface):
 				loss[self.y[idx][t],t] = 0.0
 			em += loss
 
-		prior = matrix(-500.0, (N, T))
-		prior[0,:] = 0.0
-		em += prior
+		#prior = matrix(-0.1, (N, T))
+		#prior[0,:] = 0.0
+		#em += prior
 		return em
 
 
@@ -128,7 +128,7 @@ class SOPGM(SOInterface):
 
 
 	def calc_loss(self, idx, y):
-		return float(sum([np.single(self.y[idx][i])!=np.single(y[i]) for i in xrange(len(y))]))
+		return float(sum([np.uint(self.y[idx][i])!=np.uint(y[i]) for i in xrange(len(y))]))
 
 
 	def get_scores(self, sol, idx, y=[]):
@@ -244,7 +244,9 @@ class SOPGM(SOInterface):
 				fscore = 2.0*precision*sensitivity / (precision+sensitivity)
 			else:
 				fscore = 0.0
-			fscore_all += fscore
-			fscore_exm.append(fscore)
+			#fscore_all += fscore
+			#fscore_exm.append(fscore)
+			fscore_all += precision
+			fscore_exm.append(precision)
 
 		return (fscore_all, fscore_exm)

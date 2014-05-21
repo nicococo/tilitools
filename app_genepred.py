@@ -46,7 +46,7 @@ def add_intergenic(trainX, trainY, mean, region_start, region_end, num_exm, exm_
 
 if __name__ == '__main__':
 	# load data file
-	data = io.loadmat('/home/nico/Data/data.mat')
+	data = io.loadmat('../ecoli/data.mat')
 	exm_id_intervals = data['exm_id_intervals']
 	exm_id = data['exm_id']
 	label = data['label']
@@ -67,6 +67,8 @@ if __name__ == '__main__':
 	cnt = 0 
 	trainX = []
 	trainY = []
+	start_symbs = []
+	stop_symbs = []
 	for i in xrange(EXMS):
 		
 		# convert signal to binary feature array
@@ -101,6 +103,13 @@ if __name__ == '__main__':
 				mod = (mod+1) % 3
 			else:
 				lbl[t] = int(val)
+
+			# store start/stop symbols
+			if (label[0,inds[t]]==1):
+				start_symbs.append(signal[0,inds[t]])
+			if (label[0,inds[t]]==2):
+				stop_symbs.append(signal[0,inds[t]])
+
 		if exm_cnt==1:
 			print exm 
 
@@ -108,6 +117,9 @@ if __name__ == '__main__':
 		cnt += lens
 		trainX.append(exm)
 		trainY.append(lbl)
+
+	print start_symbs
+	print stop_symbs 
 
 	exm_lens = 300
 	num = 25
@@ -122,7 +134,7 @@ if __name__ == '__main__':
 	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 4700, 7600, num, exm_lens,distr,DIST_LEN)
 
 	exm_lens = 300
-	num = 57
+	num = 7 #57
 	exm_cnt += num
 	cnt += num*exm_lens
 	(trainX, trainY, mean) = add_intergenic(trainX, trainY, mean, 44400, 62000, num, exm_lens,distr,DIST_LEN)
@@ -199,7 +211,7 @@ if __name__ == '__main__':
 	lsvm = StructuredOCSVM(pgm, C=1.0/(EXMS*0.5))
 	lpca = StructuredPCA(pgm)
 	ssvm = SSVM(pgm,C=1.0)
-	(lsol, lats, thres) = lsvm.train_dc(max_iter=30)
+	(lsol, lats, thres) = lsvm.train_dc(max_iter=200)
 	#(lsol, lats, thres) = lpca.train_dc(max_iter=20)
 	#(lsol,slacks) = ssvm.train()
 	#(vals, lats) = ssvm.apply(pgm)

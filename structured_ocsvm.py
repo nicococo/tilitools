@@ -72,7 +72,10 @@ class StructuredOCSVM:
 
 			# 2. solve the intermediate convex optimization problem 
 			psi_star = matrix(psi)
-			psi_star[1:,:] = 0.08*psi_star[1:,:]
+			#psi_star[0:7,:] *= 4.0
+			#psi_star[0,:] *= 25.0
+			#psi_star[5,:] *= 5.0
+			
 			kernel = Kernel.get_kernel(psi_star, psi_star)
 			svm = OCSVM(kernel, self.C)
 			svm.train_dual()

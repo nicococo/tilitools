@@ -19,8 +19,9 @@ class ToyData:
 	@staticmethod
 	def get_2state_gaussian_seq(lens,dims=2,means1=[2,2],means2=[5,5],vars1=[1,1],vars2=[1,1],anom_prob=1.0):
 		
-		seqs = co.matrix(0.0,(dims,lens))
-		lbls = co.matrix(0,(1,lens))
+		seqs = co.matrix(0.0, (dims, lens))
+		lbls = co.matrix(0, (1,lens))
+		marker = 0
 
 		# generate first state sequence
 		for d in range(dims):
@@ -40,8 +41,9 @@ class ToyData:
 
 			block_len = min(block_len,block_len - (block_start+block_len-lens)-3)
 			lbls[block_start:block_start+block_len-1] = 1
+			marker = 1
 			for d in range(dims):
-				print block_len
+				#print block_len
 				seqs[d,block_start:block_start+block_len-1] = co.normal(1,block_len-1)*vars2[d] + means2[d]
 
-		return (seqs, lbls)
+		return (seqs, lbls, marker)
