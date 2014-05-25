@@ -91,11 +91,10 @@ class StructuredPCA:
 			latent_state = argmax_z <sol*,\Psi(x,z)> 
 		"""
 		N = pred_sobj.get_num_samples()
-		vals = []
+		vals = matrix(0.0, (N,1))
 		structs = []
 		for i in range(N):
-			(val, struct, foo) = pred_sobj.argmax(self.sol, i, add_prior=True)
-			vals.append(np.float(val))
+			(vals[i], struct, foo) = pred_sobj.argmax(self.sol, i, add_prior=True)
 			structs.append(struct)
 
 		return (vals, structs)

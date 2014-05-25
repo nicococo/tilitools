@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,exp
+from cvxopt import matrix,spmatrix,sparse,exp,uniform
 import numpy as np
 import math as math
 from so_interface import SOInterface
@@ -36,8 +36,19 @@ class SOPGM(SOInterface):
 	transitions = 8 # (scalar) number of allowed transitions
 	dims = 4^3 # (scalar) number of k-mers {A,C,G,T} for k=3 
 
-	def __init__(self, X, y=[]):
+	hotstart_tradeoff = 0.01 # (scalar) this tradeoff is used for hotstart 
+							# > 1.0: transition have more weight
+							# < 1.0: emission have more weight
+
+	def __init__(self, X, y=[], hotstart_tradeoff=0.01):
 		SOInterface.__init__(self, X, y)	
+		self.hotstart_tradeoff = hotstart_tradeoff
+
+	def get_hotstart_sol(self):
+		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
+		sol[0:8] *= self.hotstart_tradeoff
+		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
+		return sol
 
 
 	def calc_emission_matrix(self, sol, idx, augment_loss=False, augment_prior=False):
@@ -59,7 +70,7 @@ class SOPGM(SOInterface):
 			em += loss
 
 		if (augment_prior==True):
-			prior = matrix(0.0, (N, T))
+			prior = matrix(-0.0, (N, T))
 			prior[0,:] = 0.0
 			em += prior
 
@@ -160,7 +171,12 @@ class SOPGM(SOInterface):
 			scores[t] = A[int(y[0,t-1]),int(y[0,t])] + em[int(y[0,t]),t]
 
 		# transform for better interpretability
-		scores = exp(-(scores/max(abs(scores)) +1.0) )
+		# transform for better interpretability
+		if max(abs(scores))>10.0**(-15):
+			scores = exp(-abs(4.0*scores/max(abs(scores))))
+		else:
+			scores = matrix(0.0, (1,T))
+
 		return (anom_score, scores)
 
 
@@ -213,11 +229,7 @@ class SOPGM(SOInterface):
 			print len(pred)
 			raise Exception('Wrong number of examples!')
 
-		err = {}
-		err['fscore'] = 0.0
-		err['sensitivity'] = 0.0
-		err['specificity'] = 0.0
-		err['precision'] = 0.0
+		all_tp = all_fp = all_tn = all_fn = 0.0
 
 		err_exm = {}
 		err_exm['fscore'] = []
@@ -242,6 +254,10 @@ class SOPGM(SOInterface):
 				tn += float(seq_true[0,t]==0 and seq_pred[0,t]==0)
 			if tp+fp+tn+fn!=lens:
 				print 'error'
+			all_fn += fn
+			all_tn += tn
+			all_fp += fp
+			all_tp += tp
 
 			if tp+fn>0:
 				sensitivity = float(tp) / float(tp+fn)
@@ -249,30 +265,42 @@ class SOPGM(SOInterface):
 				sensitivity = 1.0
 				if isPosAvail:
 					sensitivity = 0.0
-
 			specificity = float(tn) / float(tn+fp)
-
 			if tp+fp>0:
 				precision = float(tp) / float(tp+fp)
 			else:
 				precision = 1.0
 				if isPosAvail:
 					precision = 0.0
-			
 			if precision+sensitivity>0.0:
 				fscore = 2.0*precision*sensitivity / float(precision+sensitivity)
 			else:
 				fscore = 0.0
-			
-			err['fscore'] += fscore/float(N)
-			err['sensitivity'] += sensitivity/float(N)
-			err['specificity'] += specificity/float(N)
-			err['precision'] += precision/float(N)
-
 			err_exm['fscore'].append(fscore)
 			err_exm['sensitivity'].append(sensitivity)
 			err_exm['specificity'].append(specificity)
 			err_exm['precision'].append(precision)
 
+
+		if all_tp+all_fn>0:
+			sensitivity = float(all_tp) / float(all_tp+all_fn)
+		else:
+			sensitivity = 0.0
+		if all_tn+all_fp>0:
+			specificity = float(all_tn) / float(all_tn+fp)
+		else:
+			specificity = 0.0
+		if all_tp+all_fp>0:
+			precision = float(all_tp) / float(all_tp+all_fp)
+		else:
+			precision = 0.0
+		err = {}
+		if precision+sensitivity>0.0:
+			err['fscore'] = 2.0*precision*sensitivity / float(precision+sensitivity)
+		else:
+			err['fscore'] = 0.0
+		err['sensitivity'] = sensitivity
+		err['specificity'] = specificity
+		err['precision'] = precision
 
 		return (err, err_exm)

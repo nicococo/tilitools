@@ -28,7 +28,8 @@ class SSVM:
 		N = self.sobj.get_num_samples()
 		DIMS = self.sobj.get_num_dims()
 
-		w = normal(DIMS,1)
+		w = self.sobj.get_hotstart_sol()
+
 		slacks = [-10**10]*N
 		sol = matrix([[w.trans()],[matrix(slacks,(1,N))]]).trans()
 

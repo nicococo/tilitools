@@ -26,7 +26,7 @@ class StructuredOCSVM:
 		self.C = C
 		self.sobj = sobj
 
-	def train_dc(self, max_iter=50):
+	def train_dc(self, max_iter=50, hotstart=matrix([])):
 		""" Solve the optimization problem with a  
 		    sequential convex programming/DC-programming
 		    approach: 
@@ -41,8 +41,13 @@ class StructuredOCSVM:
 		# latent variables
 		latent = [0.0]*N
 
-		setseed(0)
-		sol = 10.0*normal(DIMS,1)
+		#setseed(0)
+		sol = self.sobj.get_hotstart_sol()
+		#sol[0:4] *= 0.01
+		if hotstart.size==(DIMS,1):
+			print('New hotstart position defined.')
+			sol = hotstart
+
 		psi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		old_psi = matrix(0.0, (DIMS,N)) # (dim x exm)
 		threshold = 0
@@ -73,6 +78,7 @@ class StructuredOCSVM:
 			# 2. solve the intermediate convex optimization problem 
 			psi_star = matrix(psi)
 			#psi_star[0:7,:] *= 4.0
+			#psi_star[0:3,:] *= 0.01
 			#psi_star[0,:] *= 1.2
 			#psi_star[2,:] *= 2.4
 			
@@ -103,6 +109,7 @@ class StructuredOCSVM:
 
 		print allobjs
 		print(sum(sum(abs(np.array(psi-old_psi)))))
+		print '+++++++++ SAD END'		
 		self.sol = sol
 		self.latent = latent
 		return (sol, latent, threshold)

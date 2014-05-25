@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,exp
+from cvxopt import matrix, normal
 import numpy as np
 import math as math
 
@@ -11,7 +11,7 @@ class SOInterface:
 	y = [] # (list of vectors) state sequences (if present)
 
 	samples = -1 # (scalar) number of training data samples
-	dims = -1 # (scalar) number of input dimensions
+	dims = -1 # (scalar) number of features != get_num_dims() !!!
 
 	def __init__(self, X, y=[]):
 		self.X = X
@@ -25,6 +25,9 @@ class SOInterface:
 			(self.dims, foo) = X[0].size
 		print('Create structured object with #{0} training examples, each consiting of #{1} features.'.format(self.samples,self.dims))
 
+	def get_hotstart_sol(self): 
+		print('Generate a random solution vector for hot start.')
+		return	normal(self.get_num_dims(), 1)
 
 	def argmax(self, sol, idx, add_loss=False, add_prior=False, opt_type='linear'): raise NotImplementedError
 		

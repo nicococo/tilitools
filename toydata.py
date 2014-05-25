@@ -17,7 +17,7 @@ class ToyData:
 		return data
 
 	@staticmethod
-	def get_2state_gaussian_seq(lens,dims=2,means1=[2,2],means2=[5,5],vars1=[1,1],vars2=[1,1],anom_prob=1.0):
+	def get_2state_gaussian_seq(lens,dims=2,means1=[2,2,2,2],means2=[5,5,5,5],vars1=[1,1,1,1],vars2=[1,1,1,1],anom_prob=1.0):
 		
 		seqs = co.matrix(0.0, (dims, lens))
 		lbls = co.matrix(0, (1,lens))
@@ -45,5 +45,42 @@ class ToyData:
 			for d in range(dims):
 				#print block_len
 				seqs[d,block_start:block_start+block_len-1] = co.normal(1,block_len-1)*vars2[d] + means2[d]
+
+		return (seqs, lbls, marker)
+
+
+	@staticmethod
+	def get_2state_anom_seq(lens, anom_prob=1.0, block_len_perc=0.6, num_blocks=1):
+		
+		seqs = co.matrix(0.0, (1, lens))
+		lbls = co.matrix(0, (1, lens))
+		marker = 1
+
+		# generate first state sequence, gaussian noise 0=mean, 1=variance
+		seqs[0,:] = co.normal(1, lens)*1.0
+		bak = co.matrix(seqs)
+		
+		prob = np.random.uniform()
+		if prob<anom_prob:		
+
+			# add second state blocks
+			comb_block_len = np.int(float(lens)*block_len_perc)
+			block_len = np.int(np.floor(comb_block_len/float(num_blocks)))
+			marker = 0
+
+			# add a single block
+			blen = 0
+			for b in xrange(np.int(num_blocks)):
+				if (b==num_blocks-1 and b>1):
+					block_len = np.round(comb_block_len-blen)
+				
+				start = np.int(np.random.uniform()*float(lens-block_len+1))
+				#print start
+				#print start+block_len
+				lbls[0,start:start+block_len] = 1
+				seqs[0,start:start+block_len] = bak[0,start:start+block_len]+4.0
+
+				blen += block_len
+			print('Anomamly block lengths (target/reality)= {0}/{1} '.format(comb_block_len, blen))
 
 		return (seqs, lbls, marker)

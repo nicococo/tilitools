@@ -10,12 +10,22 @@ class SOHMM(SOInterface):
 	ninf = -10.0**15
 	start_p = [] # (vector) start probabilities
 	states = -1 # (scalar) number transition states
+	hotstart_tradeoff = 0.1 # (scalar) this tradeoff is used for hotstart 
+							# > 1.0: transition have more weight
+							# < 1.0: emission have more weight
 
-	def __init__(self, X, y=[], num_states=2):
+	def __init__(self, X, y=[], num_states=2, hotstart_tradeoff=0.1):
 		SOInterface.__init__(self, X, y)	
 		self.states = num_states
-		self.start_p = matrix(self.ninf, (self.states, 1))
+		self.start_p = matrix(1.0, (self.states, 1))
 		#self.start_p[0] = 0.0
+		self.hotstart_tradeoff = hotstart_tradeoff
+
+	def get_hotstart_sol(self):
+		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
+		sol[0:self.states*self.states] *= self.hotstart_tradeoff
+		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
+		return sol
 
 	def calc_emission_matrix(self, sol, idx, augment_loss=False, augment_prior=False):
 		T = len(self.X[idx][0,:])
@@ -37,7 +47,7 @@ class SOHMM(SOInterface):
 		
 		if (augment_prior==True):
 			prior = matrix(0.0, (N, T))
-			prior[0,:] = 1.0
+			#prior[0,:] = 1.0
 			em += prior
 
 		return em
@@ -111,7 +121,7 @@ class SOHMM(SOInterface):
 		# transition matrix
 		A = self.get_transition_matrix(sol)
 		# emission matrix without loss
-		em = self.calc_emission_matrix(sol, idx, augment_loss=False);
+		em = self.calc_emission_matrix(sol, idx, augment_loss=False, augment_prior=False);
 		
 		# store scores for each position of the sequence		
 		scores[0] = self.start_p[int(y[0,0])] + em[int(y[0,0]),0]
@@ -119,10 +129,11 @@ class SOHMM(SOInterface):
 			scores[t] = A[int(y[0,t-1]),int(y[0,t])] + em[int(y[0,t]),t]
 
 		# transform for better interpretability
-		if max(abs(scores))>10.0**(-8):
-			scores = exp(-(scores/max(abs(scores)) +1.0) )
+		if max(abs(scores))>10.0**(-15):
+			scores = exp(-abs(4.0*scores/max(abs(scores))))
 		else:
 			scores = matrix(0.0, (1,T))
+
 		return (float(np.single(anom_score)), scores)
 
 	def get_joint_feature_map(self, idx, y=[]):
@@ -164,11 +175,7 @@ class SOHMM(SOInterface):
 			print len(pred)
 			raise Exception('Wrong number of examples!')
 
-		err = {}
-		err['fscore'] = 0.0
-		err['sensitivity'] = 0.0
-		err['specificity'] = 0.0
-		err['precision'] = 0.0
+		all_tp = all_fp = all_tn = all_fn = 0.0
 
 		err_exm = {}
 		err_exm['fscore'] = []
@@ -200,10 +207,12 @@ class SOHMM(SOInterface):
 				tn += float(seq_true[0,t]==0 and seq_pred[0,t]==0)
 			if tp+fp+tn+fn!=lens:
 				print 'error'
-			#print fp
-			#print fn
-			#print tp
-			#print tn
+
+			all_fn += fn
+			all_tn += tn
+			all_fp += fp
+			all_tp += tp
+
 
 			if tp+fn>0:
 				sensitivity = float(tp) / float(tp+fn)
@@ -225,16 +234,32 @@ class SOHMM(SOInterface):
 				fscore = 2.0*precision*sensitivity / float(precision+sensitivity)
 			else:
 				fscore = 0.0
-			
-			err['fscore'] += fscore/float(N)
-			err['sensitivity'] += sensitivity/float(N)
-			err['specificity'] += specificity/float(N)
-			err['precision'] += precision/float(N)
 
 			err_exm['fscore'].append(fscore)
 			err_exm['sensitivity'].append(sensitivity)
 			err_exm['specificity'].append(specificity)
 			err_exm['precision'].append(precision)
+
+		if all_tp+all_fn>0:
+			sensitivity = float(all_tp) / float(all_tp+all_fn)
+		else:
+			sensitivity = 0.0
+		if all_tn+all_fp>0:
+			specificity = float(all_tn) / float(all_tn+fp)
+		else:
+			specificity = 0.0
+		if all_tp+all_fp>0:
+			precision = float(all_tp) / float(all_tp+all_fp)
+		else:
+			precision = 0.0
+		err = {}
+		if precision+sensitivity>0.0:
+			err['fscore'] = 2.0*precision*sensitivity / float(precision+sensitivity)
+		else:
+			err['fscore'] = 0.0
+		err['sensitivity'] = sensitivity
+		err['specificity'] = specificity
+		err['precision'] = precision
 
 
 		return (err, err_exm)

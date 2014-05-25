@@ -15,6 +15,7 @@ from toydata import ToyData
 from so_hmm import SOHMM
 
 
+
 def get_model(num_exm, num_train, lens, feats, anomaly_prob=0.15):
 	print('Generating {0} sequences, {1} for training, each with {2} anomaly probability.'.format(num_exm, num_train, anomaly_prob))
 	mean = 0.0
@@ -67,7 +68,7 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 	base_auc = metric.auc(fpr, tpr)
 
 	# train structured anomaly detection
-	sad = StructuredOCSVM(train, C=1.0/(num_train*0.5))
+	sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
 	(lsol, lats, thres) = sad.train_dc(max_iter=40)
 	(pred_vals, pred_lats) = sad.apply(test)
 	(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], pred_vals)
@@ -96,22 +97,38 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 if __name__ == '__main__':
 	DIMS = 2
 	LENS = 250
-	EXMS = 300
+	EXMS = 1000
 	EXMS_TRAIN = 100
-	ANOM_PROB = 0.15
+	ANOM_PROB = 0.01
+	REPS = 10
 
-	# generate data
-	(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, DIMS, ANOM_PROB)
+	# anomaly detection experiment 
+	aucs = []
+	mauc = 0.0
+	mbase_auc = 0.0 
+	for r in xrange(REPS):
+		(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, DIMS, ANOM_PROB)
+		(auc, base_auc) = experiment_anomaly_detection(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
+		aucs.append((auc, base_auc))
+		mauc += auc
+		mbase_auc += base_auc
 
-	(auc, base_auc) = experiment_anomaly_detection(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
+	mauc /= float(REPS)
+	mbase_auc /= float(REPS)
+	vauc = sum([ (aucs[i][0]-mauc)**2 for i in xrange(REPS)]) / float(REPS)
+	vbase_auc = sum([ (aucs[i][1]-mauc)**2 for i in xrange(REPS)]) / float(REPS)
+
+	print aucs
 	print '####################'
-	print auc
-	print base_auc
-
-	(cont, base_cont) = experiment_anomaly_segmentation(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
+	print('Mean/Variance    SAD={0} / {1}'.format(mauc, vauc))
+	print('Mean/Variance  OCSVM={0} / {1}'.format(mbase_auc, vbase_auc))
 	print '####################'
-	print cont
-	print base_cont
+
+	#(cont, base_cont) = experiment_anomaly_segmentation(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
+
+
+	#print cont
+	#print base_cont
 
 	# ssvm = SSVM(train)
 	# (sol, slacks) = ssvm.train()
