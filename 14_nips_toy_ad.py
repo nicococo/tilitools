@@ -80,8 +80,8 @@ if __name__ == '__main__':
 	LENS = 300
 	EXMS = 600
 	EXMS_TRAIN = 300
-	ANOM_PROB = 0.1
-	REPS = 10
+	ANOM_PROB = 0.15
+	REPS = 5
 	BLOCKS = [1, 10]
 
 	# collected means

@@ -54,7 +54,7 @@ class ToyData:
 		
 		seqs = co.matrix(0.0, (1, lens))
 		lbls = co.matrix(0, (1, lens))
-		marker = 1
+		marker = 0
 
 		# generate first state sequence, gaussian noise 0=mean, 1=variance
 		seqs[0,:] = co.normal(1, lens)*1.0
@@ -66,7 +66,7 @@ class ToyData:
 			# add second state blocks
 			comb_block_len = np.int(float(lens)*block_len_perc)
 			block_len = np.int(np.floor(comb_block_len/float(num_blocks)))
-			marker = 0
+			marker = 1
 
 			# add a single block
 			blen = 0

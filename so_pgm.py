@@ -26,8 +26,8 @@ class SOPGM(SOInterface):
 	"""
 	ninf = -10.0**15
 
-	FEATS_EXO_START = [0]
-	FEATS_EXO_STOP = [61,62,63]
+	#FEATS_EXO_START = [0]
+	#FEATS_EXO_STOP = [61,62,63]
 
 	start_p = 0 # start state index
 	stop_p   = 0 # end state index
@@ -36,11 +36,11 @@ class SOPGM(SOInterface):
 	transitions = 8 # (scalar) number of allowed transitions
 	dims = 4^3 # (scalar) number of k-mers {A,C,G,T} for k=3 
 
-	hotstart_tradeoff = 0.01 # (scalar) this tradeoff is used for hotstart 
+	hotstart_tradeoff = 0.1 # (scalar) this tradeoff is used for hotstart 
 							# > 1.0: transition have more weight
 							# < 1.0: emission have more weight
 
-	def __init__(self, X, y=[], hotstart_tradeoff=0.01):
+	def __init__(self, X, y=[], hotstart_tradeoff=0.1):
 		SOInterface.__init__(self, X, y)	
 		self.hotstart_tradeoff = hotstart_tradeoff
 
@@ -71,7 +71,8 @@ class SOPGM(SOInterface):
 
 		if (augment_prior==True):
 			prior = matrix(-0.0, (N, T))
-			prior[0,:] = 0.0
+			#prior[0,:] = -1.0
+			#prior[5,:] = 1.0
 			em += prior
 
 		return em
