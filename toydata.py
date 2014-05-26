@@ -50,14 +50,14 @@ class ToyData:
 
 
 	@staticmethod
-	def get_2state_anom_seq(lens, anom_prob=1.0, block_len_perc=0.6, num_blocks=1):
+	def get_2state_anom_seq(lens, anom_prob=1.0, block_len_perc=0.2, num_blocks=1):
 		
 		seqs = co.matrix(0.0, (1, lens))
 		lbls = co.matrix(0, (1, lens))
-		marker = 1
+		marker = 0
 
 		# generate first state sequence, gaussian noise 0=mean, 1=variance
-		seqs[0,:] = co.normal(1, lens)*1.0
+		seqs[0,:] = co.normal(1, lens)*2.0
 		bak = co.matrix(seqs)
 		
 		prob = np.random.uniform()
@@ -66,7 +66,7 @@ class ToyData:
 			# add second state blocks
 			comb_block_len = np.int(float(lens)*block_len_perc)
 			block_len = np.int(np.floor(comb_block_len/float(num_blocks)))
-			marker = 0
+			marker = 1
 
 			# add a single block
 			blen = 0

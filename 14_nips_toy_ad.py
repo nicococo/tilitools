@@ -67,7 +67,7 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 
 	# train structured anomaly detection
 	#sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
-	sad = StructuredOCSVM(train, C=1.0/(num_train*0.5))
+	sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
 	(lsol, lats, thres) = sad.train_dc(max_iter=50)
 	(pred_vals, pred_lats) = sad.apply(test)
 	(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], pred_vals)
@@ -77,12 +77,12 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 
 
 if __name__ == '__main__':
-	LENS = 300
-	EXMS = 600
-	EXMS_TRAIN = 300
-	ANOM_PROB = 0.1
-	REPS = 10
-	BLOCKS = [1, 10]
+	LENS = 500
+	EXMS = 1000
+	EXMS_TRAIN = 400
+	ANOM_PROB = 0.05
+	REPS = 40
+	BLOCKS = [1,2,5,10,50,np.int(np.floor(LENS*0.2))]
 
 	# collected means
 	mauc = []

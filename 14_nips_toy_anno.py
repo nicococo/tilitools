@@ -51,12 +51,12 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 
 
 if __name__ == '__main__':
-	LENS = 300
-	EXMS = 200
+	LENS = 500
+	EXMS = 400
 	EXMS_TRAIN = 100
-	ANOM_PROB = 0.1
-	REPS = 2
-	BLOCKS = [10, 1]
+	ANOM_PROB = 0.05
+	REPS = 20
+	BLOCKS = [1,2,5,10,50,100]
 
 	# collected means
 	conts = []
@@ -114,6 +114,6 @@ if __name__ == '__main__':
 	data['var_conts'] = var_conts
 	data['var_conts_base'] = var_conts_base
 
-	io.savemat('14_nips_toy_anno_01.mat',data)
+	io.savemat('14_nips_toy_anno_03.mat',data)
 
 	print('finished')
