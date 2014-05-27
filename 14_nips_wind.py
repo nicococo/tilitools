@@ -43,7 +43,7 @@ def remove_mean(X, dims):
 
 def load_data(num_exms, path, fname, inds, label):
 	LEN = 800
-	DIMS = 6
+	DIMS = 5
 	# training data
 	trainX = []
 	trainY = []
@@ -54,7 +54,7 @@ def load_data(num_exms, path, fname, inds, label):
 	for i in xrange(num_exms):
 
 		# load file 
-		phi_i = co.matrix(0.0, (DIMS, 1))
+		phi_i = co.matrix(0.0, (1, DIMS))
 		lbl = co.matrix(0, (1,LEN))
 		exm = co.matrix(0.0, (DIMS, LEN))
 		with open('{0}{1}{2:03d}.csv'.format(path, fname, inds[i]+1)) as f:
@@ -64,10 +64,11 @@ def load_data(num_exms, path, fname, inds, label):
 				if idx==1:
 					for t in xrange(len(row)-1):
 						lbl[t] = int(row[t+1])-1
-				if idx>=2:
+				if idx>=3:
 					for t in xrange(len(row)-1):
-						exm[idx-2, t] = float(row[t+1])
-						phi_i[idx-2] += float(row[t+1])
+						exm[idx-3, t] = float(row[t+1])
+						phi_i[idx-3] += float(row[t+1])
+
 				idx += 1
 		phi_i /= LEN
 
@@ -81,19 +82,19 @@ def load_data(num_exms, path, fname, inds, label):
 
 if __name__ == '__main__':
 	# load data file
-	directory = '/home/nico/mnt_tucluster/Data/wind/'
-	DIMS = 6
+	directory = '/home/nicococo/Code/wind/'
+	DIMS = 5
 	EXMS_ANOM = 200
 	EXMS_NON = 200
 
-	NUM_TRAIN_ANOM = 50
-	NUM_TRAIN_NON = 20
+	NUM_TRAIN_ANOM = 10
+	NUM_TRAIN_NON = 80
 	
-	NUM_TRAIN_ANOM = 50
-	NUM_TRAIN_NON = 20
+	NUM_TEST_ANOM = 10
+	NUM_TEST_NON = 50
 
-	NUM_TRAIN_ANOM = NUM_TRAIN_ANOM+NUM_TRAIN_ANOM
-	NUM_TRAIN_NON = NUM_TRAIN_NON+NUM_TRAIN_NON
+	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM
+	NUM_COMB_NON = NUM_TRAIN_NON+NUM_TEST_NON
 
 	REPS = 1
 
@@ -107,8 +108,8 @@ if __name__ == '__main__':
 		non_inds = np.random.permutation(EXMS_NON)
 
 		# load genes and intergenic examples
-		(combX, combY, phi_list, marker) = load_data(NUM_TRAIN_ANOM, directory, 'winddata_C10_A15_', anom_inds, 1)
-		(X, Y, phis, lbls) = load_data(NUM_TRAIN_NON, directory, 'winddata_C10_only_', non_inds, 0)
+		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_C10_A15_', anom_inds, 1)
+		(X, Y, phis, lbls) = load_data(NUM_COMB_NON, directory, 'winddata_C10_only_', non_inds, 0)
 		combX.extend(X)
 		combY.extend(Y)
 		phi_list.extend(phis)
@@ -120,14 +121,14 @@ if __name__ == '__main__':
 		trainY = combY[0:NUM_TRAIN_ANOM]
 		trainY.extend(Y[0:NUM_TRAIN_NON])
 
-		testX = combX[NUM_TRAIN_ANOM:]
-		testX.extend(X[NUM_TRAIN_NON:])
-		testY = combY[NUM_TRAIN_ANOM:]
-		testY.extend(Y[NUM_TRAIN_NON:])
+		testX = combX[NUM_TRAIN_ANOM:NUM_COMB_ANOM]
+		testX.extend(X[NUM_TRAIN_NON:NUM_COMB_NON])
+		testY = combY[NUM_TRAIN_ANOM:NUM_COMB_ANOM]
+		testY.extend(Y[NUM_TRAIN_NON:NUM_COMB_NON])
 
-		train = SOHMM(trainX, trainY)
-		test = SOHMM(testX, testY)
-		comb = SOHMM(combX, combY)
+		train = SOHMM(trainX, trainY, num_states=5)
+		test = SOHMM(testX, testY, num_states=5)
+		comb = SOHMM(combX, combY, num_states=5)
 
 		# SSVM annotation
 		#ssvm = SSVM(train, C=10.0)
@@ -138,7 +139,7 @@ if __name__ == '__main__':
 		base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.1))
+		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.5))
 		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=100)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
@@ -146,16 +147,16 @@ if __name__ == '__main__':
 		print err
 
 		for i in range(comb.samples):
-			if (marker[i]==1):
+			if (i>10 and marker[i]==1):
 				LENS = 800
- 				plt.plot(range(LENS),comb.X[i][0,:].trans() - 2,'-m')
+ 				plt.plot(range(LENS),comb.X[i][0,:].trans() - 2+(i-10)*10,'-m')
 
-	 			plt.plot(range(LENS),latsComb[i].trans() + 0,'-r')
-	 			plt.plot(range(LENS),comb.y[i].trans() + 2,'-b')
+	 			plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
+	 			plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
 		
 	 			(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
-	 			plt.plot(range(LENS),scores.trans() + 4,'-g')
-				break
+	 			plt.plot(range(LENS),scores.trans() + 4 + (i-10)*10,'-g')
+				
 
 		plt.show()
 
@@ -167,8 +168,9 @@ if __name__ == '__main__':
 
 		# train one-class svm
 		phi = co.matrix(phi_list).trans()
+		print phi.size
 		kern = Kernel.get_kernel(phi, phi)
-		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.25))
+		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.5))
 		ocsvm.train_dual()
 		(oc_as, foo) = ocsvm.apply_dual(kern[:,ocsvm.get_support_dual()])
 		(fpr, tpr, thres) = metric.roc_curve(marker, oc_as)
