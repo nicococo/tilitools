@@ -16,6 +16,7 @@ class ToyData:
 			data[d,:] = co.normal(1,num)*vars[d] + means[d]
 		return data
 
+
 	@staticmethod
 	def get_2state_gaussian_seq(lens,dims=2,means1=[2,2,2,2],means2=[5,5,5,5],vars1=[1,1,1,1],vars2=[1,1,1,1],anom_prob=1.0):
 		
@@ -49,22 +50,22 @@ class ToyData:
 		return (seqs, lbls, marker)
 
 
+
 	@staticmethod
-	def get_2state_anom_seq(lens, anom_prob=1.0, block_len_perc=0.2, num_blocks=1):
+	def get_2state_anom_seq(lens, comb_block_len, anom_prob=1.0, num_blocks=1):
 		
 		seqs = co.matrix(0.0, (1, lens))
 		lbls = co.matrix(0, (1, lens))
 		marker = 0
 
 		# generate first state sequence, gaussian noise 0=mean, 1=variance
-		seqs[0,:] = co.normal(1, lens)*2.0
+		seqs[0,:] = co.normal(1, lens)*1.0
 		bak = co.matrix(seqs)
 		
 		prob = np.random.uniform()
 		if prob<anom_prob:		
 
 			# add second state blocks
-			comb_block_len = np.int(float(lens)*block_len_perc)
 			block_len = np.int(np.floor(comb_block_len/float(num_blocks)))
 			marker = 1
 

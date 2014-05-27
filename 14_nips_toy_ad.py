@@ -14,25 +14,42 @@ from toydata import ToyData
 from so_hmm import SOHMM
 
 
-def get_model(num_exm, num_train, lens, blocks=1, anomaly_prob=0.15):
+def get_model(num_exm, num_train, lens, block_len, blocks=1, anomaly_prob=0.15):
 	print('Generating {0} sequences, {1} for training, each with {2} anomaly probability.'.format(num_exm, num_train, anomaly_prob))
-	mean = 0.0
 	cnt = 0 
 	X = [] 
 	Y = []
 	label = []
 	for i in range(num_exm):
-		(exm, lbl, marker) = ToyData.get_2state_anom_seq(lens, anom_prob=anomaly_prob, num_blocks=blocks)
-		mean += co.matrix(1.0, (1, lens))*exm.trans()
+		(exm, lbl, marker) = ToyData.get_2state_anom_seq(lens, block_len, anom_prob=anomaly_prob, num_blocks=blocks)
 		cnt += lens
 		X.append(exm)
 		Y.append(lbl)
 		label.append(marker)
-	mean = mean / float(cnt)
-	for i in range(num_exm):
-		X[i] -= mean
+	X = remove_mean(X,1)
 	return (SOHMM(X[0:num_train],Y[0:num_train]), SOHMM(X[num_train:],Y[num_train:]), SOHMM(X,Y), label)
 
+
+def remove_mean(X, dims):
+	cnt = 0
+	tst_mean = co.matrix(0.0, (1, dims))
+	for i in range(len(X)):
+		lens = len(X[i][0,:])
+		cnt += lens
+		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
+	tst_mean /= float(cnt)
+	print tst_mean
+	for i in range(len(X)):
+		for d in range(dims):
+			X[i][d,:] = X[i][d,:]-tst_mean[d]
+	cnt = 0
+	tst_mean = co.matrix(0.0, (1, dims))
+	for i in range(len(X)):
+		lens = len(X[i][0,:])
+		cnt += lens
+		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
+	print tst_mean/float(cnt)
+	return X
 
 def calc_feature_vecs(data):
 	# ASSUME that all sequences have the same length!
@@ -81,8 +98,10 @@ if __name__ == '__main__':
 	EXMS = 1000
 	EXMS_TRAIN = 400
 	ANOM_PROB = 0.05
-	REPS = 40
-	BLOCKS = [1,2,5,10,50,np.int(np.floor(LENS*0.2))]
+	REPS = 20
+	BLOCK_LEN = 100
+	#BLOCKS = [1]
+	BLOCKS = [1,2,5,7,10,25,50,75,100]
 
 	# collected means
 	mauc = []
@@ -99,7 +118,7 @@ if __name__ == '__main__':
 		fmbase_auc = 0.0 
 		fmbayes_auc = 0.0 
 		for r in xrange(REPS):
-			(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, blocks=BLOCKS[b], anomaly_prob=ANOM_PROB)
+			(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, BLOCK_LEN, blocks=BLOCKS[b], anomaly_prob=ANOM_PROB)
 			(auc, base_auc, bayes_auc) = experiment_anomaly_detection(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
 			aucs.append((auc, base_auc, bayes_auc))
 			fmauc += auc
@@ -136,6 +155,6 @@ if __name__ == '__main__':
 	data['vbase_auc'] = vbase_auc
 	data['vbayes_auc'] = vbayes_auc
 
-	io.savemat('14_nips_toy_ad_01.mat',data)
+	io.savemat('14_nips_toy_ad_05.mat',data)
 
 	print('finished')
