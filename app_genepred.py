@@ -214,7 +214,7 @@ if __name__ == '__main__':
 	signal = data['signal']
 
 	# find intergenic regions
-	ige_intervals = find_intergenic_regions(label)
+	ige_intervals = find_intergenic_regions(label, min_gene_dist=50)
 	IGE_REGIONS = len(ige_intervals)
 	
 	EXMS = max(exm_id_intervals[:,0])
@@ -226,11 +226,11 @@ if __name__ == '__main__':
 	distr2 = 1.0*np.logspace(0,-5,DIST_LEN)
 	distr = np.concatenate([distr1, distr2[1:]])
 
-	NUM_TRAIN_GEN = 10
-	NUM_TRAIN_IGE = 40
+	NUM_TRAIN_GEN = 30
+	NUM_TRAIN_IGE = 100
 	
-	NUM_TEST_GEN = 10
-	NUM_TEST_IGE = 40
+	NUM_TEST_GEN = 30
+	NUM_TEST_IGE = 100
 
 	NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
 	NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
@@ -244,11 +244,12 @@ if __name__ == '__main__':
 	for r in xrange(REPS):
 		# shuffle genes and intergenics
 		inds = np.random.permutation(EXMS)
-		exm_id_intervals = exm_id_intervals[inds,:]
+		#exm_id_intervals = exm_id_intervals[inds,:]
+		exm_id_intervals = np.random.permutation(exm_id_intervals)
 		ige_intervals = np.random.permutation(ige_intervals)
 
 		# load genes and intergenic examples
-		(combX, combY, phi_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=1000)
+		(combX, combY, phi_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800)
 		(X, Y, phis, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, distr, min_lens=600, max_lens=800)
 		combX.extend(X)
 		combY.extend(Y)
@@ -262,10 +263,10 @@ if __name__ == '__main__':
 		trainY = combY[0:NUM_TRAIN_GEN]
 		trainY.extend(Y[0:NUM_TRAIN_IGE])
 
-		testX = combX[NUM_TRAIN_GEN:]
-		testX.extend(X[NUM_TRAIN_IGE:])
-		testY = combY[NUM_TRAIN_GEN:]
-		testY.extend(Y[NUM_TRAIN_IGE:])
+		testX = combX[NUM_TRAIN_GEN:NUM_COMB_GEN]
+		testX.extend(X[NUM_TRAIN_IGE:NUM_COMB_IGE])
+		testY = combY[NUM_TRAIN_GEN:NUM_COMB_GEN]
+		testY.extend(Y[NUM_TRAIN_IGE:NUM_COMB_IGE])
 
 		train = SOPGM(trainX, trainY)
 		test = SOPGM(testX, testY)

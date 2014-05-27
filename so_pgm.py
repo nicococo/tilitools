@@ -46,7 +46,8 @@ class SOPGM(SOInterface):
 
 	def get_hotstart_sol(self):
 		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
-		sol[0:8] *= self.hotstart_tradeoff
+		sol[0:8] = self.hotstart_tradeoff
+		print('Constant transition hotstart.')
 		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
 		return sol
 
@@ -71,7 +72,7 @@ class SOPGM(SOInterface):
 
 		if (augment_prior==True):
 			prior = matrix(-0.0, (N, T))
-			#prior[0,:] = -1.0
+			#prior[0,:] = 1.0
 			#prior[5,:] = 1.0
 			em += prior
 
