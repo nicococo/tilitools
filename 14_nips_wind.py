@@ -126,36 +126,38 @@ if __name__ == '__main__':
 		testY = combY[NUM_TRAIN_ANOM:NUM_COMB_ANOM]
 		testY.extend(Y[NUM_TRAIN_NON:NUM_COMB_NON])
 
-		train = SOHMM(trainX, trainY, num_states=5)
-		test = SOHMM(testX, testY, num_states=5)
-		comb = SOHMM(combX, combY, num_states=5)
+		train = SOHMM(trainX, trainY, num_states=2)
+		test = SOHMM(testX, testY, num_states=2)
+		comb = SOHMM(combX, combY, num_states=2)
 
 		# SSVM annotation
-		#ssvm = SSVM(train, C=10.0)
-		#(lsol,slacks) = ssvm.train()
-		#(vals, svmlats) = ssvm.apply(test)
-		#(err_svm, err_exm) = test.evaluate(svmlats)
-		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		base_res.append((0.0,0.0,0.0,0.0))
+		ssvm = SSVM(train, C=10.0)
+		(lsol,slacks) = ssvm.train()
+		(vals, svmlats) = ssvm.apply(test)
+		(err_svm, err_exm) = test.evaluate(svmlats)
+		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		#base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.5))
+		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.05))
 		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=100)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
-
+		print err_svm
+		
 		for i in range(comb.samples):
-			if (i>10 and marker[i]==1):
+			if (i>=10 and marker[i]==1):
 				LENS = 800
  				plt.plot(range(LENS),comb.X[i][0,:].trans() - 2+(i-10)*10,'-m')
 
 	 			plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
 	 			plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
+	 			plt.plot(range(LENS),svmlats[i-10].trans() + 4 +(i-10)*10,'-k')
 		
 	 			(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
-	 			plt.plot(range(LENS),scores.trans() + 4 + (i-10)*10,'-g')
+	 			plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
 				
 
 		plt.show()
