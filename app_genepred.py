@@ -15,6 +15,7 @@ from structured_pca import StructuredPCA
 from toydata import ToyData
 
 from so_pgm import SOPGM
+from so_hmm import SOHMM
 
 
 def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, distr):
@@ -222,20 +223,20 @@ if __name__ == '__main__':
 	print('There are {0} gene examples.'.format(EXMS))
 
 	DIST_LEN = 160
-	distr1 = 1.0*np.logspace(-5,0,DIST_LEN)
-	distr2 = 1.0*np.logspace(0,-5,DIST_LEN)
+	distr1 = 1.0*np.logspace(-6,0,DIST_LEN)
+	distr2 = 1.0*np.logspace(0,-6,DIST_LEN)
 	distr = np.concatenate([distr1, distr2[1:]])
 
-	NUM_TRAIN_GEN = 30
+	NUM_TRAIN_GEN = 40
 	NUM_TRAIN_IGE = 100
 	
-	NUM_TEST_GEN = 30
+	NUM_TEST_GEN = 40
 	NUM_TEST_IGE = 100
 
 	NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
 	NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
 
-	REPS = 5
+	REPS = 10
 
 	auc = []
 	base_auc = []
@@ -250,7 +251,7 @@ if __name__ == '__main__':
 
 		# load genes and intergenic examples
 		(combX, combY, phi_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800)
-		(X, Y, phis, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, distr, min_lens=600, max_lens=800)
+		(X, Y, phis, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, distr, min_lens=600, max_lens=600)
 		combX.extend(X)
 		combY.extend(Y)
 		phi_list.extend(phis)
@@ -268,39 +269,58 @@ if __name__ == '__main__':
 		testY = combY[NUM_TRAIN_GEN:NUM_COMB_GEN]
 		testY.extend(Y[NUM_TRAIN_IGE:NUM_COMB_IGE])
 
-		train = SOPGM(trainX, trainY)
-		test = SOPGM(testX, testY)
-		comb = SOPGM(combX, combY)
+		#train = SOPGM(trainX, trainY)
+		#test = SOPGM(testX, testY)
+		#comb = SOPGM(combX, combY)
+		for i in range(len(combY)):
+			combY[i] = co.matrix(np.sign(combY[i]), tc='i')
+		for i in range(len(trainY)):
+			trainY[i] = co.matrix(np.sign(trainY[i]), tc='i')
+		for i in range(len(testY)):
+			testY[i] = co.matrix(np.sign(testY[i]), tc='i')
+
+		print len(trainY)
+		print trainY[0]
+		train = SOHMM(trainX, trainY)
+		test = SOHMM(testX, testY)
+		comb = SOHMM(combX, combY)
 
 		# SSVM annotation
-		#ssvm = SSVM(train, C=10.0)
-		#(lsol,slacks) = ssvm.train()
-		#(vals, svmlats) = ssvm.apply(test)
-		#(err_svm, err_exm) = test.evaluate(svmlats)
-		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		base_res.append((0.0,0.0,0.0,0.0))
+		ssvm = SSVM(train, C=10.0)
+		(lsol,slacks) = ssvm.train()
+		(vals, svmlats) = ssvm.apply(test)
+		(err_svm, err_exm) = test.evaluate(svmlats)
+		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		#base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.5))
+		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.34))
 		(lsol, lats, thres) = lsvm.train_dc(max_iter=100)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
+		#print err_svm
 
 		# SAD anomaly scores
 		(scores, foo) = lsvm.apply(comb)
 		(fpr, tpr, thres) = metric.roc_curve(marker, scores)
-		auc.append(metric.auc(fpr, tpr))
+		cur_auc = metric.auc(fpr, tpr)
+		if (cur_auc<0.5):
+			cur_auc = 1.0-cur_auc
+		auc.append(cur_auc)
 		print auc
 
 		# train one-class svm
 		phi = co.matrix(phi_list).trans()
 		kern = Kernel.get_kernel(phi, phi)
-		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.25))
+		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.1))
 		ocsvm.train_dual()
 		(oc_as, foo) = ocsvm.apply_dual(kern[:,ocsvm.get_support_dual()])
 		(fpr, tpr, thres) = metric.roc_curve(marker, oc_as)
+		cur_auc = metric.auc(fpr, tpr)
+		if (cur_auc<0.5):
+			cur_auc = 1.0-cur_auc
 		base_auc.append(metric.auc(fpr, tpr))
 		print base_auc
 
@@ -320,7 +340,7 @@ if __name__ == '__main__':
 	data['res'] = res
 	data['base_res'] = base_res
 
-	io.savemat('14_nips_pgm_01.mat',data)
+	io.savemat('14_nips_pgm_02.mat',data)
 
 	# ssvm = SSVM(pgm, C=1.0)
 	# (lsol,slacks) = ssvm.train()

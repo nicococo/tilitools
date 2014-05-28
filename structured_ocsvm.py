@@ -69,6 +69,8 @@ class StructuredOCSVM:
 			# most likely latent variable configuration
 			for i in range(N):
 				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
+				norm = np.linalg.norm(psi[:,i],2)
+				psi[:,i] /= norm
 				#if i>10:
 				#	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)
 				#else:

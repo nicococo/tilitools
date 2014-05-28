@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse,exp,uniform
+from cvxopt import matrix,spmatrix,sparse,exp,uniform,normal
 import numpy as np
 import math as math
 from so_interface import SOInterface
@@ -47,7 +47,8 @@ class SOPGM(SOInterface):
 	def get_hotstart_sol(self):
 		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
 		sol[0:8] = self.hotstart_tradeoff
-		print('Constant transition hotstart.')
+		sol[0:8] = 0.0
+		print('Zero transition hotstart.')
 		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
 		return sol
 

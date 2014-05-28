@@ -70,7 +70,9 @@ def load_data(num_exms, path, fname, inds, label):
 						phi_i[idx-3] += float(row[t+1])
 
 				idx += 1
-		phi_i /= LEN
+		norm = np.linalg.norm(phi_i,2)
+		#print norm
+		phi_i /= norm
 
 		marker.append(label)
 		phi_list.append(phi_i)
@@ -83,14 +85,15 @@ def load_data(num_exms, path, fname, inds, label):
 if __name__ == '__main__':
 	# load data file
 	directory = '/home/nicococo/Code/wind/'
+	#directory = '/home/nico/mnt_tucluster/Data/wind/'
 	DIMS = 5
 	EXMS_ANOM = 200
 	EXMS_NON = 200
 
-	NUM_TRAIN_ANOM = 10
+	NUM_TRAIN_ANOM = 20
 	NUM_TRAIN_NON = 80
 	
-	NUM_TEST_ANOM = 10
+	NUM_TEST_ANOM = 20
 	NUM_TEST_NON = 50
 
 	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM

@@ -75,11 +75,16 @@ class ToyData:
 				if (b==num_blocks-1 and b>1):
 					block_len = np.round(comb_block_len-blen)
 				
-				start = np.int(np.random.uniform()*float(lens-block_len+1))
-				#print start
-				#print start+block_len
-				lbls[0,start:start+block_len] = 1
-				seqs[0,start:start+block_len] = bak[0,start:start+block_len]+4.0
+				isDone = False
+				while isDone==False:
+					start = np.int(np.random.uniform()*float(lens-block_len+1))
+					if (sum(lbls[0,start:start+block_len])==0):
+						#print start
+						#print start+block_len
+						lbls[0,start:start+block_len] = 1
+						seqs[0,start:start+block_len] = bak[0,start:start+block_len]+4.0
+						isDone = True
+						break
 
 				blen += block_len
 			print('Anomamly block lengths (target/reality)= {0}/{1} '.format(comb_block_len, blen))

@@ -92,17 +92,18 @@ def remove_mean(X, dims):
 
 
 if __name__ == '__main__':
-	LENS = 300
-	EXMS = 250
-	EXMS_TRAIN = 200
-	BLOCK_LEN = 100
-	ANOM_PROB = 0.1
+	LENS = 600
+	EXMS = 400
+	EXMS_TRAIN = 100
+	BLOCK_LEN = 200
+	ANOM_PROB = 0.05
 
 	#(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, feats=2, anomaly_prob=ANOM_PROB)
 	(train, test, comb, labels) = get_anom_model(EXMS, EXMS_TRAIN, LENS, BLOCK_LEN, blocks=10, anomaly_prob=ANOM_PROB)
-	lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.5))
+	lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.05))
 	(lsol, lats, thres) = lsvm.train_dc(max_iter=40)
 	(err, err_exm) = comb.evaluate(lats)
+	print err
 
 	for i in range(EXMS):
 		if (labels[i]==1):

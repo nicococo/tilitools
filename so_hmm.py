@@ -23,7 +23,7 @@ class SOHMM(SOInterface):
 
 	def get_hotstart_sol(self):
 		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
-		sol[0:self.states*self.states] *= self.hotstart_tradeoff
+		sol[0:self.states*self.states] = self.hotstart_tradeoff
 		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
 		return sol
 
