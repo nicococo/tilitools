@@ -107,10 +107,10 @@ if __name__ == '__main__':
 	EXMS = 1000
 	EXMS_TRAIN = 400
 	ANOM_PROB = 0.05
-	REPS = 5
+	REPS = 20
 	BLOCK_LEN = 200
 	#BLOCKS = [1]
-	BLOCKS = [1,5,10,25,100,300]
+	BLOCKS = [1,5,10,25,100,200]
 
 	# collected means
 	mauc = []
@@ -164,6 +164,6 @@ if __name__ == '__main__':
 	data['vbase_auc'] = vbase_auc
 	data['vbayes_auc'] = vbayes_auc
 
-	io.savemat('14_nips_toy_ad_06.mat',data)
+	io.savemat('14_nips_toy_ad_07.mat',data)
 
 	print('finished')

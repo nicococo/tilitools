@@ -72,12 +72,12 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 
 
 if __name__ == '__main__':
-	LENS = 300
+	LENS = 400
 	EXMS = 1000
 	EXMS_TRAIN = 100
 	ANOM_PROB = 0.15
 	REPS = 5
-	BLOCK_LEN = 150
+	BLOCK_LEN = 250
 	BLOCKS = [1]
 	#BLOCKS = [1,2,5,10,50,100,450]
 
