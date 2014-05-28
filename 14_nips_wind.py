@@ -70,7 +70,9 @@ def load_data(num_exms, path, fname, inds, label):
 						phi_i[idx-3] += float(row[t+1])
 
 				idx += 1
-		phi_i /= LEN
+		norm = np.linalg.norm(phi_i,2)
+		#print norm
+		phi_i /= norm
 
 		marker.append(label)
 		phi_list.append(phi_i)
@@ -83,14 +85,15 @@ def load_data(num_exms, path, fname, inds, label):
 if __name__ == '__main__':
 	# load data file
 	directory = '/home/nicococo/Code/wind/'
+	directory = '/home/nico/mnt_tucluster/Data/wind/'
 	DIMS = 5
 	EXMS_ANOM = 200
 	EXMS_NON = 200
 
-	NUM_TRAIN_ANOM = 10
+	NUM_TRAIN_ANOM = 20
 	NUM_TRAIN_NON = 80
 	
-	NUM_TEST_ANOM = 10
+	NUM_TEST_ANOM = 20
 	NUM_TEST_NON = 50
 
 	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM
@@ -126,9 +129,9 @@ if __name__ == '__main__':
 		testY = combY[NUM_TRAIN_ANOM:NUM_COMB_ANOM]
 		testY.extend(Y[NUM_TRAIN_NON:NUM_COMB_NON])
 
-		train = SOHMM(trainX, trainY, num_states=5)
-		test = SOHMM(testX, testY, num_states=5)
-		comb = SOHMM(combX, combY, num_states=5)
+		train = SOHMM(trainX, trainY, num_states=2)
+		test = SOHMM(testX, testY, num_states=2)
+		comb = SOHMM(combX, combY, num_states=2)
 
 		# SSVM annotation
 		#ssvm = SSVM(train, C=10.0)
@@ -140,7 +143,7 @@ if __name__ == '__main__':
 
 		# SAD annotation
 		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.5))
-		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=100)
+		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=40)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))

@@ -59,6 +59,11 @@ def calc_feature_vecs(data):
 	for i in xrange(N):
 		for f in xrange(F):
 			phi[(f*LEN):(f*LEN)+LEN,i] = data[i][f,:].trans()
+
+		norm = np.linalg.norm(phi[:,i],2)
+		#print norm
+		phi[:,i] /= norm
+
 	return phi  
 
 
@@ -85,8 +90,8 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 	    base_auc = 1.0-base_auc
 
 	# train structured anomaly detection
-	#sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
-	sad = StructuredOCSVM(train, C=1.0/(num_train*0.5))
+	sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
+	#sad = StructuredOCSVM(train, C=1.0/(num_train*0.5))
 	(lsol, lats, thres) = sad.train_dc(max_iter=50)
 	(pred_vals, pred_lats) = sad.apply(test)
 	(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], pred_vals)
@@ -98,12 +103,12 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 
 
 if __name__ == '__main__':
-	LENS = 500
+	LENS = 600
 	EXMS = 1000
 	EXMS_TRAIN = 400
-	ANOM_PROB = 0.15
-	REPS = 20
-	BLOCK_LEN = 300
+	ANOM_PROB = 0.05
+	REPS = 5
+	BLOCK_LEN = 200
 	#BLOCKS = [1]
 	BLOCKS = [1,5,10,25,100,300]
 
@@ -159,6 +164,6 @@ if __name__ == '__main__':
 	data['vbase_auc'] = vbase_auc
 	data['vbayes_auc'] = vbayes_auc
 
-	io.savemat('14_nips_toy_ad_05.mat',data)
+	io.savemat('14_nips_toy_ad_06.mat',data)
 
 	print('finished')

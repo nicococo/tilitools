@@ -53,7 +53,7 @@ def remove_mean(X):
 def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, labels):
 
 	# transductive train/pred for structured anomaly detection
-	sad = StructuredOCSVM(comb, C=1.0/(num_train*0.4))
+	sad = StructuredOCSVM(comb, C=1.0/(num_train*anom_prob))
 	(lsol, lats, thres) = sad.train_dc(max_iter=80)
 	(cont, cont_exm) = test.evaluate(lats[num_train:])
 
@@ -63,28 +63,39 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 	(vals, preds) = ssvm.apply(test)
 	(base_cont, base_cont_exm) = test.evaluate(preds)
 
+	print '##########################'
+	print cont
+	print base_cont
+	print '##########################'
+
 	return (cont, base_cont)
 
 
 if __name__ == '__main__':
-	LENS = 600
-	EXMS = 400
+	LENS = 300
+	EXMS = 1000
 	EXMS_TRAIN = 100
-	ANOM_PROB = 0.05
+	ANOM_PROB = 0.15
 	REPS = 5
-	BLOCK_LEN = 450
-	#BLOCKS = [1]
-	BLOCKS = [1,2,5,10,50,100,450]
+	BLOCK_LEN = 150
+	BLOCKS = [1]
+	#BLOCKS = [1,2,5,10,50,100,450]
 
 	# collected means
 	conts = []
 	conts_base = []
+	var = []
+	var_base = []
 	for b in xrange(len(BLOCKS)):
 		res = {}
 		res_base = {}
+		rep_mean = []
+		rep_mean_base = []
 		for r in xrange(REPS):
 			(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, BLOCK_LEN, blocks=BLOCKS[b], anomaly_prob=ANOM_PROB)
 			(cont, base_cont) = experiment_anomaly_segmentation(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
+			rep_mean.append((cont['fscore'], cont['precision'], cont['sensitivity'], cont['specificity']))
+			rep_mean_base.append((base_cont['fscore'], base_cont['precision'], base_cont['sensitivity'], base_cont['specificity']))
 			for key in cont.keys():
 				if r==0:
 					res[key] = cont[key]/float(REPS)
@@ -92,6 +103,9 @@ if __name__ == '__main__':
 				else:
 					res[key] += cont[key]/float(REPS)
 					res_base[key] += base_cont[key]/float(REPS)
+
+		#rm = co.matrix(rep_means)
+		#rm[:,0] /= res['fscore']
 
 		conts.append((res['fscore'], res['precision'], res['sensitivity'], res['specificity']))
 		conts_base.append((res_base['fscore'], res_base['precision'], res_base['sensitivity'], res_base['specificity']))
@@ -113,6 +127,6 @@ if __name__ == '__main__':
 	data['conts'] = conts
 	data['conts_base'] = conts_base
 
-	io.savemat('14_nips_toy_anno_03.mat',data)
+	io.savemat('14_nips_toy_anno_04.mat',data)
 
 	print('finished')
