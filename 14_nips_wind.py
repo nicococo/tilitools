@@ -91,14 +91,16 @@ if __name__ == '__main__':
 	EXMS_NON = 200
 
 	NUM_TRAIN_ANOM = 20
-	NUM_TRAIN_NON = 80
+	NUM_TRAIN_NON = 100
 	
 	NUM_TEST_ANOM = 20
-	NUM_TEST_NON = 50
+	NUM_TEST_NON = 100
 
 	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM
 	NUM_COMB_NON = NUM_TRAIN_NON+NUM_TEST_NON
 
+	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
+	print('Anomaly probabilit is {0}.'.format(anom_prob))
 	REPS = 1
 
 	auc = []
@@ -142,7 +144,7 @@ if __name__ == '__main__':
 		#base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.05))
+		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
 		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=100)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
@@ -150,36 +152,42 @@ if __name__ == '__main__':
 		print err
 		print err_svm
 		
-		for i in range(comb.samples):
-			if (i>=10 and marker[i]==1):
-				LENS = 800
- 				plt.plot(range(LENS),comb.X[i][0,:].trans() - 2+(i-10)*10,'-m')
+		if (showPlots==True):
+			for i in range(comb.samples):
+				if (i>=10 and marker[i]==1):
+					LENS = 800
+					plt.plot(range(LENS),comb.X[i][0,:].trans() - 2+(i-10)*10,'-m')
 
-	 			plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
-	 			plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
-	 			plt.plot(range(LENS),svmlats[i-10].trans() + 4 +(i-10)*10,'-k')
-		
-	 			(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
-	 			plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
-				
-
-		plt.show()
+					plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
+					plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
+					plt.plot(range(LENS),svmlats[i-10].trans() + 4 +(i-10)*10,'-k')
+			
+					(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
+					plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
+					break
+			plt.show()
 
 		# SAD anomaly scores
 		(scores, foo) = lsvm.apply(comb)
 		(fpr, tpr, thres) = metric.roc_curve(marker, scores)
-		auc.append(metric.auc(fpr, tpr))
+		bauc = metric.auc(fpr, tpr)
+		if (bauc<0.5):
+			bauc = 1.0-bauc
+		auc.append(bauc)
 		print auc
 
 		# train one-class svm
 		phi = co.matrix(phi_list).trans()
 		print phi.size
 		kern = Kernel.get_kernel(phi, phi)
-		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.5))
+		ocsvm = OCSVM(kern, C=1.0/(comb.samples*anom_prob))
 		ocsvm.train_dual()
 		(oc_as, foo) = ocsvm.apply_dual(kern[:,ocsvm.get_support_dual()])
 		(fpr, tpr, thres) = metric.roc_curve(marker, oc_as)
-		base_auc.append(metric.auc(fpr, tpr))
+		bauc = metric.auc(fpr, tpr)
+		if (bauc<0.5):
+			bauc = 1.0-bauc
+		base_auc.append(bauc)
 		print base_auc
 
 	

@@ -29,21 +29,22 @@ def get_model(num_exm, num_train, lens, block_len, blocks=1, anomaly_prob=0.15):
 	return (SOHMM(X[0:num_train],Y[0:num_train]), SOHMM(X[num_train:],Y[num_train:]), SOHMM(X,Y), label)
 
 
-def remove_mean(X):
+def remove_mean(X, dims=1):
 	cnt = 0
-	tst_mean = co.matrix(0.0, (1, 1))
+	tst_mean = co.matrix(0.0, (1, dims))
 	for i in range(len(X)):
-		lens = len(X[i][:])
+		lens = len(X[i][0,:])
 		cnt += lens
 		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
 	tst_mean /= float(cnt)
 	print tst_mean
 	for i in range(len(X)):
-		X[i][:] = X[i][:]-tst_mean
+		for d in range(dims):
+			X[i][d,:] = X[i][d,:]-tst_mean[d]
 	cnt = 0
-	tst_mean = co.matrix(0.0, (1, 1))
+	tst_mean = co.matrix(0.0, (1, dims))
 	for i in range(len(X)):
-		lens = len(X[i][:])
+		lens = len(X[i][0,:])
 		cnt += lens
 		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
 	print tst_mean/float(cnt)
@@ -72,12 +73,12 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 
 
 if __name__ == '__main__':
-	LENS = 300
-	EXMS = 400
-	EXMS_TRAIN = 100
-	ANOM_PROB = 0.15
-	REPS = 3
-	BLOCK_LEN = 150
+	LENS = 600
+	EXMS = 1000
+	EXMS_TRAIN = 200
+	ANOM_PROB = 0.05
+	REPS = 1
+	BLOCK_LEN = 100
 	BLOCKS = [1]
 	#BLOCKS = [1,2,5,10,50,100,450]
 
