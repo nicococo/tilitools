@@ -52,7 +52,6 @@ def remove_mean(X, dims=1):
 
 
 def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, labels):
-
 	# transductive train/pred for structured anomaly detection
 	sad = StructuredOCSVM(comb, C=1.0/(num_train*anom_prob))
 	(lsol, lats, thres) = sad.train_dc(max_iter=80)
@@ -77,10 +76,10 @@ if __name__ == '__main__':
 	EXMS = 1000
 	EXMS_TRAIN = 200
 	ANOM_PROB = 0.05
-	REPS = 1
+	REPS = 10
 	BLOCK_LEN = 100
-	BLOCKS = [1]
-	#BLOCKS = [1,2,5,10,50,100,450]
+	#BLOCKS = [1]
+	BLOCKS = [1,5,10,25,50,100]
 
 	# collected means
 	conts = []
@@ -146,6 +145,6 @@ if __name__ == '__main__':
 	data['var'] = var
 	data['var_base'] = var_base
 
-	io.savemat('14_nips_toy_anno_04.mat',data)
+	io.savemat('14_nips_toy_anno_05.mat',data)
 
 	print('finished')

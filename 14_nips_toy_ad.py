@@ -105,12 +105,12 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 if __name__ == '__main__':
 	LENS = 600
 	EXMS = 1000
-	EXMS_TRAIN = 400
+	EXMS_TRAIN = 200
 	ANOM_PROB = 0.05
-	REPS = 5
-	BLOCK_LEN = 200
+	REPS = 10
+	BLOCK_LEN = 100
 	#BLOCKS = [1]
-	BLOCKS = [1,5,10,25,100,300]
+	BLOCKS = [1,5,10,25,100,200]
 
 	# collected means
 	mauc = []
@@ -164,6 +164,6 @@ if __name__ == '__main__':
 	data['vbase_auc'] = vbase_auc
 	data['vbayes_auc'] = vbayes_auc
 
-	io.savemat('14_nips_toy_ad_06.mat',data)
+	io.savemat('14_nips_toy_ad_08.mat',data)
 
 	print('finished')
