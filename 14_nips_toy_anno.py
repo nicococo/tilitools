@@ -51,7 +51,6 @@ def remove_mean(X):
 
 
 def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, labels):
-
 	# transductive train/pred for structured anomaly detection
 	sad = StructuredOCSVM(comb, C=1.0/(num_train*anom_prob))
 	(lsol, lats, thres) = sad.train_dc(max_iter=80)
@@ -72,14 +71,14 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 
 
 if __name__ == '__main__':
-	LENS = 400
+	LENS = 600
 	EXMS = 1000
-	EXMS_TRAIN = 100
-	ANOM_PROB = 0.15
-	REPS = 5
-	BLOCK_LEN = 250
-	BLOCKS = [1]
-	#BLOCKS = [1,2,5,10,50,100,450]
+	EXMS_TRAIN = 200
+	ANOM_PROB = 0.05
+	REPS = 10
+	BLOCK_LEN = 100
+	#BLOCKS = [1]
+	BLOCKS = [1,5,10,25,50,100]
 
 	# collected means
 	conts = []
@@ -104,8 +103,21 @@ if __name__ == '__main__':
 					res[key] += cont[key]/float(REPS)
 					res_base[key] += base_cont[key]/float(REPS)
 
-		#rm = co.matrix(rep_means)
-		#rm[:,0] /= res['fscore']
+		rm = co.matrix(np.asarray(rep_mean))
+		rm[:,0] -= res['fscore']
+		rm[:,1] -= res['precision']
+		rm[:,2] -= res['sensitivity']
+		rm[:,3] -= res['specificity']
+		rm = np.sum(co.mul(rm,rm),0)/float(REPS)
+		var.append(rm)
+
+		rm = co.matrix(np.asarray(rep_mean_base))
+		rm[:,0] -= res_base['fscore']
+		rm[:,1] -= res_base['precision']
+		rm[:,2] -= res_base['sensitivity']
+		rm[:,3] -= res_base['specificity']
+		rm = np.sum(co.mul(rm,rm),0)/float(REPS)
+		var_base.append(rm)
 
 		conts.append((res['fscore'], res['precision'], res['sensitivity'], res['specificity']))
 		conts_base.append((res_base['fscore'], res_base['precision'], res_base['sensitivity'], res_base['specificity']))
@@ -113,6 +125,9 @@ if __name__ == '__main__':
 	print '####################'
 	print('Mean    SAD={0} '.format(conts))
 	print('Mean   SSVM={0} '.format(conts_base))
+	print '####################'
+	print('Var    SAD={0} '.format(var))
+	print('Var   SSVM={0} '.format(var_base))
 	print '####################'
 
 	# store result as a file
@@ -126,7 +141,9 @@ if __name__ == '__main__':
 
 	data['conts'] = conts
 	data['conts_base'] = conts_base
+	data['var'] = var
+	data['var_base'] = var_base
 
-	io.savemat('14_nips_toy_anno_04.mat',data)
+	io.savemat('14_nips_toy_anno_05.mat',data)
 
 	print('finished')
