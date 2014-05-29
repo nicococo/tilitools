@@ -101,7 +101,8 @@ if __name__ == '__main__':
 
 	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
 	print('Anomaly probabilit is {0}.'.format(anom_prob))
-	REPS = 1
+	REPS = 10
+	showPlots = False
 
 	auc = []
 	base_auc = []
