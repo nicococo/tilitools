@@ -14,6 +14,7 @@ from structured_pca import StructuredPCA
 from toydata import ToyData
 
 from so_pgm import SOPGM
+from so_hmm import SOHMM
 
 
 
@@ -163,6 +164,7 @@ def get_model(num_exm, num_train):
 	combY = list(trainY)
 	combY.append(list(testY))
 	return (SOPGM(trainX,trainY), SOPGM(testX,testY), SOPGM(combX,combY), marker1, co.matrix(phi1).trans())
+	#return (SOHMM(trainX,trainY), SOHMM(testX,testY), SOHMM(combX,combY), marker1, co.matrix(phi1).trans())
 
 
 

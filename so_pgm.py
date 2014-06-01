@@ -26,23 +26,48 @@ class SOPGM(SOInterface):
 	"""
 	ninf = -10.0**15
 
-	#FEATS_EXO_START = [0]
-	#FEATS_EXO_STOP = [61,62,63]
+	state_dims_map = []
+	state_dims_jfm_inds = []
+	state_dims_entries = 0
 
 	start_p = 0 # start state index
 	stop_p   = 0 # end state index
 
 	states = 6 # (scalar) number transition states
 	transitions = 8 # (scalar) number of allowed transitions
-	dims = 4^3 # (scalar) number of k-mers {A,C,G,T} for k=3 
 
 	hotstart_tradeoff = 0.01 # (scalar) this tradeoff is used for hotstart 
 							# > 1.0: transition have more weight
 							# < 1.0: emission have more weight
 
-	def __init__(self, X, y=[], hotstart_tradeoff=0.01):
+	def __init__(self, X, y=[], hotstart_tradeoff=0.01, state_dims_map=[]):
 		SOInterface.__init__(self, X, y)	
 		self.hotstart_tradeoff = hotstart_tradeoff
+		print 'number of dims: '
+		print self.dims
+		
+		if (state_dims_map==[]):
+			print 'Create default state-dimension-map.'
+			# generate a default state-dimension map (every state uses all avail dims)
+			self.state_dims_map = []
+			for s in range(self.states):
+				self.state_dims_map.append(range(self.dims))
+		else:
+			self.state_dims_map = state_dims_map
+
+		print 'Calculating jfm dimension indices..'
+		cnt = self.transitions
+		for s in range(self.states):
+			foo = matrix(range(self.dims))
+			for d in self.state_dims_map[s]:
+				foo[d] = cnt
+				cnt += 1
+			self.state_dims_jfm_inds.append(foo)
+		self.state_dims_entries = cnt - self.transitions
+
+		print self.state_dims_entries
+		print self.state_dims_map
+		print self.state_dims_jfm_inds
 
 	def get_hotstart_sol(self):
 		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
@@ -61,8 +86,9 @@ class SOPGM(SOInterface):
 		em = matrix(0.0, (N, T));
 		for t in xrange(T):
 			for s in xrange(N):
-				for f in xrange(F):
-					em[s,t] += sol[self.transitions + s*F + f] * self.X[idx][f,t]
+				for f in self.state_dims_map[s]:
+					#print self.state_dims_jfm_inds[s][f]
+					em[s,t] += sol[self.state_dims_jfm_inds[s][f]] * self.X[idx][f,t]
 
 		# augment with loss 
 		if (augment_loss==True):
@@ -73,7 +99,7 @@ class SOPGM(SOInterface):
 
 		if (augment_prior==True):
 			prior = matrix(-0.0, (N, T))
-			#prior[0,:] = 1.0
+			#prior[0,:] = -1.0
 			#prior[5,:] = 1.0
 			em += prior
 
@@ -134,6 +160,8 @@ class SOPGM(SOInterface):
 			states[t-1] = psi[states[t],t];
 		
 		psi_idx = self.get_joint_feature_map(idx,states)
+		psi_idx[0] *= 0.1
+		
 		val = sol.trans()*psi_idx
 		return (val, states, psi_idx)
 
@@ -212,13 +240,14 @@ class SOPGM(SOInterface):
 
 		# emission parts
 		for t in range(T):
-			for f in range(F):
-				jfm[int(y[0,t])*F + f + self.transitions] += self.X[idx][f,t]
+			state = int(y[0,t])
+			for f in self.state_dims_map[state]:
+				jfm[self.state_dims_jfm_inds[state][f]] += self.X[idx][f,t]
 		return jfm
 
 
 	def get_num_dims(self):
-		return self.dims*self.states + self.transitions
+		return self.state_dims_entries + self.transitions
 
 	def evaluate(self, pred): 
 		""" Convert state sequences into negative and positive regions
@@ -244,7 +273,13 @@ class SOPGM(SOInterface):
 			seq_true = np.uint(np.sign(self.y[i]))
 			seq_pred = np.uint(np.sign(pred[i]))
 			lens = len(seq_pred[0,:])
-
+			
+			#loss1 = float(sum([seq_true[0,j]!=seq_pred[0,j] for j in xrange(len(seq_true))]))
+			#loss2 = float(sum([seq_true[0,j]!=-seq_pred[0,j]+1 for j in xrange(len(seq_true))]))
+			#if loss2<loss1:
+				# switch states
+			#	seq_pred = -seq_pred[i]+1
+			
 			# error measures
 			tp = fp = tn = fn = 0.0
 			isPosAvail = False
@@ -268,7 +303,9 @@ class SOPGM(SOInterface):
 				sensitivity = 1.0
 				if isPosAvail:
 					sensitivity = 0.0
+			
 			specificity = float(tn) / float(tn+fp)
+
 			if tp+fp>0:
 				precision = float(tp) / float(tp+fp)
 			else:

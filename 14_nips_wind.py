@@ -100,9 +100,9 @@ if __name__ == '__main__':
 	NUM_COMB_NON = NUM_TRAIN_NON+NUM_TEST_NON
 
 	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
-	print('Anomaly probabilit is {0}.'.format(anom_prob))
-	REPS = 10
-	showPlots = False
+	print('Anomaly probability is {0}.'.format(anom_prob))
+	REPS = 1
+	showPlots = True
 
 	auc = []
 	base_auc = []
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 		non_inds = np.random.permutation(EXMS_NON)
 
 		# load genes and intergenic examples
-		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_C10_A15_', anom_inds, 1)
+		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_A15_only_', anom_inds, 1)
 		(X, Y, phis, lbls) = load_data(NUM_COMB_NON, directory, 'winddata_C10_only_', non_inds, 0)
 		combX.extend(X)
 		combY.extend(Y)
@@ -137,12 +137,12 @@ if __name__ == '__main__':
 		comb = SOHMM(combX, combY, num_states=2)
 
 		# SSVM annotation
-		ssvm = SSVM(train, C=10.0)
-		(lsol,slacks) = ssvm.train()
-		(vals, svmlats) = ssvm.apply(test)
-		(err_svm, err_exm) = test.evaluate(svmlats)
-		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		#base_res.append((0.0,0.0,0.0,0.0))
+		#ssvm = SSVM(train, C=10.0)
+		#(lsol,slacks) = ssvm.train()
+		#(vals, svmlats) = ssvm.apply(test)
+		#(err_svm, err_exm) = test.evaluate(svmlats)
+		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
 		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
-		print err_svm
+		#print err_svm
 		
 		if (showPlots==True):
 			for i in range(comb.samples):
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
 					plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
 					plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
-					plt.plot(range(LENS),svmlats[i-10].trans() + 4 +(i-10)*10,'-k')
+					#plt.plot(range(LENS),svmlats[i-10].trans() + 4 +(i-10)*10,'-k')
 			
 					(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
 					plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')

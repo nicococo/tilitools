@@ -72,14 +72,14 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 
 
 if __name__ == '__main__':
-	LENS = 600
-	EXMS = 1000
-	EXMS_TRAIN = 200
+	LENS = 200
+	EXMS = 400
+	EXMS_TRAIN = 100
 	ANOM_PROB = 0.05
-	REPS = 10
+	REPS = 1
 	BLOCK_LEN = 100
-	#BLOCKS = [1]
-	BLOCKS = [1,5,10,25,50,100]
+	BLOCKS = [1]
+	#BLOCKS = [1,5,10,25,50,100]
 
 	# collected means
 	conts = []
@@ -104,7 +104,9 @@ if __name__ == '__main__':
 					res[key] += cont[key]/float(REPS)
 					res_base[key] += base_cont[key]/float(REPS)
 
+		print rep_mean
 		rm = co.matrix(np.asarray(rep_mean))
+		print rm
 		rm[:,0] -= res['fscore']
 		rm[:,1] -= res['precision']
 		rm[:,2] -= res['sensitivity']

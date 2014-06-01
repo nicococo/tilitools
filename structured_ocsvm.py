@@ -127,7 +127,8 @@ class StructuredOCSVM:
 		vals = matrix(0.0, (N,1))
 		structs = []
 		for i in range(N):
-			(vals[i], struct, foo) = pred_sobj.argmax(self.sol, i, add_prior=True)
+			(vals[i], struct, psi) = pred_sobj.argmax(self.sol, i, add_prior=True)
+			#vals[i] /= np.linalg.norm(psi,2)
 			structs.append(struct)
 
 		return (vals, structs)

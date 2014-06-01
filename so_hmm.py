@@ -221,7 +221,10 @@ class SOHMM(SOInterface):
 				if isPosAvail:
 					sensitivity = 0.0
 
-			specificity = float(tn) / float(tn+fp)
+			if tn+fp>0:
+				specificity = float(tn) / float(tn+fp)
+			else:
+				specificity = 0.0
 
 			if tp+fp>0:
 				precision = float(tp) / float(tp+fp)

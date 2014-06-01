@@ -96,8 +96,8 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 	(pred_vals, pred_lats) = sad.apply(test)
 	(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], pred_vals)
 	auc = metric.auc(fpr, tpr)
-	if (auc<0.5):
-	    auc = 1.0-auc
+	#if (auc<0.5):
+	#    auc = 1.0-auc
 
 	return (auc, base_auc, bayes_auc)
 
@@ -107,10 +107,10 @@ if __name__ == '__main__':
 	EXMS = 1000
 	EXMS_TRAIN = 200
 	ANOM_PROB = 0.05
-	REPS = 10
+	REPS = 5
 	BLOCK_LEN = 100
-	#BLOCKS = [1]
-	BLOCKS = [1,5,10,25,100,200]
+	BLOCKS = [1,100]
+	#BLOCKS = [1,5,10,25,100,200]
 
 	# collected means
 	mauc = []

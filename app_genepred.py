@@ -208,35 +208,46 @@ def load_intergenics(num_iges, signal, label, ige_intervals, distr, min_lens=600
 
 if __name__ == '__main__':
 	# load data file
-	data = io.loadmat('/home/nico/Data/data.mat')
+	#data = io.loadmat('/home/nico/Data/data.mat')
+	data = io.loadmat('/home/nicococo/Code/ecoli/data.mat')
+	#data = io.loadmat('/home/nicococo/Code/anthracis/data.mat')
 	exm_id_intervals = data['exm_id_intervals']
 	exm_id = data['exm_id']
 	label = data['label']
 	signal = data['signal']
 
 	# find intergenic regions
-	ige_intervals = find_intergenic_regions(label, min_gene_dist=50)
+	#ige_intervals = find_intergenic_regions(label, min_gene_dist=2)
+	#intervals = {}
+	#intervals['ige'] = ige_intervals
+	#io.savemat('../ecoli/ige_intervals_2.mat',intervals)
+	
+	intervals = io.loadmat('../ecoli/ige_intervals_50.mat')
+	ige_intervals = intervals['ige']
+
 	IGE_REGIONS = len(ige_intervals)
 	
 	EXMS = max(exm_id_intervals[:,0])
 	DIMS = 4**3
 	print('There are {0} gene examples.'.format(EXMS))
 
-	DIST_LEN = 160
-	distr1 = 1.0*np.logspace(-6,0,DIST_LEN)
-	distr2 = 1.0*np.logspace(0,-6,DIST_LEN)
+	DIST_LEN = 2
+	distr1 = 1.0*np.logspace(-10,0,DIST_LEN)
+	distr2 = 1.0*np.logspace(0,-10,DIST_LEN)
 	distr = np.concatenate([distr1, distr2[1:]])
 
-	NUM_TRAIN_GEN = 40
-	NUM_TRAIN_IGE = 100
+	NUM_TRAIN_GEN = 10
+	NUM_TRAIN_IGE = 60
 	
-	NUM_TEST_GEN = 40
-	NUM_TEST_IGE = 100
+	NUM_TEST_GEN = 10
+	NUM_TEST_IGE = 60
 
 	NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
 	NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
 
-	REPS = 10
+	REPS = 4
+
+	showPlots = True
 
 	auc = []
 	base_auc = []
@@ -251,13 +262,62 @@ if __name__ == '__main__':
 
 		# load genes and intergenic examples
 		(combX, combY, phi_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800)
-		(X, Y, phis, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, distr, min_lens=600, max_lens=600)
+		#exm_id_intervals = np.random.permutation(exm_id_intervals)		
+		#(X, Y, phis, lbls) = load_genes(NUM_COMB_IGE, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800)
+		(X, Y, phis, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, distr, min_lens=600, max_lens=800)
 		combX.extend(X)
 		combY.extend(Y)
 		phi_list.extend(phis)
 		marker.extend(lbls)
 		EXMS = len(combY)
 		combX = remove_mean(combX, DIMS)
+
+		# get rid of unnessary dims
+		phi = co.matrix(phi_list).trans()
+		mgenes = np.sum(phi[:,1:NUM_COMB_GEN],1)/NUM_COMB_GEN
+		mige = np.sum(phi[:,NUM_COMB_GEN:],1)/NUM_COMB_IGE
+
+		mige /= max(abs(mige))
+		mgenes /= max(abs(mgenes))
+		print mige
+		print len(mige)
+
+		inds = np.argsort(mgenes)
+		igeinds = np.argsort(mige)
+		print inds
+		#plt.plot(range(64),mgenes[inds] - 0,'-r')
+		#plt.plot(range(64),mige[inds] - 2,'-b')
+		#plt.show()
+
+		# keep only the most informativ gene dims
+		inds1 = inds[56:]
+		inds2 = inds[0:8]
+
+		inds3 = igeinds[0:8]
+		inds4 = igeinds[56:]
+
+		inds5 = np.array([0,1,2,63,62,61,60])
+		#inds6 = 
+		#inds5 = np.array([0,1])
+		#inds6 = np.array([63,62,61,60])
+		print inds
+		for i in range(len(combX)):
+			foo1 = co.matrix(np.sum(combX[i][inds1.tolist(),:],0)/float(len(inds1.tolist())))
+			foo2 = co.matrix(np.sum(combX[i][inds2.tolist(),:],0)/float(len(inds2.tolist())))
+			foo3 = co.matrix(np.sum(combX[i][inds3.tolist(),:],0)/float(len(inds3.tolist())))
+			foo4 = co.matrix(np.sum(combX[i][inds4.tolist(),:],0)/float(len(inds4.tolist())))
+			
+			foo5 = co.matrix(np.sum(combX[i][inds5.tolist(),:],0)/float(len(inds5.tolist())))
+			
+			foo6 = foo1-foo4
+			
+			#combX[i] = co.matrix([foo1.trans(), foo2.trans(), foo3.trans(), foo4.trans(), foo5.trans(), foo6.trans()])
+			#print combX[i].size
+		#DIMS = 6
+
+		#combX = remove_mean(combX, len(inds.tolist()))
+		combX = remove_mean(combX, DIMS)
+
 
 		trainX = combX[0:NUM_TRAIN_GEN]
 		trainX.extend(X[0:NUM_TRAIN_IGE])
@@ -269,33 +329,70 @@ if __name__ == '__main__':
 		testY = combY[NUM_TRAIN_GEN:NUM_COMB_GEN]
 		testY.extend(Y[NUM_TRAIN_IGE:NUM_COMB_IGE])
 
-		#train = SOPGM(trainX, trainY)
-		#test = SOPGM(testX, testY)
-		#comb = SOPGM(combX, combY)
-		for i in range(len(combY)):
-			combY[i] = co.matrix(np.sign(combY[i]), tc='i')
-		for i in range(len(trainY)):
-			trainY[i] = co.matrix(np.sign(trainY[i]), tc='i')
-		for i in range(len(testY)):
-			testY[i] = co.matrix(np.sign(testY[i]), tc='i')
+		state_map = []
+		#state_map.append([3])
+		#state_map.append([4])
+		#state_map.append([4])
+		#state_map.append([0])
+		#state_map.append([0])
+		#state_map.append([0])
 
-		print len(trainY)
-		print trainY[0]
-		train = SOHMM(trainX, trainY)
-		test = SOHMM(testX, testY)
-		comb = SOHMM(combX, combY)
+		state_map.append(range(64))
+		state_map.append([0,1,2,3])
+		state_map.append([63,62,61,60,59])
+		state_map.append(range(64))
+		state_map.append(range(64))
+		state_map.append(range(64))
+
+		train = SOPGM(trainX, trainY, state_dims_map=state_map)
+		test = SOPGM(testX, testY, state_dims_map=state_map)
+		comb = SOPGM(combX, combY, state_dims_map=state_map)
+
+		#train = SOPGM(trainX, trainY, state_dims_map=[])
+		#test = SOPGM(testX, testY, state_dims_map=[])
+		#comb = SOPGM(combX, combY, state_dims_map=[])
+
+
+		#for i in range(len(combY)):
+		#	combY[i] = co.matrix(np.sign(combY[i]), tc='i')
+		#for i in range(len(trainY)):
+		#	trainY[i] = co.matrix(np.sign(trainY[i]), tc='i')
+		#for i in range(len(testY)):
+		#	testY[i] = co.matrix(np.sign(testY[i]), tc='i')
+
+		#print len(trainY)
+		#print trainY[0]
+		#train = SOHMM(trainX, trainY)
+		#test = SOHMM(testX, testY)
+		#comb = SOHMM(combX, combY)
 
 		# SSVM annotation
-		ssvm = SSVM(train, C=10.0)
-		(lsol,slacks) = ssvm.train()
-		(vals, svmlats) = ssvm.apply(test)
-		(err_svm, err_exm) = test.evaluate(svmlats)
-		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		#base_res.append((0.0,0.0,0.0,0.0))
+		#ssvm = SSVM(train, C=10.0)
+		#(lsol,slacks) = ssvm.train()
+		#(vals, svmlats) = ssvm.apply(test)
+		#(err_svm, err_exm) = test.evaluate(svmlats)
+		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.34))
+		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.15))
 		(lsol, lats, thres) = lsvm.train_dc(max_iter=100)
+
+		if (showPlots==True):
+			#for i in range(comb.samples):
+			for i in range(5):
+				#if (marker[i]==0):
+				LENS = len(comb.y[i])
+				for d in range(DIMS):
+					plt.plot(range(LENS),comb.X[i][d,:].trans() - 2*d+(i-10)*10,'-m')
+
+				plt.plot(range(LENS),lats[i].trans() +(i-10)*10,'-r')
+				plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
+		
+				(anom_score, scores) = comb.get_scores(lsol, i, lats[i])
+				plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
+				#plt.show()
+
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
@@ -314,7 +411,7 @@ if __name__ == '__main__':
 		# train one-class svm
 		phi = co.matrix(phi_list).trans()
 		kern = Kernel.get_kernel(phi, phi)
-		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.1))
+		ocsvm = OCSVM(kern, C=1.0/(comb.samples*0.15))
 		ocsvm.train_dual()
 		(oc_as, foo) = ocsvm.apply_dual(kern[:,ocsvm.get_support_dual()])
 		(fpr, tpr, thres) = metric.roc_curve(marker, oc_as)
