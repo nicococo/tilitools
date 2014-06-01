@@ -58,12 +58,15 @@ class SOPGM(SOInterface):
 		print 'Calculating jfm dimension indices..'
 		cnt = self.transitions
 		for s in range(self.states):
-			foo = matrix(range(self.dims))
+			foo = matrix(0, (1, self.dims))
 			for d in self.state_dims_map[s]:
 				foo[d] = cnt
 				cnt += 1
 			self.state_dims_jfm_inds.append(foo)
 		self.state_dims_entries = cnt - self.transitions
+
+		for s in range(self.states):
+			print self.state_dims_jfm_inds[s]
 
 		print self.state_dims_entries
 		print self.state_dims_map

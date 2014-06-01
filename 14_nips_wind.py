@@ -66,7 +66,7 @@ def remove_mean(X, dims):
 
 def load_data(num_exms, path, fname, inds, label):
 	LEN = 800
-	DIMS = 2
+	DIMS = 5
 	# training data
 	trainX = []
 	trainY = []
@@ -88,7 +88,7 @@ def load_data(num_exms, path, fname, inds, label):
 				if idx==1:
 					for t in xrange(len(row)-1):
 						lbl[t] = int(row[t+1])-1
-				if idx==3 or idx==4 or idx>13:
+				if idx==3 or idx==5 or idx>3:
 					for t in xrange(len(row)-1):
 						exm[cdim, t] = float(row[t+1])
 						phi_i[cdim] += float(row[t+1])
@@ -116,15 +116,16 @@ def load_data(num_exms, path, fname, inds, label):
 			foo = np.asarray(foo)
 			foo = foo[0,:]
 			foo = co.matrix(smooth(foo,window_len=2,window='flat')).trans()
-			foo -= np.sum(foo)/len(foo)
-			foo = np.exp(9.0*foo)
+			foo -= np.sum(foo)/800.0
+			foo = np.exp(5.0*foo)
 			foo = np.asarray(foo)
 			foo = foo[0,:]
 			foo = co.matrix(smooth(foo,window_len=302,window='flat')).trans()
-			foo -= np.sum(foo)/len(foo)
+			foo -= np.sum(foo)/800.0
 			foo /= max(abs(foo))
 
-			exm[d,:] = (foo[0,0:800])
+			exm[d,:] /= abs(maxvals[d])
+			exm[d,:] += 4.0*abs(foo[0,0:800])
 		trainX[i] = exm
 
 	return (trainX, trainY, phi_list, marker)
@@ -134,14 +135,14 @@ if __name__ == '__main__':
 	# load data file
 	directory = '/home/nicococo/Code/wind/'
 	#directory = '/home/nico/mnt_tucluster/Data/wind/'
-	DIMS = 2
+	DIMS = 5
 	EXMS_ANOM = 200
 	EXMS_NON = 200
 
-	NUM_TRAIN_ANOM = 20
+	NUM_TRAIN_ANOM = 40
 	NUM_TRAIN_NON = 80
 	
-	NUM_TEST_ANOM = 20
+	NUM_TEST_ANOM = 40
 	NUM_TEST_NON = 80
 
 	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM
@@ -149,8 +150,8 @@ if __name__ == '__main__':
 
 	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
 	print('Anomaly probability is {0}.'.format(anom_prob))
-	REPS = 1
-	showPlots = True
+	REPS = 10
+	showPlots = False
 
 	auc = []
 	base_auc = []
@@ -162,7 +163,7 @@ if __name__ == '__main__':
 		non_inds = np.random.permutation(EXMS_NON)
 
 		# load genes and intergenic examples
-		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_C10_A15_', anom_inds, 1)
+		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_A15_only_', anom_inds, 1)
 		(X, Y, phis, lbls) = load_data(NUM_COMB_NON, directory, 'winddata_C10_only_', non_inds, 0)
 		combX.extend(X)
 		combY.extend(Y)
@@ -185,22 +186,22 @@ if __name__ == '__main__':
 		comb = SOHMM(combX, combY, num_states=2)
 
 		# SSVM annotation
-		#ssvm = SSVM(train, C=10.0)
-		#(lsol,slacks) = ssvm.train()
-		#(vals, svmlats) = ssvm.apply(test)
-		#(err_svm, err_exm) = test.evaluate(svmlats)
-		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		base_res.append((0.0,0.0,0.0,0.0))
+		ssvm = SSVM(train, C=10.0)
+		(lsol,slacks) = ssvm.train()
+		(vals, svmlats) = ssvm.apply(test)
+		(err_svm, err_exm) = test.evaluate(svmlats)
+		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		#base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		#lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
-		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.5))
+		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
+		#lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.5))
 		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=30)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
-		#print err_svm
+		print err_svm
 		
 		if (showPlots==True):
 			for i in range(comb.samples):
@@ -257,6 +258,6 @@ if __name__ == '__main__':
 	data['res'] = res
 	data['base_res'] = base_res
 
-	io.savemat('14_nips_wind_02.mat',data)
+	io.savemat('14_nips_wind_03.mat',data)
 
 	print('finished')
