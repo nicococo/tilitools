@@ -85,7 +85,7 @@ if __name__ == '__main__':
 	if (SHOW_EXPERIMENT_RESULT==True):
 		data = io.loadmat('../14_nips_pgm_02.mat')
 		data = io.loadmat('14_nips_pgm_02.mat')
-		#data = io.loadmat('../14_nips_wind_01.mat')
+		data = io.loadmat('../14_nips_wind_03.mat')
 		print data
 
 		auc = data['auc'][0]

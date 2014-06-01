@@ -271,7 +271,7 @@ if __name__ == '__main__':
 	NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
 	NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
 
-	REPS = 1
+	REPS = 4
 
 	showPlots = False
 
@@ -370,13 +370,13 @@ if __name__ == '__main__':
 		state_map.append(range(64))
 		state_map.append(range(64))
 
-		#train = SOPGM(trainX, trainY, state_dims_map=state_map)
-		#test = SOPGM(testX, testY, state_dims_map=state_map)
-		#comb = SOPGM(combX, combY, state_dims_map=state_map)
+		train = SOPGM(trainX, trainY, state_dims_map=state_map)
+		test = SOPGM(testX, testY, state_dims_map=state_map)
+		comb = SOPGM(combX, combY, state_dims_map=state_map)
 
-		train = SOPGM(trainX, trainY, state_dims_map=[])
-		test = SOPGM(testX, testY, state_dims_map=[])
-		comb = SOPGM(combX, combY, state_dims_map=[])
+		#train = SOPGM(trainX, trainY, state_dims_map=[])
+		#test = SOPGM(testX, testY, state_dims_map=[])
+		#comb = SOPGM(combX, combY, state_dims_map=[])
 
 
 		#for i in range(len(combY)):
@@ -393,12 +393,12 @@ if __name__ == '__main__':
 		#comb = SOHMM(combX, combY)
 
 		# SSVM annotation
-		ssvm = SSVM(train, C=10.0)
-		(lsol,slacks) = ssvm.train()
-		(vals, svmlats) = ssvm.apply(test)
-		(err_svm, err_exm) = test.evaluate(svmlats)
-		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		#base_res.append((0.0,0.0,0.0,0.0))
+		#ssvm = SSVM(train, C=10.0)
+		#(lsol,slacks) = ssvm.train()
+		#(vals, svmlats) = ssvm.apply(test)
+		#(err_svm, err_exm) = test.evaluate(svmlats)
+		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
 		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.15))
@@ -423,7 +423,7 @@ if __name__ == '__main__':
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
-		print err_svm
+		#print err_svm
 
 		# SAD anomaly scores
 		(scores, foo) = lsvm.apply(comb)

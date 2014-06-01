@@ -107,6 +107,7 @@ def load_data(num_exms, path, fname, inds, label):
 
 	for i in xrange(num_exms):
 		exm = trainX[i]
+		phi_i = co.matrix(0.0, (1, DIMS))
 		for d in xrange(DIMS):
 			#foo = abs(np.exp(exm[d,:])/max(abs(exm[d,:])))
 			#foo = abs(np.exp(exm[d,:]))
@@ -117,7 +118,7 @@ def load_data(num_exms, path, fname, inds, label):
 			foo = foo[0,:]
 			foo = co.matrix(smooth(foo,window_len=2,window='flat')).trans()
 			foo -= np.sum(foo)/800.0
-			foo = np.exp(5.0*foo)
+			foo = np.exp(6.0*foo)
 			foo = np.asarray(foo)
 			foo = foo[0,:]
 			foo = co.matrix(smooth(foo,window_len=302,window='flat')).trans()
@@ -126,6 +127,14 @@ def load_data(num_exms, path, fname, inds, label):
 
 			exm[d,:] /= abs(maxvals[d])
 			exm[d,:] += 4.0*abs(foo[0,0:800])
+
+			for t in xrange(LEN):
+					phi_i[d] += exm[d,t]
+
+		norm = np.linalg.norm(phi_i,2)
+		phi_i /= norm
+		phi_list[i] = phi_i
+
 		trainX[i] = exm
 
 	return (trainX, trainY, phi_list, marker)
@@ -186,12 +195,12 @@ if __name__ == '__main__':
 		comb = SOHMM(combX, combY, num_states=2)
 
 		# SSVM annotation
-		ssvm = SSVM(train, C=10.0)
-		(lsol,slacks) = ssvm.train()
-		(vals, svmlats) = ssvm.apply(test)
-		(err_svm, err_exm) = test.evaluate(svmlats)
-		base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-		#base_res.append((0.0,0.0,0.0,0.0))
+		#ssvm = SSVM(train, C=10.0)
+		#(lsol,slacks) = ssvm.train()
+		#(vals, svmlats) = ssvm.apply(test)
+		#(err_svm, err_exm) = test.evaluate(svmlats)
+		#base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
+		base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
 		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
@@ -201,7 +210,7 @@ if __name__ == '__main__':
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
-		print err_svm
+		#print err_svm
 		
 		if (showPlots==True):
 			for i in range(comb.samples):
