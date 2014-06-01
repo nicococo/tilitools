@@ -74,13 +74,12 @@ def load_data(num_exms, path, fname, inds, label):
 	stop_symbs = []
 	phi_list = []
 	marker = []
+	maxvals = co.matrix(0.0, (DIMS, 1))
 	for i in xrange(num_exms):
-
 		# load file 
 		phi_i = co.matrix(0.0, (1, DIMS))
 		lbl = co.matrix(0, (1,LEN))
 		exm = co.matrix(0.0, (DIMS, LEN))
-		maxvals = co.matrix(0.0, (DIMS, 1))
 		with open('{0}{1}{2:03d}.csv'.format(path, fname, inds[i]+1)) as f:
 			reader = csv.reader(f)
 			idx = 0
@@ -89,11 +88,11 @@ def load_data(num_exms, path, fname, inds, label):
 				if idx==1:
 					for t in xrange(len(row)-1):
 						lbl[t] = int(row[t+1])-1
-				if idx==3 or idx==15 or idx==6:
+				if idx==3 or idx==4 or idx>13:
 					for t in xrange(len(row)-1):
 						exm[cdim, t] = float(row[t+1])
 						phi_i[cdim] += float(row[t+1])
-						if maxvals[cdim]<float(row[t+1]):
+						if maxvals[cdim]<abs(float(row[t+1])):
 							maxvals[cdim] = float(row[t+1])
 					cdim += 1
 				idx += 1
@@ -101,28 +100,32 @@ def load_data(num_exms, path, fname, inds, label):
 		#print norm
 		phi_i /= norm
 
+		marker.append(label)
+		phi_list.append(phi_i)
+		trainX.append(exm)
+		trainY.append(lbl)
+
+	for i in xrange(num_exms):
+		exm = trainX[i]
 		for d in xrange(DIMS):
 			#foo = abs(np.exp(exm[d,:])/max(abs(exm[d,:])))
 			#foo = abs(np.exp(exm[d,:]))
 			#foo = abs(exm[d,:])
 			foo = abs(exm[d,:])/abs(maxvals[d])
-			foo = np.exp(foo)
 
 			foo = np.asarray(foo)
 			foo = foo[0,:]
-			foo = co.matrix(smooth(foo,window_len=26,window='flat')).trans()
+			foo = co.matrix(smooth(foo,window_len=2,window='flat')).trans()
 			foo -= np.sum(foo)/len(foo)
-			foo = np.exp(3.0*foo)
+			foo = np.exp(9.0*foo)
 			foo = np.asarray(foo)
 			foo = foo[0,:]
-			foo = co.matrix(smooth(foo,window_len=202,window='flat')).trans()
+			foo = co.matrix(smooth(foo,window_len=302,window='flat')).trans()
+			foo -= np.sum(foo)/len(foo)
+			foo /= max(abs(foo))
 
-			exm[d,:] = abs(foo[0,0:800])
-
-		marker.append(label)
-		phi_list.append(phi_i)
-		trainX.append(exm)
-		trainY.append(lbl)
+			exm[d,:] = (foo[0,0:800])
+		trainX[i] = exm
 
 	return (trainX, trainY, phi_list, marker)
 
@@ -136,18 +139,18 @@ if __name__ == '__main__':
 	EXMS_NON = 200
 
 	NUM_TRAIN_ANOM = 20
-	NUM_TRAIN_NON = 100
+	NUM_TRAIN_NON = 80
 	
 	NUM_TEST_ANOM = 20
-	NUM_TEST_NON = 100
+	NUM_TEST_NON = 80
 
 	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM
 	NUM_COMB_NON = NUM_TRAIN_NON+NUM_TEST_NON
 
 	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
 	print('Anomaly probability is {0}.'.format(anom_prob))
-	REPS = 10
-	showPlots = False
+	REPS = 1
+	showPlots = True
 
 	auc = []
 	base_auc = []
@@ -204,14 +207,14 @@ if __name__ == '__main__':
 				if (i>=30 and i<=50):
 					LENS = 800
 					for d in range(DIMS):
-						plt.plot(range(LENS),comb.X[i][d,:].trans() - 2*d+(i-10)*10,'-m')
+						plt.plot(range(LENS),comb.X[i][d,:].trans() - 2*d+(i-10)*12,'-m')
 
-					plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
-					plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
+					plt.plot(range(LENS),latsComb[i].trans() +(i-10)*12,'-r')
+					plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*12,'-b')
 					#plt.plot(range(LENS),svmlats[i-10].trans() + 4 +(i-10)*10,'-k')
 			
 					(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
-					plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
+					plt.plot(range(LENS),scores.trans() + 6 + (i-10)*12,'-g')
 					
 			plt.show()
 

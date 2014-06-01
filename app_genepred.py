@@ -17,11 +17,35 @@ from toydata import ToyData
 from so_pgm import SOPGM
 from so_hmm import SOHMM
 
+def smooth(x,window_len=4,window='blackman'):
+	if x.ndim != 1:
+		raise ValueError, "smooth only accepts 1 dimension arrays."
+
+	if x.size < window_len:
+		raise ValueError, "Input vector needs to be bigger than window size."
+
+
+	if window_len<3:
+		return x
+
+	if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+		raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+
+	s=np.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
+	#print(len(s))
+	if window == 'flat': #moving average
+		w=np.ones(window_len,'d')
+	else:
+		w=eval('np.'+window+'(window_len)')
+	y=np.convolve(w/w.sum(),s,mode='valid')
+	return y
+
 
 def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, distr):
 	trainX = []
 	trainY = []
 	phi = []
+	DIMS = 4**3
 	DIST_LEN = np.int(np.ceil(float(len(distr))/2.0))
 	for i in range(num_exm):
 		inds = range(region_start+i*exm_lens,region_start+(i+1)*exm_lens)
@@ -41,11 +65,10 @@ def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, d
 
 			#exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
 			foo = distr[start:end] + exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ]
-			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo
+			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo[0]
 			# spectrum kernel entry
 			phi_i[int(np.int32(signal[0,inds[t]]))] +=1.0/float(lens)
 
-			# labels to states
 			val = max(0, label[0,inds[t]])
 			error += val
 			lbl[t] = int(val)
@@ -56,6 +79,7 @@ def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, d
 			print 'ERROR loading integenic regions: gene found!'
 		trainX.append(exm)
 		trainY.append(lbl)
+
 	return (trainX, trainY, phi)
 
 
@@ -144,8 +168,8 @@ def load_genes(max_genes, signal, label, exm_id_intervals, distr, min_lens=600, 
 
 			#exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
 			foo = distr[start:end] + exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ]
-			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo
-			
+			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo[0]
+
 			# labels to states
 			val = max(0, label[0,inds[t]])
 			if val==0 or val==1: 
@@ -233,16 +257,16 @@ if __name__ == '__main__':
 	DIMS = 4**3
 	print('There are {0} gene examples.'.format(EXMS))
 
-	DIST_LEN = 4
+	DIST_LEN = 100
 	distr1 = 1.0*np.logspace(-4,0,DIST_LEN)
 	distr2 = 1.0*np.logspace(0,-4,DIST_LEN)
 	distr = np.concatenate([distr1, distr2[1:]])
 
-	NUM_TRAIN_GEN = 20
-	NUM_TRAIN_IGE = 120
+	NUM_TRAIN_GEN = 10
+	NUM_TRAIN_IGE = 60
 	
-	NUM_TEST_GEN = 20
-	NUM_TEST_IGE = 120
+	NUM_TEST_GEN = 10
+	NUM_TEST_IGE = 60
 
 	NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
 	NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
@@ -440,171 +464,5 @@ if __name__ == '__main__':
 	data['base_res'] = base_res
 
 	io.savemat('14_nips_pgm_03.mat',data)
-
-	# ssvm = SSVM(pgm, C=1.0)
-	# (lsol,slacks) = ssvm.train()
-	# (vals, svmlats) = ssvm.apply(pgm)
-	# (err_svm, err_exm) = pgm.evaluate(svmlats)
-	# print err
-	# print err_rnd
-	# print err_zeros
-	# print err_svm
-	# print err_lowest
-
-	# # training data
-	# exm_cnt = 0
-	# trainX = []
-	# trainY = []
-	# start_symbs = []
-	# stop_symbs = []
-	# phi_list = []
-	# marker = []
-	# for i in xrange(EXMS):
-		
-	# 	# convert signal to binary feature array
-	# 	# convert labels to states
-	# 	#(foo,inds) = np.where([exm_id[0,:]==i])
-	# 	inds = range(exm_id_intervals[i,1]-1,exm_id_intervals[i,2])
-	# 	lens = len(inds)
-
-	# 	if lens>800 or lens<=600:
-	# 		continue
-
-	# 	print('Index {0}: #{1}'.format(i,lens))
-	# 	exm_cnt += 1
-	# 	mod = 1
-	# 	lbl = co.matrix(0, (1, lens))
-	# 	exm = co.matrix(0.0, (DIMS, lens))
-	# 	phi_i = co.matrix(0.0, (1, DIMS))
-	# 	for t in range(lens):
-	# 		start_ind = max(0,t-DIST_LEN)
-	# 		end_ind = min(lens-1,t+DIST_LEN-1)
-	# 		start = start_ind - (t-DIST_LEN)
-	# 		end = start + (end_ind-start_ind)
-
-	# 		#exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
-	# 		exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] += distr[start:end]
-			
-	# 		# labels to states
-	# 		val = max(0, label[0,inds[t]])
-	# 		if val==0 or val==1: 
-	# 			mod=1
-	# 		if val==3:
-	# 			lbl[t] = int(val + mod)
-	# 			mod = (mod+1) % 3
-	# 		else:
-	# 			lbl[t] = int(val)
-
-	# 		# store start/stop symbols
-	# 		if (label[0,inds[t]]==1):
-	# 			start_symbs.append(signal[0,inds[t]])
-	# 		if (label[0,inds[t]]==2):
-	# 			stop_symbs.append(signal[0,inds[t]])
-
-	# 		# spectrum kernel entry
-	# 		phi_i[int(np.int32(signal[0,inds[t]]))] +=1.0/float(lens)
-
-	# 	marker.append(0)
-	# 	phi_list.append(phi_i)
-	# 	trainX.append(exm)
-	# 	trainY.append(lbl)
-
-
-	# print '###################'
-	# print start_symbs
-	# print stop_symbs 
-	# print '###################'
-
-	# # add intergenic examples
-	# ige_cnt = 0
-	# IGE_EXMS = 105
-	# IGE_LEN = 600
-	# N = len(ige_intervals)
-	# for i in xrange(N):
-	# 	lens = ige_intervals[i][1]-ige_intervals[i][0]
-	# 	if lens>1000:
-	# 		IGE_LEN = np.int(np.single(co.uniform(1, a=600, b=800)))
-	# 		num_ige_exms = np.int(np.floor(float(lens)/float(IGE_LEN)))
-	# 		if (num_ige_exms > IGE_EXMS):
-	# 			num_ige_exms = IGE_EXMS - ige_cnt + 1
-	# 		exm_cnt += num_ige_exms
-	# 		ige_cnt += num_ige_exms
-	# 		(trainX, trainY, phi_list) = add_intergenic(trainX, trainY, phi_list, ige_intervals[i][0], ige_intervals[i][1], num_ige_exms,IGE_LEN,distr,DIST_LEN)
-	# 		for j in range(num_ige_exms):
-	# 			marker.append(1)
-	# 	if ige_cnt>IGE_EXMS:
-	# 		break
-
-	# print('IGE examples {0}'.format(ige_cnt))
-
-	# phi = co.matrix(phi_list).trans()
-	# print phi.size
-	# print exm_cnt
-	# EXMS = exm_cnt
-
-	# trainX = remove_mean(trainX, DIMS)
-
-	# # train
-	# pgm = SOPGM(trainX, trainY)
-	# (err_lowest, fscore_exm) = pgm.evaluate(trainY)
-	# print err_lowest
-
-	# base_zeros = []
-	# base_rnd = []
-	# for i in xrange(EXMS):
-	# 	lens = len(trainY[i])
-	# 	foo = co.matrix(0, (1,lens))
-	# 	base_zeros.append(foo)
-	# 	base_rnd.append(np.round(co.uniform(1, lens)))
-
-	# (err_rnd, fscore_exm) = pgm.evaluate(base_rnd)
-	# (err_zeros, fscore_exm) = pgm.evaluate(base_zeros)
-	# print err_rnd
-	# print err_zeros
-
-	# lsvm = StructuredOCSVM(pgm, C=1.0/(EXMS*0.5))
-	# lpca = StructuredPCA(pgm)
-	# (lsol, lats, thres) = lsvm.train_dc(max_iter=100)
-	
-	# ssvm = SSVM(pgm, C=1.0)
-	# (lsol,slacks) = ssvm.train()
-	# (vals, svmlats) = ssvm.apply(pgm)
-	# (err_svm, err_exm) = pgm.evaluate(svmlats)
-	# (err, err_exm) = pgm.evaluate(lats)
-	# print err
-	# print err_rnd
-	# print err_zeros
-	# print err_svm
-	# print err_lowest
-
-	# # visualization
-	# plt.figure()
-	# allscores = []
-	# for i in range(pgm.samples):
-	# 	LENS = len(lats[i])
-	# 	plt.plot(range(LENS),lats[i].trans() + i*8,'-r')
-	# 	plt.plot(range(LENS),trainY[i].trans() + i*8,'-b')
-		
-	# 	(anom_score, scores) = pgm.get_scores(lsol, i, lats[i])
-	# 	allscores.append(anom_score)
-	# 	plt.plot(range(LENS),scores.trans() + i*8,'-g')
-
-	# (fpr, tpr, thres) = metric.roc_curve(marker, co.matrix(allscores))
-	# auc = metric.auc(fpr, tpr)
-	# print auc
-
-	# # train one-class svm
-	# kern = Kernel.get_kernel(phi, phi)
-	# ocsvm = OCSVM(kern, C=1.0/(pgm.samples*0.4))
-	# ocsvm.train_dual()
-	# (oc_as, foo) = ocsvm.apply_dual(kern[:,ocsvm.get_support_dual()])
-	# (fpr, tpr, thres) = metric.roc_curve(marker, oc_as)
-	# base_auc = metric.auc(fpr, tpr)
-	# print base_auc
-
-
-	# plt.show()
-
-
 
 	print('finished')
