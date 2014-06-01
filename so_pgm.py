@@ -160,8 +160,8 @@ class SOPGM(SOInterface):
 			states[t-1] = psi[states[t],t];
 		
 		psi_idx = self.get_joint_feature_map(idx,states)
-		psi_idx[0] *= 0.1
-		
+		psi_idx[0] *= 0.01
+
 		val = sol.trans()*psi_idx
 		return (val, states, psi_idx)
 

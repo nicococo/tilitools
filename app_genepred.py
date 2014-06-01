@@ -40,7 +40,8 @@ def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, d
 			end = start + (end_ind-start_ind)
 
 			#exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
-			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] += distr[start:end]
+			foo = distr[start:end] + exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ]
+			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo
 			# spectrum kernel entry
 			phi_i[int(np.int32(signal[0,inds[t]]))] +=1.0/float(lens)
 
@@ -142,7 +143,8 @@ def load_genes(max_genes, signal, label, exm_id_intervals, distr, min_lens=600, 
 			end = start + (end_ind-start_ind)
 
 			#exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
-			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] += distr[start:end]
+			foo = distr[start:end] + exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ]
+			exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo
 			
 			# labels to states
 			val = max(0, label[0,inds[t]])
@@ -231,23 +233,23 @@ if __name__ == '__main__':
 	DIMS = 4**3
 	print('There are {0} gene examples.'.format(EXMS))
 
-	DIST_LEN = 2
-	distr1 = 1.0*np.logspace(-10,0,DIST_LEN)
-	distr2 = 1.0*np.logspace(0,-10,DIST_LEN)
+	DIST_LEN = 4
+	distr1 = 1.0*np.logspace(-4,0,DIST_LEN)
+	distr2 = 1.0*np.logspace(0,-4,DIST_LEN)
 	distr = np.concatenate([distr1, distr2[1:]])
 
-	NUM_TRAIN_GEN = 10
-	NUM_TRAIN_IGE = 60
+	NUM_TRAIN_GEN = 20
+	NUM_TRAIN_IGE = 120
 	
-	NUM_TEST_GEN = 10
-	NUM_TEST_IGE = 60
+	NUM_TEST_GEN = 20
+	NUM_TEST_IGE = 120
 
 	NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
 	NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
 
-	REPS = 4
+	REPS = 1
 
-	showPlots = True
+	showPlots = False
 
 	auc = []
 	base_auc = []
@@ -437,7 +439,7 @@ if __name__ == '__main__':
 	data['res'] = res
 	data['base_res'] = base_res
 
-	io.savemat('14_nips_pgm_02.mat',data)
+	io.savemat('14_nips_pgm_03.mat',data)
 
 	# ssvm = SSVM(pgm, C=1.0)
 	# (lsol,slacks) = ssvm.train()

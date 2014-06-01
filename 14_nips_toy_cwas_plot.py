@@ -84,6 +84,7 @@ if __name__ == '__main__':
 
 	if (SHOW_EXPERIMENT_RESULT==True):
 		data = io.loadmat('../14_nips_pgm_02.mat')
+		data = io.loadmat('14_nips_pgm_02.mat')
 		#data = io.loadmat('../14_nips_wind_01.mat')
 		print data
 
@@ -92,11 +93,16 @@ if __name__ == '__main__':
 		res = data['res']
 		base_res = data['base_res']
 
-		reps = float(len(auc))
+		print auc
+		xlen = len(auc)
+		reps = float(xlen)
+		if (xlen==1):
+			reps = float(len(auc.T))
+		print reps
 		mauc = sum(auc)/reps
 		mbase_auc = sum(base_auc)/reps
-		vauc = np.sqrt(sum(co.mul(co.matrix(auc-mauc),co.matrix(auc-mauc)))/reps)
-		vbase_auc = np.sqrt(sum(co.mul(co.matrix(base_auc-mbase_auc),co.matrix(base_auc-mbase_auc)))/reps)
+		vauc = np.sqrt(np.sum(co.mul(co.matrix(auc-mauc),co.matrix(auc-mauc)))/reps)
+		vbase_auc = np.sqrt(np.sum(co.mul(co.matrix(base_auc-mbase_auc),co.matrix(base_auc-mbase_auc)))/reps)
 		print vbase_auc
 
 

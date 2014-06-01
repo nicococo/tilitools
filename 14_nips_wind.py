@@ -18,6 +18,29 @@ from toydata import ToyData
 from so_hmm import SOHMM
 
 
+def smooth(x,window_len=4,window='blackman'):
+	if x.ndim != 1:
+		raise ValueError, "smooth only accepts 1 dimension arrays."
+
+	if x.size < window_len:
+		raise ValueError, "Input vector needs to be bigger than window size."
+
+
+	if window_len<3:
+		return x
+
+	if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
+		raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+
+	s=np.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
+	#print(len(s))
+	if window == 'flat': #moving average
+		w=np.ones(window_len,'d')
+	else:
+		w=eval('np.'+window+'(window_len)')
+	y=np.convolve(w/w.sum(),s,mode='valid')
+	return y
+
 
 def remove_mean(X, dims):
 	cnt = 0
@@ -43,7 +66,7 @@ def remove_mean(X, dims):
 
 def load_data(num_exms, path, fname, inds, label):
 	LEN = 800
-	DIMS = 5
+	DIMS = 2
 	# training data
 	trainX = []
 	trainY = []
@@ -57,22 +80,44 @@ def load_data(num_exms, path, fname, inds, label):
 		phi_i = co.matrix(0.0, (1, DIMS))
 		lbl = co.matrix(0, (1,LEN))
 		exm = co.matrix(0.0, (DIMS, LEN))
+		maxvals = co.matrix(0.0, (DIMS, 1))
 		with open('{0}{1}{2:03d}.csv'.format(path, fname, inds[i]+1)) as f:
 			reader = csv.reader(f)
 			idx = 0
+			cdim = 0
 			for row in reader:
 				if idx==1:
 					for t in xrange(len(row)-1):
 						lbl[t] = int(row[t+1])-1
-				if idx>=3:
+				if idx==3 or idx==15 or idx==6:
 					for t in xrange(len(row)-1):
-						exm[idx-3, t] = float(row[t+1])
-						phi_i[idx-3] += float(row[t+1])
-
+						exm[cdim, t] = float(row[t+1])
+						phi_i[cdim] += float(row[t+1])
+						if maxvals[cdim]<float(row[t+1]):
+							maxvals[cdim] = float(row[t+1])
+					cdim += 1
 				idx += 1
 		norm = np.linalg.norm(phi_i,2)
 		#print norm
 		phi_i /= norm
+
+		for d in xrange(DIMS):
+			#foo = abs(np.exp(exm[d,:])/max(abs(exm[d,:])))
+			#foo = abs(np.exp(exm[d,:]))
+			#foo = abs(exm[d,:])
+			foo = abs(exm[d,:])/abs(maxvals[d])
+			foo = np.exp(foo)
+
+			foo = np.asarray(foo)
+			foo = foo[0,:]
+			foo = co.matrix(smooth(foo,window_len=26,window='flat')).trans()
+			foo -= np.sum(foo)/len(foo)
+			foo = np.exp(3.0*foo)
+			foo = np.asarray(foo)
+			foo = foo[0,:]
+			foo = co.matrix(smooth(foo,window_len=202,window='flat')).trans()
+
+			exm[d,:] = abs(foo[0,0:800])
 
 		marker.append(label)
 		phi_list.append(phi_i)
@@ -86,7 +131,7 @@ if __name__ == '__main__':
 	# load data file
 	directory = '/home/nicococo/Code/wind/'
 	#directory = '/home/nico/mnt_tucluster/Data/wind/'
-	DIMS = 5
+	DIMS = 2
 	EXMS_ANOM = 200
 	EXMS_NON = 200
 
@@ -101,8 +146,8 @@ if __name__ == '__main__':
 
 	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
 	print('Anomaly probability is {0}.'.format(anom_prob))
-	REPS = 1
-	showPlots = True
+	REPS = 10
+	showPlots = False
 
 	auc = []
 	base_auc = []
@@ -114,7 +159,7 @@ if __name__ == '__main__':
 		non_inds = np.random.permutation(EXMS_NON)
 
 		# load genes and intergenic examples
-		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_A15_only_', anom_inds, 1)
+		(combX, combY, phi_list, marker) = load_data(NUM_COMB_ANOM, directory, 'winddata_C10_A15_', anom_inds, 1)
 		(X, Y, phis, lbls) = load_data(NUM_COMB_NON, directory, 'winddata_C10_only_', non_inds, 0)
 		combX.extend(X)
 		combY.extend(Y)
@@ -145,8 +190,9 @@ if __name__ == '__main__':
 		base_res.append((0.0,0.0,0.0,0.0))
 
 		# SAD annotation
-		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
-		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=100)
+		#lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*anom_prob))
+		lsvm = StructuredOCSVM(comb, C=1.0/(comb.samples*0.5))
+		(lsol, latsComb, thres) = lsvm.train_dc(max_iter=30)
 		(lval, lats) = lsvm.apply(test)
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
@@ -155,9 +201,10 @@ if __name__ == '__main__':
 		
 		if (showPlots==True):
 			for i in range(comb.samples):
-				if (i>=10 and marker[i]==1):
+				if (i>=30 and i<=50):
 					LENS = 800
-					plt.plot(range(LENS),comb.X[i][0,:].trans() - 2+(i-10)*10,'-m')
+					for d in range(DIMS):
+						plt.plot(range(LENS),comb.X[i][d,:].trans() - 2*d+(i-10)*10,'-m')
 
 					plt.plot(range(LENS),latsComb[i].trans() +(i-10)*10,'-r')
 					plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
@@ -165,7 +212,7 @@ if __name__ == '__main__':
 			
 					(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
 					plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
-					break
+					
 			plt.show()
 
 		# SAD anomaly scores
@@ -207,6 +254,6 @@ if __name__ == '__main__':
 	data['res'] = res
 	data['base_res'] = base_res
 
-	io.savemat('14_nips_wind_01.mat',data)
+	io.savemat('14_nips_wind_02.mat',data)
 
 	print('finished')
