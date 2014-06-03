@@ -32,22 +32,6 @@ def get_anom_model(num_exm, num_train, lens, block_len, blocks=1, anomaly_prob=0
 	return (SOHMM(X[0:num_train],Y[0:num_train]), SOHMM(X[num_train:],Y[num_train:]), SOHMM(X,Y), label)
 
 
-def get_model(num_exm, num_train, lens, feats, anomaly_prob=0.15):
-	print('Generating {0} sequences, {1} for training, each with {2} anomaly probability.'.format(num_exm, num_train, anomaly_prob))
-	cnt = 0 
-	X = [] 
-	Y = []
-	label = []
-	for i in range(num_exm):
-		(exm, lbl, marker) = ToyData.get_2state_gaussian_seq(lens,dims=feats,anom_prob=anomaly_prob)
-		cnt += lens
-		X.append(exm)
-		Y.append(lbl)
-		label.append(marker)
-	X = remove_mean(X, feats)
-	return (SOHMM(X[0:num_train],Y[0:num_train]), SOHMM(X[num_train:],Y[num_train:]), SOHMM(X,Y), label)
-
-
 def remove_mean(X, dims):
 	cnt = 0
 	tst_mean = co.matrix(0.0, (1, dims))
@@ -57,7 +41,6 @@ def remove_mean(X, dims):
 		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
 	tst_mean /= float(cnt)
 	print tst_mean
-
 	for i in range(len(X)):
 		for d in range(dims):
 			X[i][d,:] = X[i][d,:]-tst_mean[d]
@@ -80,12 +63,13 @@ if __name__ == '__main__':
 
 	SHOW_EXPERIMENT_RESULT = True
 	PLOT_TOY_RESULTS = False
+	GEN_TOY_SEQS = False
 
 
 	if (SHOW_EXPERIMENT_RESULT==True):
-		data = io.loadmat('../14_nips_pgm_02.mat')
-		data = io.loadmat('14_nips_pgm_02.mat')
-		data = io.loadmat('../14_nips_wind_03.mat')
+		data = io.loadmat('../14_nips_pgm_10.mat')
+		#data = io.loadmat('14_nips_pgm_03.mat')
+		#data = io.loadmat('../14_nips_wind_11.mat')
 		print data
 
 		auc = data['auc'][0]
@@ -94,13 +78,24 @@ if __name__ == '__main__':
 		base_res = data['base_res']
 
 		print auc
-		xlen = len(auc)
-		reps = float(xlen)
-		if (xlen==1):
-			reps = float(len(auc.T))
+		reps = len(auc)
+
+		# filter
+		if 1==2:
+			(foo, inds) = np.where([auc>0.75])
+			print inds
+			reps = len(inds)
+			auc = auc[inds]
+			base_auc = base_auc[inds]
+			res = res[inds,:]
+			base_res = base_res[inds,:]
+
 		print reps
 		mauc = sum(auc)/reps
+		print mauc
 		mbase_auc = sum(base_auc)/reps
+		print mbase_auc
+
 		vauc = np.sqrt(np.sum(co.mul(co.matrix(auc-mauc),co.matrix(auc-mauc)))/reps)
 		vbase_auc = np.sqrt(np.sum(co.mul(co.matrix(base_auc-mbase_auc),co.matrix(base_auc-mbase_auc)))/reps)
 		print vbase_auc
@@ -109,9 +104,12 @@ if __name__ == '__main__':
 		m = np.sum(res,0)/reps
 		print m
 		bm = np.sum(base_res,0)/reps
+		
+		print (res[0,:])
+		print np.sum([(res[i,:]-m)**2 for i in range(int(reps))],0)/reps
 
-		std = np.sqrt(np.sum([(res[i,:]-m)**2 for i in range(int(reps)) ],0))
-		bstd = np.sqrt(np.sum([(base_res[i,:]-bm)**2 for i in range(int(reps)) ],0))
+		std = np.sqrt(np.sum([(res[i,:]-m)**2 for i in range(int(reps)) ],0)/reps)
+		bstd = np.sqrt(np.sum([(base_res[i,:]-bm)**2 for i in range(int(reps)) ],0)/reps)
 
 		print('{0:1.2f}+/-{1:1.2f} & - & - & - & -'.format(mbase_auc, vbase_auc))	
 		print('{0:1.2f}+/-{1:1.2f} & {2:1.2f}+/-{3:1.2f} & {4:1.2f}+/-{5:1.2f} & {6:1.2f}+/-{7:1.2f} & {8:1.2f}+/-{9:1.2f}'.format(mauc,vauc,m[0],std[0],m[1],std[1],m[2],std[2],m[3],std[3],))	
@@ -175,25 +173,24 @@ if __name__ == '__main__':
 		plt.show()
 
 
-	#(train, test, comb, labels) = get_model(EXMS, EXMS_TRAIN, LENS, feats=2, anomaly_prob=ANOM_PROB)
-	# (train, test, comb, labels) = get_anom_model(EXMS, EXMS_TRAIN, LENS, BLOCK_LEN, blocks=100, anomaly_prob=ANOM_PROB)
-	# lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*0.05))
-	# (lsol, lats, thres) = lsvm.train_dc(max_iter=40)
-	# (err, err_exm) = comb.evaluate(lats)
-	# print err
+	if GEN_TOY_SEQS==True:
+		(train, test, comb, labels) = get_anom_model(EXMS, EXMS_TRAIN, LENS, BLOCK_LEN, blocks=100, anomaly_prob=ANOM_PROB)
+		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*anomaly_prob))
+		(lsol, lats, thres) = lsvm.train_dc(max_iter=40)
+		(err, err_exm) = comb.evaluate(lats)
+		print err
+		plt.figure(1)
+		for i in range(EXMS):
+			if (labels[i]==1):
+				plt.plot(range(LENS),comb.X[i].trans()*0.2 - 2,'-m')
+				plt.plot(range(LENS),lats[i].trans() + 0,'-r')
+				plt.plot(range(LENS),comb.y[i].trans() + 2,'-b')
+			
+				(anom_score, scores) = comb.get_scores(lsol, i, lats[i])
+				plt.plot(range(LENS),scores.trans() + 4,'-g')
+				print anom_score
+				break
 
-	# plt.figure(1)
-	# for i in range(EXMS):
-	# 	if (labels[i]==1):
-	# 		plt.plot(range(LENS),comb.X[i].trans()*0.2 - 2,'-m')
-	# 		plt.plot(range(LENS),lats[i].trans() + 0,'-r')
-	# 		plt.plot(range(LENS),comb.y[i].trans() + 2,'-b')
-		
-	# 		(anom_score, scores) = comb.get_scores(lsol, i, lats[i])
-	# 		plt.plot(range(LENS),scores.trans() + 4,'-g')
-	# 		print anom_score
-	# 		break
-
-	# plt.show()
+		plt.show()
 
 	print('finished')

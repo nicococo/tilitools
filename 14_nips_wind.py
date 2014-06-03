@@ -105,61 +105,56 @@ def load_data(num_exms, path, fname, inds, label):
 		trainX.append(exm)
 		trainY.append(lbl)
 
+	# feature pre-processing to remove sin-period from rotor movement 
 	for i in xrange(num_exms):
 		exm = trainX[i]
 		phi_i = co.matrix(0.0, (1, DIMS))
 		for d in xrange(DIMS):
-			#foo = abs(np.exp(exm[d,:])/max(abs(exm[d,:])))
-			#foo = abs(np.exp(exm[d,:]))
-			#foo = abs(exm[d,:])
 			foo = abs(exm[d,:])/abs(maxvals[d])
-
 			foo = np.asarray(foo)
 			foo = foo[0,:]
-			foo = co.matrix(smooth(foo,window_len=2,window='flat')).trans()
-			foo -= np.sum(foo)/800.0
-			foo = np.exp(6.0*foo)
+			foo = co.matrix(smooth(foo, window_len=2, window='flat')).trans()
+			foo -= np.sum(foo)/float(LEN)
+			foo = np.exp(4.0*foo)
 			foo = np.asarray(foo)
 			foo = foo[0,:]
-			foo = co.matrix(smooth(foo,window_len=302,window='flat')).trans()
-			foo -= np.sum(foo)/800.0
+			foo = co.matrix(smooth(foo, window_len=302, window='flat')).trans()
+			foo -= np.sum(foo)/float(LEN)
 			foo /= max(abs(foo))
-
 			exm[d,:] /= abs(maxvals[d])
-			exm[d,:] += 4.0*abs(foo[0,0:800])
-
+			exm[d,:] += 4.0*abs(foo[0,0:LEN])
 			for t in xrange(LEN):
-					phi_i[d] += exm[d,t]
-
+				phi_i[d] += exm[d,t]
 		norm = np.linalg.norm(phi_i,2)
 		phi_i /= norm
 		phi_list[i] = phi_i
-
 		trainX[i] = exm
-
 	return (trainX, trainY, phi_list, marker)
 
 
 if __name__ == '__main__':
 	# load data file
 	directory = '/home/nicococo/Code/wind/'
-	#directory = '/home/nico/mnt_tucluster/Data/wind/'
+	#directory = '/home/nico/mnt_tucluster/Data/wind/'	
+	
+	out_fname = '14_nips_wind_03.mat'	
+	
 	DIMS = 5
 	EXMS_ANOM = 200
 	EXMS_NON = 200
 
-	NUM_TRAIN_ANOM = 40
-	NUM_TRAIN_NON = 80
+	NUM_TRAIN_ANOM = 60
+	NUM_TRAIN_NON = 100
 	
-	NUM_TEST_ANOM = 40
-	NUM_TEST_NON = 80
+	NUM_TEST_ANOM = 60
+	NUM_TEST_NON = 100
 
 	NUM_COMB_ANOM = NUM_TRAIN_ANOM+NUM_TEST_ANOM
 	NUM_COMB_NON = NUM_TRAIN_NON+NUM_TEST_NON
 
 	anom_prob = float(NUM_COMB_ANOM) / float(NUM_COMB_ANOM+NUM_COMB_NON)
 	print('Anomaly probability is {0}.'.format(anom_prob))
-	REPS = 10
+	REPS = 1
 	showPlots = False
 
 	auc = []
@@ -210,7 +205,7 @@ if __name__ == '__main__':
 		(err, err_exm) = test.evaluate(lats)
 		res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
 		print err
-		#print err_svm
+		print base_res[r]
 		
 		if (showPlots==True):
 			for i in range(comb.samples):
@@ -225,7 +220,6 @@ if __name__ == '__main__':
 			
 					(anom_score, scores) = comb.get_scores(lsol, i, latsComb[i])
 					plt.plot(range(LENS),scores.trans() + 6 + (i-10)*12,'-g')
-					
 			plt.show()
 
 		# SAD anomaly scores
@@ -253,6 +247,13 @@ if __name__ == '__main__':
 
 	
 	print '##############################################'
+	print  out_fname
+	print '##############################################'
+	print NUM_COMB_NON
+	print NUM_COMB_ANOM
+	print '##############################################'
+	print anom_prob
+	print '##############################################'
 	print auc
 	print base_auc
 	print '##############################################'
@@ -267,6 +268,6 @@ if __name__ == '__main__':
 	data['res'] = res
 	data['base_res'] = base_res
 
-	io.savemat('14_nips_wind_03.mat',data)
+	io.savemat(out_fname, data)
 
 	print('finished')
