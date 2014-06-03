@@ -4,6 +4,7 @@ import pylab as pl
 import sklearn.metrics as metric
 import matplotlib.pyplot as plt
 import scipy.io as io
+import timeit 
 
 from kernel import Kernel
 from ocsvm import OCSVM
@@ -28,8 +29,9 @@ def get_anom_model(num_exm, num_train, lens, block_len, blocks=1, anomaly_prob=0
 		X.append(exm)
 		Y.append(lbl)
 		label.append(marker)
-	X = remove_mean(X)
+	X = remove_mean(X,1)
 	return (SOHMM(X[0:num_train],Y[0:num_train]), SOHMM(X[num_train:],Y[num_train:]), SOHMM(X,Y), label)
+
 
 
 def remove_mean(X, dims):
@@ -54,20 +56,31 @@ def remove_mean(X, dims):
 	return X
 
 
-if __name__ == '__main__':
-	LENS = 600
-	EXMS = 400
-	EXMS_TRAIN = 100
-	BLOCK_LEN = 100
-	ANOM_PROB = 0.1
+def calc_feature_vecs(data):
+	# ASSUME that all sequences have the same length!
+	N = len(data)
+	(F, LEN) = data[0].size
+	phi = co.matrix(0.0, (F*LEN, N))
+	for i in xrange(N):
+		for f in xrange(F):
+			phi[(f*LEN):(f*LEN)+LEN,i] = data[i][f,:].trans()
 
-	SHOW_EXPERIMENT_RESULT = True
+		norm = np.linalg.norm(phi[:,i],2)
+		#print norm
+		phi[:,i] /= norm
+	return phi  
+
+if __name__ == '__main__':
+
+	SHOW_EXPERIMENT_RESULT = False
 	PLOT_TOY_RESULTS = False
 	GEN_TOY_SEQS = False
+	RUNTIME = False
+	PLOT_RUNTIME = True
 
 
 	if (SHOW_EXPERIMENT_RESULT==True):
-		data = io.loadmat('../14_nips_pgm_10.mat')
+		data = io.loadmat('../14_nips_pgm_11.mat')
 		#data = io.loadmat('14_nips_pgm_03.mat')
 		#data = io.loadmat('../14_nips_wind_11.mat')
 		print data
@@ -174,6 +187,12 @@ if __name__ == '__main__':
 
 
 	if GEN_TOY_SEQS==True:
+		LENS = 600
+		EXMS = 400
+		EXMS_TRAIN = 100
+		BLOCK_LEN = 100
+		ANOM_PROB = 0.1
+
 		(train, test, comb, labels) = get_anom_model(EXMS, EXMS_TRAIN, LENS, BLOCK_LEN, blocks=100, anomaly_prob=ANOM_PROB)
 		lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*anomaly_prob))
 		(lsol, lats, thres) = lsvm.train_dc(max_iter=40)
@@ -191,6 +210,87 @@ if __name__ == '__main__':
 				print anom_score
 				break
 
+		plt.show()
+
+
+	if RUNTIME==True:
+		LENS = 300
+		EXMS = 601
+		REPS = 10
+		BLOCK_LEN = 100
+		ANOM_PROB = 0.25
+		TRAIN = [50,100,200,400,600]
+		
+		#TRAIN = [600]
+		#REPS = 1
+
+		times1 = co.matrix(0.0, (REPS,len(TRAIN)))
+		times2 = co.matrix(0.0, (REPS,len(TRAIN)))
+		times3 = co.matrix(0.0, (REPS,len(TRAIN)))
+		for r in range(REPS):
+			for n in range(len(TRAIN)):
+				num = TRAIN[n]
+				print num
+				(train, test, comb, labels) = get_anom_model(EXMS, num, LENS, BLOCK_LEN, blocks=1, anomaly_prob=ANOM_PROB)
+				phi = calc_feature_vecs(train.X)
+				kern = Kernel.get_kernel(phi, phi)
+				
+				tic=timeit.default_timer()
+				lsvm = StructuredOCSVM(train, C=1.0/(num*ANOM_PROB))
+				(lsol, lats, thres) = lsvm.train_dc(max_iter=40)
+				toc=timeit.default_timer()
+				times1[r,n] = toc-tic
+				
+				tic=timeit.default_timer()
+				ssvm = SSVM(train, C=10.0)
+				(lsol,slacks) = ssvm.train()
+				toc=timeit.default_timer()
+				times2[r,n] = toc-tic
+
+				tic=timeit.default_timer()
+				ocsvm = OCSVM(kern, C=1.0/(num*ANOM_PROB))
+				ocsvm.train_dual()
+				toc=timeit.default_timer()
+				times3[r,n] = toc-tic
+
+		print times1
+		print times2
+		print times3
+		data = {}
+		data['times1'] = times1
+		data['times2'] = times2
+		data['times3'] = times3
+		data['REPS'] = REPS
+		data['TRAIN'] = TRAIN
+		io.savemat('runtimes_clean_00.mat', data)
+
+
+	if PLOT_RUNTIME==True:
+		data = io.loadmat('runtimes_clean_00.mat')
+
+		blocks = data['TRAIN']
+		reps = data['REPS']
+		t1 = data['times1']
+		t2 = data['times2']
+		t3 = data['times3']
+
+
+		m1 = np.sum(t1,0)/float(reps)
+		std1 = np.sqrt(np.sum([(t1[i,:]-m1)**2 for i in range(int(reps)) ],0)/float(reps))
+
+		m2 = np.sum(t2,0)/float(reps)
+		std2 = np.sqrt(np.sum([(t2[i,:]-m2)**2 for i in range(int(reps)) ],0)/float(reps))
+
+		m3 = np.sum(t3,0)/float(reps)
+		std3 = np.sqrt(np.sum([(t3[i,:]-m3)**2 for i in range(int(reps)) ],0)/float(reps))
+		print m3
+
+		plt.errorbar(blocks, m1, yerr=std1, fmt='--ob',aa=True,linewidth=2.0)
+		plt.errorbar(blocks, m2, yerr=std2, fmt='-om',aa=True,linewidth=2.0)
+		plt.errorbar(blocks, m3, yerr=std3, fmt='-og',aa=True,linewidth=2.0)
+		plt.ylim([-4.0,55.0])
+
+		plt.legend(['Structured Anomaly Detection', 'SSVM', 'Vanilla One-class SVM'],loc=0)
 		plt.show()
 
 	print('finished')
