@@ -344,7 +344,7 @@ if __name__ == '__main__':
     NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
     anom_prob = float(NUM_COMB_GEN)/float(NUM_COMB_GEN+NUM_COMB_IGE)
 
-    REPS = 2
+    REPS = 1
 
     showPlots = True
 
@@ -439,8 +439,8 @@ if __name__ == '__main__':
         all_auc['OcSvm Spectrum (1)'].append(auc)
         auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
         all_auc['OcSvm Spectrum (2)'].append(auc)
-        #auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
-        #all_auc['OcSvm Spectrum (3)'].append(auc)
+        auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (3)'].append(auc)
 
         # train one-class svm (use only filtered features)
         phi_fs = co.matrix(phi1_list).trans()
@@ -449,12 +449,12 @@ if __name__ == '__main__':
         auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
         all_auc['OcSvm Spectrum (FS)'].append(auc)
 
-        (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
-        all_auc['HMAD (FS)'].append(auc)
-        all_res['HMAD (FS)'].append(res)
-        (auc, res) = perf_sad(inds_test, marker, train_full, test_full, anom_prob)
-        all_auc['HMAD (Full)'].append(auc)
-        all_res['HMAD (Full)'].append(res)
+        # (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
+        # all_auc['HMAD (FS)'].append(auc)
+        # all_res['HMAD (FS)'].append(res)
+        # (auc, res) = perf_sad(inds_test, marker, train_full, test_full, anom_prob)
+        # all_auc['HMAD (Full)'].append(auc)
+        # all_res['HMAD (Full)'].append(res)
 
 
     print '##############################################'
