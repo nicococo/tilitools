@@ -74,8 +74,11 @@ class SOPGM(SOInterface):
 
 	def get_hotstart_sol(self):
 		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
-		sol[0:8] = self.hotstart_tradeoff
-		sol[0:8] = 0.0
+		#sol[0:8] *= self.hotstart_tradeoff
+		#sol[0:8] = 0.0
+		#sol[1] = -100.0
+		#sol[2:6] = -1.0*np.abs(sol[2:6])
+		#sol[6] = -100.0
 		print('Zero transition hotstart.')
 		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
 		return sol
@@ -163,7 +166,6 @@ class SOPGM(SOInterface):
 			states[t-1] = psi[states[t],t];
 		
 		psi_idx = self.get_joint_feature_map(idx,states)
-		#psi_idx[0] *= 0.01
 
 		val = sol.trans()*psi_idx
 		return (val, states, psi_idx)
@@ -205,8 +207,7 @@ class SOPGM(SOInterface):
 			scores[t] = A[int(y[0,t-1]),int(y[0,t])] + em[int(y[0,t]),t]
 
 		# transform for better interpretability
-		# transform for better interpretability
-		if max(abs(scores))>10.0**(-15):
+		if max(abs(scores))>10.0**(-15.0):
 			scores = exp(-abs(4.0*scores/max(abs(scores))))
 		else:
 			scores = matrix(0.0, (1,T))

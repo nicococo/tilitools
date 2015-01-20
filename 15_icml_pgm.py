@@ -18,14 +18,13 @@ from so_pgm import SOPGM
 from so_hmm import SOHMM
 
 
-def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, distr):
+def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens):
     trainX = []
     trainY = []
     phi1 = []
     phi2 = []
     phi3 = []
     DIMS = 4**3
-    DIST_LEN = np.int(np.ceil(float(len(distr))/2.0))
     for i in range(num_exm):
         inds = range(region_start+i*exm_lens,region_start+(i+1)*exm_lens)
         lens = len(inds)
@@ -38,13 +37,7 @@ def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens, d
         lbl = co.matrix(0, (1, lens))
         exm = co.matrix(-1.0, (DIMS, lens))
         for t in range(lens):
-            start_ind = max(0,t-DIST_LEN)
-            end_ind = min(lens-1,t+DIST_LEN-1)
-            start = start_ind - (t-DIST_LEN)
-            end = start + (end_ind-start_ind)
-
-            foo = distr[start:end] + exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ]
-            exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo[0]
+            exm[ int(np.int32(signal[0,inds[t]])), t] = 1.0
             # spectrum kernel entry
             phi1_i[int(np.int32(signal[0,inds[t]]))] +=1.0
             phi2_i[int(np.int32(signal[0,inds[t]]))] +=1.0
@@ -120,10 +113,9 @@ def remove_mean(X, dims):
     return X
 
 
-def load_genes(max_genes, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800):
+def load_genes(max_genes, signal, label, exm_id_intervals, min_lens=600, max_lens=800):
     DIMS = 4**3
     EXMS = len(exm_id_intervals[:,0])
-    DIST_LEN = np.int(np.ceil(float(len(distr))/2.0))
 
     # training data
     trainX = []
@@ -153,13 +145,7 @@ def load_genes(max_genes, signal, label, exm_id_intervals, distr, min_lens=600, 
         phi2_i = co.matrix(0.0, (1, DIMS + DIMS*DIMS))
         phi3_i = co.matrix(0.0, (1, DIMS + DIMS*DIMS + DIMS*DIMS*DIMS))
         for t in range(lens):
-            start_ind = max(0,t-DIST_LEN)
-            end_ind = min(lens-1,t+DIST_LEN-1)
-            start = start_ind - (t-DIST_LEN)
-            end = start + (end_ind-start_ind)
-            #exm[ int(np.int32(signal[0,inds[t]])), t ] = 20.0
-            foo = distr[start:end] + exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ]
-            exm[ int(np.int32(signal[0,inds[t]])), start_ind:end_ind ] = foo[0]
+            exm[ int(np.int32(signal[0,inds[t]])), t ] = 1.0
             # labels to states
             val = max(0, label[0,inds[t]])
             if val==0 or val==1: 
@@ -202,7 +188,7 @@ def load_genes(max_genes, signal, label, exm_id_intervals, distr, min_lens=600, 
     return (trainX, trainY, phi1_list, phi2_list, phi3_list, marker)
 
 
-def load_intergenics(num_iges, signal, label, ige_intervals, distr, min_lens=600, max_lens=800):
+def load_intergenics(num_iges, signal, label, ige_intervals, min_lens=600, max_lens=800):
     # add intergenic examples
     marker = []
     trainX = []
@@ -221,7 +207,7 @@ def load_intergenics(num_iges, signal, label, ige_intervals, distr, min_lens=600
             if (num_ige_exms > IGE_EXMS-ige_cnt):
                 num_ige_exms = IGE_EXMS-ige_cnt
             ige_cnt += num_ige_exms
-            (X, Y, phis1, phis2, phis3) = add_intergenic(num_ige_exms, signal, label, ige_intervals[i][0], ige_intervals[i][1], IGE_LEN, distr)
+            (X, Y, phis1, phis2, phis3) = add_intergenic(num_ige_exms, signal, label, ige_intervals[i][0], ige_intervals[i][1], IGE_LEN)
             trainX.extend(X)
             trainY.extend(Y)
             phi1_list.extend(phis1)
@@ -242,12 +228,12 @@ def feature_selection(fname, top_k=32, num_exms=100):
         (c) use the top_k (=highest mean) of the spectrum feature vectors for IGE and gen
     """
     # load genes and intergenic examples
-    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_genes(num_exms, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800)
+    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_genes(num_exms, signal, label, exm_id_intervals, min_lens=600, max_lens=800)
     phi = co.matrix(phi1_list).trans()
     mgenes = np.sum(phi,1)/float(num_exms)
     mgenes /= max(abs(mgenes))
 
-    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_intergenics(num_exms, signal, label, ige_intervals, distr, min_lens=600, max_lens=800)
+    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_intergenics(num_exms, signal, label, ige_intervals, min_lens=600, max_lens=800)
     phi = co.matrix(phi1_list).trans()
     mige = np.sum(phi,1)/float(num_exms)
     mige /= max(abs(mige))
@@ -268,6 +254,56 @@ def feature_selection(fname, top_k=32, num_exms=100):
     #inds['gen'] = gen_inds
     #io.savemat('fergusonii_discr_feats.mat',inds)
     return (gen_inds[64-top_k:], ige_inds[64-top_k:], phi_inds)
+
+
+
+def perf_ocsvm(phi, marker, train, test, anom_prob):
+    #phi = phi[phi_inds.tolist(),:]
+    print('(a) Build kernel...')
+    kern = Kernel.get_kernel(phi, phi)
+    print('(b) Train OCSVM...')
+    ocsvm = OCSVM(kern[train,train], C=1.0/(float(len(train))*(1.0-anom_prob)))
+    ocsvm.train_dual()
+    print('(c) Apply OCSVM...')
+    (oc_as, foo) = ocsvm.apply_dual(kern[test, train[ocsvm.get_support_dual()]])
+    (fpr, tpr, thres) = metric.roc_curve(co.matrix(marker)[test], oc_as)
+    auc = metric.auc(fpr, tpr)
+    print('(d) Return AUC={0}...'.format(auc))
+    return auc
+
+
+def perf_sad(test_inds, marker, train, test, anom_prob):
+    # SAD annotation
+    print('(a) Setup SAD...')
+    lsvm = StructuredOCSVM(train, C=1.0/(train.samples*(1.0-anom_prob)))
+    print('(b) Train SAD...')
+    (lsol, lats, thres) = lsvm.train_dc(max_iter=100)
+    print('(c) Evaluate SAD...')
+    (scores, lats) = lsvm.apply(test)
+    (err, err_exm) = test.evaluate(lats)
+    res = (err['fscore'], err['precision'], err['sensitivity'], err['specificity'])
+    (fpr, tpr, thres) = metric.roc_curve(co.matrix(marker)[test_inds], scores)
+    auc = metric.auc(fpr, tpr)
+    print('(d) Return AUC={0}...'.format(auc))
+    print res
+    return auc, res
+
+
+def perf_ssvm(test_inds, marker, train, test):
+    # SAD annotation
+    print('(a) Setup SSVM...')
+    ssvm = SSVM(train, C=10.0)
+    print('(b) Train SSVM...')
+    (lsol,slacks) = ssvm.train()
+    print('(c) Evaluate SSVM...')
+    (scores, lats) = ssvm.apply(test)
+    (err, err_exm) = test.evaluate(lats)
+    res = (err['fscore'], err['precision'], err['sensitivity'], err['specificity'])
+    (fpr, tpr, thres) = metric.roc_curve(co.matrix(marker)[test_inds], -scores)
+    auc = metric.auc(fpr, tpr)
+    print('(d) Return AUC={0}...'.format(auc))
+    print res
+    return auc, res
 
 
 if __name__ == '__main__':
@@ -298,40 +334,33 @@ if __name__ == '__main__':
     DIMS = 4**3
     print('There are {0} gene examples.'.format(EXMS))
 
-    DIST_LEN = 160
-    DIST_LEN = 2
-    distr1 = 1.0*np.logspace(-6,0,DIST_LEN)
-    distr2 = 1.0*np.logspace(0,-6,DIST_LEN)
-    distr = np.concatenate([distr1, distr2[1:]])
-
-    NUM_TRAIN_GEN = 5
-    NUM_TRAIN_IGE = 100
+    NUM_TRAIN_GEN = 10
+    NUM_TRAIN_IGE = 200
     
-    NUM_TEST_GEN = 5
-    NUM_TEST_IGE = 100
+    NUM_TEST_GEN = 20
+    NUM_TEST_IGE = 200
 
     NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
     NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
     anom_prob = float(NUM_COMB_GEN)/float(NUM_COMB_GEN+NUM_COMB_IGE)
 
-    REPS = 1
+    REPS = 2
 
     showPlots = True
 
-    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
+    #(gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
+    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=8)
 
-    auc = []
-    base_auc = []
-    res = []
-    base_res = []
+    all_auc = {}
+    all_res = {}
     for r in xrange(REPS):
         # shuffle genes and intergenics
         exm_id_intervals = np.random.permutation(exm_id_intervals)
         ige_intervals = np.random.permutation(ige_intervals)
 
         # load genes and intergenic examples
-        (combX, combY, phi1_list, phi2_list, phi3_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, distr, min_lens=600, max_lens=800)
-        (X, Y, phis1, phis2, phis3, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, distr, min_lens=600, max_lens=800)
+        (combX, combY, phi1_list, phi2_list, phi3_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, min_lens=600, max_lens=800)
+        (X, Y, phis1, phis2, phis3, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, min_lens=600, max_lens=800)
         combX.extend(X)
         combY.extend(Y)
         phi1_list.extend(phis1)
@@ -363,79 +392,70 @@ if __name__ == '__main__':
         state_map.append(gen_inds.tolist())
         state_map.append(gen_inds.tolist())
         state_map.append(gen_inds.tolist())
-
         train = SOPGM(trainX, trainY, state_dims_map=state_map)
         test = SOPGM(testX, testY, state_dims_map=state_map)
         comb = SOPGM(combX, combY, state_dims_map=state_map)
 
-        # SSVM annotation
-        #ssvm = SSVM(train, C=10.0)
-        #(lsol,slacks) = ssvm.train()
-        #(vals, svmlats) = ssvm.apply(test)
-        #(err_svm, err_exm) = test.evaluate(svmlats)
-        #base_res.append((err_svm['fscore'], err_svm['precision'], err_svm['sensitivity'], err_svm['specificity']))
-        base_res.append((0.0,0.0,0.0,0.0))
+        state_map = []
+        state_map.append(range(64))
+        state_map.append([0,1,2,3])
+        state_map.append([63,62,61,60,59])
+        state_map.append(range(64))
+        state_map.append(range(64))
+        state_map.append(range(64))
+        train_full = SOPGM(trainX, trainY, state_dims_map=state_map)
+        test_full = SOPGM(testX, testY, state_dims_map=state_map)
 
-        # SAD annotation
-        lsvm = StructuredOCSVM(comb, C=1.0/(EXMS*(1.0-anom_prob)))
-        (lsol, lats, thres) = lsvm.train_dc(max_iter=100)
+        inds_train = co.matrix(range(NUM_TRAIN_GEN) + range(NUM_COMB_GEN, NUM_COMB_GEN+NUM_TRAIN_IGE))
+        inds_test = co.matrix(range(NUM_TRAIN_GEN,NUM_COMB_GEN) + range(NUM_COMB_GEN+NUM_TRAIN_IGE, NUM_COMB_GEN+NUM_COMB_IGE))
 
-        if (showPlots==False):
-            #for i in range(comb.samples):
-            for i in range(36,45):
-                #if (marker[i]==0):
-                LENS = len(comb.y[i])
-                for d in phi_inds.tolist():
-                    plt.plot(range(LENS),comb.X[i][d,:].trans() - 2*d+(i-10)*10,'-m')
+        # init result cache
+        if not all_auc.has_key('SSVM (Full)'):
+            # collect aucs
+            all_auc['OcSvm Spectrum (1)'] = []
+            all_auc['OcSvm Spectrum (2)'] = []
+            all_auc['OcSvm Spectrum (3)'] = []
+            all_auc['OcSvm Spectrum (FS)'] = []
+            all_auc['SSVM (Full)'] = []
+            all_auc['SSVM (FS)'] = []
+            all_auc['HMAD (Full)'] = []
+            all_auc['HMAD (FS)'] = []
+            # collect fscores,..
+            all_res['SSVM (Full)'] = []
+            all_res['SSVM (FS)'] = []
+            all_res['HMAD (Full)'] = []
+            all_res['HMAD (FS)'] = []
 
-                plt.plot(range(LENS),lats[i].trans() +(i-10)*10,'-r')
-                plt.plot(range(LENS),comb.y[i].trans() + 2 +(i-10)*10,'-b')
-        
-                (anom_score, scores) = comb.get_scores(lsol, i, lats[i])
-                plt.plot(range(LENS),scores.trans() + 6 + (i-10)*10,'-g')
-                plt.show()
+        # structured output svm
+        # (auc, res) = perf_ssvm(inds_test, marker, train, test)
+        # all_auc['SSVM (FS)'].append(auc)
+        # all_res['SSVM (FS)'].append(res)
+        # (auc, res) = perf_ssvm(inds_test, marker, train_full, test_full)
+        # all_auc['SSVM (Full)'].append(auc)
+        # all_res['SSVM (Full)'].append(res)
 
-        (lval, lats) = lsvm.apply(test)
-        (err, err_exm) = test.evaluate(lats)
-        res.append((err['fscore'], err['precision'], err['sensitivity'], err['specificity']))
-        print err
-        print base_res[r]
-
-        # SAD anomaly scores
-        (scores, foo) = lsvm.apply(comb)
-        print scores
-        (fpr, tpr, thres) = metric.roc_curve(marker, scores)
-        cur_auc = metric.auc(fpr, tpr)
-        #if (cur_auc<0.5):
-        #   cur_auc = 1.0-cur_auc
-        auc.append(cur_auc)
-        print auc
-
-        ginds = np.where(np.array(marker)==0)[0]
-        iinds = np.where(np.array(marker)==1)[0]
-
-        print scores
-        print len(scores)
-        print ginds
-        foo = np.array(scores)
-        plt.plot(range(NUM_COMB_GEN), foo[ginds], 'xr')
-        plt.plot(range(NUM_COMB_IGE), foo[iinds], '.g')
-        plt.show()
-
+        # spectrum kernel oc-svms
+        auc = perf_ocsvm(co.matrix(phi1_list).trans(), marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (1)'].append(auc)
+        auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (2)'].append(auc)
+        #auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
+        #all_auc['OcSvm Spectrum (3)'].append(auc)
 
         # train one-class svm (use only filtered features)
-        phi = co.matrix(phi2_list).trans()
-        #phi = phi[phi_inds.tolist(),:]
-        kern = Kernel.get_kernel(phi, phi)
-        ocsvm = OCSVM(kern, C=1.0/(comb.samples*(1.0-anom_prob)))
-        ocsvm.train_dual()
-        (oc_as, foo) = ocsvm.apply_dual(kern[:,ocsvm.get_support_dual()])
-        (fpr, tpr, thres) = metric.roc_curve(marker, oc_as)
-        cur_auc = metric.auc(fpr, tpr)
-        #if (cur_auc<0.5):
-        #   cur_auc = 1.0-cur_auc
-        base_auc.append(cur_auc)
-        print base_auc
+        phi_fs = co.matrix(phi1_list).trans()
+        phi_fs = phi_fs[phi_inds.tolist(),:]
+
+        auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (FS)'].append(auc)
+
+        (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
+        all_auc['HMAD (FS)'].append(auc)
+        all_res['HMAD (FS)'].append(res)
+        (auc, res) = perf_sad(inds_test, marker, train_full, test_full, anom_prob)
+        all_auc['HMAD (Full)'].append(auc)
+        all_res['HMAD (Full)'].append(res)
+
 
     print '##############################################'
     print  out_fname
@@ -449,18 +469,14 @@ if __name__ == '__main__':
     print ige_inds
     print gen_inds  
     print '##############################################'
-    print auc
-    print base_auc
+    print all_auc
     print '##############################################'
-    print res
-    print base_res
+    print all_res
     print '##############################################'
     # store result as a file
     data = {}
-    data['auc'] = auc
-    data['base_auc'] = base_auc
-    data['res'] = res
-    data['base_res'] = base_res
+    data['auc'] = all_auc
+    data['res'] = all_res
 
     io.savemat(out_fname, data)
     print('finished')
