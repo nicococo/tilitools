@@ -18,7 +18,8 @@ class Kernel:
 		kernel = matrix(1.0)
 		if type=='linear':
 			print('Calculating linear kernel with size {0}x{1}.'.format(Xn,Yn))
-			kernel = matrix([ dotu(X[:,i],Y[:,j]) for j in range(Yn) for i in range(Xn)], (Xn,Yn), 'd')
+			kernel = X.trans()*X
+			#kernel = matrix([ dotu(X[:,i],Y[:,j]) for j in range(Yn) for i in range(Xn)], (Xn,Yn), 'd')
 
 		if type=='rbf':
 			print('Calculating Gaussian kernel with size {0}x{1}.'.format(Xn,Yn))
@@ -35,8 +36,8 @@ class Kernel:
 		kernel = matrix(1.0)
 		if type=='linear':
 			print('Calculating diagonal of a linear kernel with size {0}x{1}.'.format(Xn,Xn))
-			kernel = X.trans()*X
-			#kernel = matrix([ dotu(X[:,i],X[:,i]) for i in range(Xn)], (Xn,1), 'd')
+			#kernel = X.trans()*X
+			kernel = matrix([ dotu(X[:,i],X[:,i]) for i in range(Xn)], (Xn,1), 'd')
 		
 		if type=='rbf':
 			print('Gaussian kernel diagonal is always exp(0)=1.')

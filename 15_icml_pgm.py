@@ -4,6 +4,8 @@ import pylab as pl
 import matplotlib.pyplot as plt
 import scipy.io as io
 import sklearn.metrics as metric
+import sys
+import argparse
 
 from kernel import Kernel
 from ocsvm import OCSVM
@@ -228,12 +230,12 @@ def feature_selection(fname, top_k=32, num_exms=100):
         (c) use the top_k (=highest mean) of the spectrum feature vectors for IGE and gen
     """
     # load genes and intergenic examples
-    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_genes(num_exms, signal, label, exm_id_intervals, min_lens=600, max_lens=800)
+    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_genes(num_exms, signal, label, exm_id_intervals, min_lens=600, max_lens=1200)
     phi = co.matrix(phi1_list).trans()
     mgenes = np.sum(phi,1)/float(num_exms)
     mgenes /= max(abs(mgenes))
 
-    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_intergenics(num_exms, signal, label, ige_intervals, min_lens=600, max_lens=800)
+    (foo1, foo2, phi1_list, phi2_list, phi3_list, foo3) = load_intergenics(num_exms, signal, label, ige_intervals, min_lens=600, max_lens=1200)
     phi = co.matrix(phi1_list).trans()
     mige = np.sum(phi,1)/float(num_exms)
     mige /= max(abs(mige))
@@ -286,6 +288,12 @@ def perf_sad(test_inds, marker, train, test, anom_prob):
     auc = metric.auc(fpr, tpr)
     print('(d) Return AUC={0}...'.format(auc))
     print res
+    for i in range(0,30):
+        LENS = len(test.y[i])
+        plt.plot(range(LENS),lats[i].trans() +(i-10)*10,'-r')
+        plt.plot(range(LENS),test.y[i].trans() + 2 +(i-10)*10,'-b')
+    #plt.show()
+
     return auc, res
 
 
@@ -307,6 +315,13 @@ def perf_ssvm(test_inds, marker, train, test):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-a","--anomalies", help="number of anomalies (default 10)", default=10, type =int)
+    parser.add_argument("-n","--nominals", help="number of nominal data (default 190)", default=190, type =int)
+    parser.add_argument("-r","--reps", help="number of repetitions (default 1)", default=1, type =int)
+    parser.add_argument("-o","--output", help="output file name (default icml_pgm_b.mat)", default="icml_pgm_b.mat", type=str)
+    arguments = parser.parse_args(sys.argv[1:])
+
     #data = io.loadmat('/home/nico/Data/data.mat')
     data = io.loadmat('/home/nicococo/Code/ecoli/data.mat')
     #data = io.loadmat('/home/nicococo/Code/anthracis/data.mat')
@@ -317,7 +332,8 @@ if __name__ == '__main__':
     signal = data['signal']
 
     # output file
-    out_fname = '14_nips_pgm_03.mat'
+    out_fname = arguments.output
+    print arguments.output
 
     # find intergenic regions
     #ige_intervals = find_intergenic_regions(label, min_gene_dist=50)
@@ -334,22 +350,24 @@ if __name__ == '__main__':
     DIMS = 4**3
     print('There are {0} gene examples.'.format(EXMS))
 
-    NUM_TRAIN_GEN = 10
-    NUM_TRAIN_IGE = 200
+    NUM_TRAIN_GEN = arguments.anomalies
+    NUM_TRAIN_IGE = arguments.nominals
+    print("Anomalies={0} and Nominals={1}".format(NUM_TRAIN_GEN,NUM_TRAIN_IGE))
     
-    NUM_TEST_GEN = 20
-    NUM_TEST_IGE = 200
+    NUM_TEST_GEN = 50
+    NUM_TEST_IGE = 350
 
     NUM_COMB_GEN = NUM_TRAIN_GEN+NUM_TEST_GEN
     NUM_COMB_IGE = NUM_TRAIN_IGE+NUM_TEST_IGE
-    anom_prob = float(NUM_COMB_GEN)/float(NUM_COMB_GEN+NUM_COMB_IGE)
+    anom_prob = float(NUM_TRAIN_GEN)/float(NUM_TRAIN_GEN+NUM_TRAIN_IGE)
 
-    REPS = 1
+    REPS = arguments.reps
+    print("Repetitions = {0}".format(REPS))
 
     showPlots = True
 
     #(gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
-    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=8)
+    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
 
     all_auc = {}
     all_res = {}
@@ -359,8 +377,12 @@ if __name__ == '__main__':
         ige_intervals = np.random.permutation(ige_intervals)
 
         # load genes and intergenic examples
-        (combX, combY, phi1_list, phi2_list, phi3_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, min_lens=600, max_lens=800)
-        (X, Y, phis1, phis2, phis3, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, min_lens=600, max_lens=800)
+        (combX, combY, phi1_list, phi2_list, phi3_list, marker) = load_genes(NUM_COMB_GEN, signal, label, exm_id_intervals, min_lens=500, max_lens=1200)
+        if len(combY)<NUM_COMB_GEN:
+            raise Exception('Not enough genes ({0})! '.format(len(combY)))
+        (X, Y, phis1, phis2, phis3, lbls) = load_intergenics(NUM_COMB_IGE, signal, label, ige_intervals, min_lens=500, max_lens=1200)
+        if len(Y)<NUM_COMB_IGE:
+            raise Exception('Not enough ige ({0})! '.format(len(Y)))
         combX.extend(X)
         combY.extend(Y)
         phi1_list.extend(phis1)
@@ -437,24 +459,24 @@ if __name__ == '__main__':
         # spectrum kernel oc-svms
         auc = perf_ocsvm(co.matrix(phi1_list).trans(), marker, inds_train, inds_test, anom_prob)
         all_auc['OcSvm Spectrum (1)'].append(auc)
-        auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
-        all_auc['OcSvm Spectrum (2)'].append(auc)
-        auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
-        all_auc['OcSvm Spectrum (3)'].append(auc)
+        #auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
+        #all_auc['OcSvm Spectrum (2)'].append(auc)
+        #auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
+        #all_auc['OcSvm Spectrum (3)'].append(auc)
 
         # train one-class svm (use only filtered features)
         phi_fs = co.matrix(phi1_list).trans()
         phi_fs = phi_fs[phi_inds.tolist(),:]
 
-        auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
-        all_auc['OcSvm Spectrum (FS)'].append(auc)
+        #auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
+        #all_auc['OcSvm Spectrum (FS)'].append(auc)
 
-        # (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
-        # all_auc['HMAD (FS)'].append(auc)
-        # all_res['HMAD (FS)'].append(res)
-        # (auc, res) = perf_sad(inds_test, marker, train_full, test_full, anom_prob)
-        # all_auc['HMAD (Full)'].append(auc)
-        # all_res['HMAD (Full)'].append(res)
+        (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
+        all_auc['HMAD (FS)'].append(auc)
+        all_res['HMAD (FS)'].append(res)
+        #(auc, res) = perf_sad(inds_test, marker, train_full, test_full, anom_prob)
+        #all_auc['HMAD (Full)'].append(auc)
+        #all_res['HMAD (Full)'].append(res)
 
 
     print '##############################################'

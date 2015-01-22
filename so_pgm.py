@@ -104,9 +104,18 @@ class SOPGM(SOInterface):
 			em += loss
 
 		if (augment_prior==True):
-			prior = matrix(-0.0, (N, T))
-			#prior[0,:] = -1.0
-			#prior[5,:] = 1.0
+			prior = matrix(-1.0, (N, T))
+			#prior[:,0] = -10.0
+			prior[0,:] = 0.0
+			# prior[:,-1] = -10.0
+			# prior[0,-1] = 0.0
+			# for t in xrange(T):
+			# 	if np.sum(self.X[idx][[0,1,2,3],t])>0.0:
+			# 		prior[:,t] = -10.0
+			# 		prior[1,t] = 0.0
+			# 	if np.sum(self.X[idx][[59,60,61,62,63],t])>0.0:
+			# 		prior[:,t] = -10.0
+			# 		prior[2,t] = 0.0
 			em += prior
 
 		return em
