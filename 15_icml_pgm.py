@@ -288,10 +288,10 @@ def perf_sad(test_inds, marker, train, test, anom_prob):
     auc = metric.auc(fpr, tpr)
     print('(d) Return AUC={0}...'.format(auc))
     print res
-    for i in range(0,30):
-        LENS = len(test.y[i])
-        plt.plot(range(LENS),lats[i].trans() +(i-10)*10,'-r')
-        plt.plot(range(LENS),test.y[i].trans() + 2 +(i-10)*10,'-b')
+    #for i in range(0,30):
+    #    LENS = len(test.y[i])
+    #    plt.plot(range(LENS),lats[i].trans() +(i-10)*10,'-r')
+    #    plt.plot(range(LENS),test.y[i].trans() + 2 +(i-10)*10,'-b')
     #plt.show()
 
     return auc, res

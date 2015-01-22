@@ -86,19 +86,13 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 	(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
 	(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
 	base_auc = metric.auc(fpr, tpr)
-	if (base_auc<0.5):
-	    base_auc = 1.0-base_auc
 
 	# train structured anomaly detection
 	sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
-	#sad = StructuredOCSVM(train, C=1.0/(num_train*0.5))
 	(lsol, lats, thres) = sad.train_dc(max_iter=50)
 	(pred_vals, pred_lats) = sad.apply(test)
 	(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], pred_vals)
 	auc = metric.auc(fpr, tpr)
-	#if (auc<0.5):
-	#    auc = 1.0-auc
-
 	return (auc, base_auc, bayes_auc)
 
 
@@ -106,11 +100,11 @@ if __name__ == '__main__':
 	LENS = 600
 	EXMS = 1000
 	EXMS_TRAIN = 200
-	ANOM_PROB = 0.05
-	REPS = 5
+	ANOM_PROB = 0.15
+	REPS = 50
 	BLOCK_LEN = 100
-	BLOCKS = [1,100]
-	#BLOCKS = [1,5,10,25,100,200]
+	#BLOCKS = [1,100]
+	BLOCKS = [1,2,5,10,20,40,75,100]
 
 	# collected means
 	mauc = []
@@ -164,6 +158,6 @@ if __name__ == '__main__':
 	data['vbase_auc'] = vbase_auc
 	data['vbayes_auc'] = vbayes_auc
 
-	io.savemat('14_nips_toy_ad_08.mat',data)
+	io.savemat('15_icml_toy_ad_00.mat',data)
 
 	print('finished')
