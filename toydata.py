@@ -75,8 +75,10 @@ class ToyData:
 				if (b==num_blocks-1 and b>1):
 					block_len = np.round(comb_block_len-blen)
 				
+				bcnt = 0
 				isDone = False
-				while isDone==False:
+				while isDone==False and bcnt<100000:
+					bcnt += 1
 					start = np.int(np.random.uniform()*float(lens-block_len+1))
 					if (sum(lbls[0,start:start+block_len])==0):
 						#print start
