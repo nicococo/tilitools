@@ -320,10 +320,12 @@ if __name__ == '__main__':
     parser.add_argument("-n","--nominals", help="number of nominal data (default 190)", default=190, type =int)
     parser.add_argument("-r","--reps", help="number of repetitions (default 1)", default=1, type =int)
     parser.add_argument("-o","--output", help="output file name (default icml_pgm_b.mat)", default="icml_pgm_b.mat", type=str)
+    parser.add_argument("-b","--basedir", help="base dir name (default nicococo/Code)", default="nicococo/Code", type=str)
     arguments = parser.parse_args(sys.argv[1:])
 
+    print arguments.basedir
     #data = io.loadmat('/home/nico/Data/data.mat')
-    data = io.loadmat('/home/nicococo/Code/ecoli/data.mat')
+    data = io.loadmat('/home/{0}/ecoli/data.mat'.format(arguments.basedir))
     #data = io.loadmat('/home/nicococo/Code/anthracis/data.mat')
     #data = io.loadmat('/home/nicococo/Code/fergusonii/data.mat')
     exm_id_intervals = data['exm_id_intervals']
@@ -341,7 +343,7 @@ if __name__ == '__main__':
     #intervals['ige'] = ige_intervals
     #io.savemat('../ecoli/ige_intervals_2.mat',intervals)
     
-    intervals = io.loadmat('../ecoli/ige_intervals_50.mat')
+    intervals = io.loadmat('/home/{0}/ecoli/ige_intervals_50.mat'.format(arguments.basedir))
     ige_intervals = intervals['ige']
 
     IGE_REGIONS = len(ige_intervals)
@@ -367,7 +369,7 @@ if __name__ == '__main__':
     showPlots = True
 
     #(gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
-    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
+    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/{0}/fergusonii/data.mat'.format(arguments.basedir), top_k=24)
 
     all_auc = {}
     all_res = {}
