@@ -105,6 +105,7 @@ if __name__ == '__main__':
 	BLOCK_LEN = 100
 	#BLOCKS = [1,100]
 	BLOCKS = [1,2,5,10,20,40,75,100]
+	#BLOCKS = [5]
 
 	# collected means
 	mauc = []

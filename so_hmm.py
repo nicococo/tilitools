@@ -166,12 +166,20 @@ class SOHMM(SOInterface):
 	def get_num_dims(self):
 		return self.dims*self.states + self.states*self.states
 
+
 	def evaluate(self, pred): 
+		(err1, err_exm1) = evaluate_impl(self, pred, change_sign=False)
+		(err2, err_exm2) = evaluate_impl(self, pred, change_sign=True)
+		if err1['fscore']>err2['fscore']:
+			return (err1, err_exm1)
+		return (err2, err_exm2)
+
+
+	def evaluate_impl(self, pred, change_sign=False): 
 		""" Convert state sequences into negative and positive regions
 			and check for true- and false positives (fscore, precision, etc pp). 
 			Warning! This only work for 2-state problems.
 		"""
-
 		N = self.samples
 		# assume 'pred' to be correspinding to 'y'
 		if len(pred)!=N:
@@ -186,14 +194,14 @@ class SOHMM(SOInterface):
 		err_exm['specificity'] = []
 		err_exm['precision'] = []
 		for i in xrange(N):
-			loss1 = self.calc_loss(i, pred[i])
-			loss2 = self.calc_loss(i, -pred[i]+1)
+			#loss1 = self.calc_loss(i, pred[i])
+			#loss2 = self.calc_loss(i, -pred[i]+1)
 			#print('{2}: loss1={0} loss2={1}'.format(loss1, loss2, i))
 
 			#  convert into genic and intergenic regions
 			seq_true = np.uint(np.sign(self.y[i]))
 			seq_pred = np.uint(np.sign(pred[i]))
-			if loss2<loss1:
+			if change_sign:
 				# switch states
 				seq_pred = np.uint(np.sign(-pred[i]+1))
 			lens = len(seq_pred[0,:])
@@ -266,6 +274,4 @@ class SOHMM(SOInterface):
 		err['sensitivity'] = sensitivity
 		err['specificity'] = specificity
 		err['precision'] = precision
-
-
 		return (err, err_exm)
