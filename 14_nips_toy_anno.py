@@ -77,7 +77,7 @@ if __name__ == '__main__':
 	EXMS = 1000
 	EXMS_TRAIN = 200
 	ANOM_PROB = 0.15
-	REPS = 1
+	REPS = 50
 	BLOCK_LEN = 100
 	#BLOCKS = [1]
 	BLOCKS = [1,2,5,10,20,40,75,100]
