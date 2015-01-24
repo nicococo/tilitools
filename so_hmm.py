@@ -168,8 +168,8 @@ class SOHMM(SOInterface):
 
 
 	def evaluate(self, pred): 
-		(err1, err_exm1) = evaluate_impl(self, pred, change_sign=False)
-		(err2, err_exm2) = evaluate_impl(self, pred, change_sign=True)
+		(err1, err_exm1) = self.evaluate_impl(pred, change_sign=False)
+		(err2, err_exm2) = self.evaluate_impl(pred, change_sign=True)
 		if err1['fscore']>err2['fscore']:
 			return (err1, err_exm1)
 		return (err2, err_exm2)
