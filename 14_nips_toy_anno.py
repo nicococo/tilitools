@@ -77,10 +77,10 @@ if __name__ == '__main__':
 	EXMS = 1000
 	EXMS_TRAIN = 200
 	ANOM_PROB = 0.15
-	REPS = 50
+	REPS = 20
 	BLOCK_LEN = 100
 	#BLOCKS = [1]
-	BLOCKS = [1,2,5,10,20,40,75,100]
+	BLOCKS = [1,2,5,10,20,40,60,80,100]
 	#BLOCKS = [1,5,10,25,50,100]
 
 	# collected means
@@ -149,6 +149,6 @@ if __name__ == '__main__':
 	data['var'] = var
 	data['var_base'] = var_base
 
-	io.savemat('15_icml_toy_anno_00.mat',data)
+	io.savemat('15_icml_toy_anno_01.mat',data)
 
 	print('finished')
