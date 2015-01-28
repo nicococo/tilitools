@@ -451,31 +451,31 @@ if __name__ == '__main__':
             all_res['HMAD (FS)'] = []
 
         # structured output svm
-        (auc, res) = perf_ssvm(inds_test, marker, train, test)
-        all_auc['SSVM (FS)'].append(auc)
-        all_res['SSVM (FS)'].append(res)
-        (auc, res) = perf_ssvm(inds_test, marker, train_full, test_full)
-        all_auc['SSVM (Full)'].append(auc)
-        all_res['SSVM (Full)'].append(res)
+        # (auc, res) = perf_ssvm(inds_test, marker, train, test)
+        # all_auc['SSVM (FS)'].append(auc)
+        # all_res['SSVM (FS)'].append(res)
+        # (auc, res) = perf_ssvm(inds_test, marker, train_full, test_full)
+        # all_auc['SSVM (Full)'].append(auc)
+        # all_res['SSVM (Full)'].append(res)
 
         # spectrum kernel oc-svms
         auc = perf_ocsvm(co.matrix(phi1_list).trans(), marker, inds_train, inds_test, anom_prob)
         all_auc['OcSvm Spectrum (1)'].append(auc)
-        auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
-        all_auc['OcSvm Spectrum (2)'].append(auc)
-        auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
-        all_auc['OcSvm Spectrum (3)'].append(auc)
+        # auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
+        # all_auc['OcSvm Spectrum (2)'].append(auc)
+        # auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
+        # all_auc['OcSvm Spectrum (3)'].append(auc)
 
         # train one-class svm (use only filtered features)
         phi_fs = co.matrix(phi1_list).trans()
         phi_fs = phi_fs[phi_inds.tolist(),:]
 
-        auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
-        all_auc['OcSvm Spectrum (FS)'].append(auc)
+        # auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
+        # all_auc['OcSvm Spectrum (FS)'].append(auc)
 
-        (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
-        all_auc['HMAD (FS)'].append(auc)
-        all_res['HMAD (FS)'].append(res)
+        # (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
+        # all_auc['HMAD (FS)'].append(auc)
+        # all_res['HMAD (FS)'].append(res)
         (auc, res) = perf_sad(inds_test, marker, train_full, test_full, anom_prob)
         all_auc['HMAD (Full)'].append(auc)
         all_res['HMAD (Full)'].append(res)

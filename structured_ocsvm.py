@@ -24,12 +24,14 @@ class StructuredOCSVM:
 	sol = [] # (vector) solution vector (after training, of course) 
 	slacks = None
 	svs_inds = None
+	threshold = 0.0
+	mean_psi = None
 
 	def __init__(self, sobj, C=1.0):
 		self.C = C
 		self.sobj = sobj
 
-	def train_dc(self, max_iter=50, hotstart=matrix([])):
+	def train_dc(self, zero_shot=False, max_iter=50, hotstart=matrix([])):
 		""" Solve the optimization problem with a  
 		    sequential convex programming/DC-programming
 		    approach: 
@@ -74,23 +76,23 @@ class StructuredOCSVM:
 			# most likely latent variable configuration
 			for i in range(N):
 				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
-				norm = np.linalg.norm(psi[:,i])
-				#psi[:,i] /= norm
-				psi[:,i] /= np.max(np.abs(psi[:,i]))
+				#print psi[:,i]
+				#psi[:4,i] /= 600.0
+				#psi[:,i] /= 600.0
+				#psi[:4,i] = psi[:4,i]/np.linalg.norm(psi[:4,i],ord=2) 
+				#psi[4:,i] = psi[4:,i]/np.linalg.norm(psi[4:,i],ord=2) 
+				psi[:,i] /= np.linalg.norm(psi[:,i], ord=1)
+				#psi[:,i] /= np.max(np.abs(psi[:,i]))
+				#psi[:,i] /= 600.0
 				#if i>10:
 				#	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)
 				#else:
 				#	psi[:,i] = self.sobj.get_joint_feature_map(i)
 				#	latent[i] = self.sobj.y[i]
+			print psi
 
 			# 2. solve the intermediate convex optimization problem 
-			psi_star = matrix(psi)
-			#psi_star[0:7,:] *= 4.0
-			#psi_star[0:3,:] *= 0.01
-			#psi_star[0,:] *= 1.2
-			#psi_star[2,:] *= 2.4
-			
-			kernel = Kernel.get_kernel(psi_star, psi_star)
+			kernel = Kernel.get_kernel(psi, psi)
 			svm = OCSVM(kernel, self.C)
 			svm.train_dual()
 			threshold = svm.get_threshold()
@@ -100,7 +102,7 @@ class StructuredOCSVM:
 
 			self.svs_inds = svm.get_support_dual()
 			#alphas = svm.get_support_dual_values()
-			sol = psi_star*svm.get_alphas()
+			sol = psi*svm.get_alphas()
 			print matrix([sol.trans(), old_sol.trans()]).trans()
 			if len(self.svs_inds)==N and self.C>(1.0/float(N)):
 				print('###################################')
@@ -113,6 +115,7 @@ class StructuredOCSVM:
 					print 'Too many restarts...'
 					print('###################################')
 					# calculate objective
+					self.threshold = threshold
 					slacks = [max([0.0, np.single(threshold - sol.trans()*psi[:,i]) ]) for i in xrange(N)]
 					obj = 0.5*np.single(sol.trans()*sol) - np.single(threshold) + self.C*sum(slacks)
 					print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(int(iter),np.single(threshold),np.single(sum(slacks)),np.single(obj)))
@@ -139,10 +142,17 @@ class StructuredOCSVM:
 				allobjs = []
 
 			# calculate objective
+			self.threshold = threshold
 			slacks = [max([0.0, np.single(threshold - sol.trans()*psi[:,i]) ]) for i in xrange(N)]
 			obj = 0.5*np.single(sol.trans()*sol) - np.single(threshold) + self.C*sum(slacks)
 			print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(int(iter),np.single(threshold),np.single(sum(slacks)),np.single(obj)))
 			allobjs.append(float(np.single(obj)))
+
+			# zero shot learning: single iteration, hence random
+			# structure coefficient
+			if zero_shot:
+				print('LatentOcSvm: Zero shot learning.')
+				break
 
 
 		print '+++++++++'
@@ -171,8 +181,14 @@ class StructuredOCSVM:
 		structs = []
 		for i in range(N):
 			(vals[i], struct, psi) = pred_sobj.argmax(self.sol, i, add_prior=True)
-			#vals[i] /= np.linalg.norm(psi)
-			vals[i] /= np.max(np.abs(psi))
+			#psi[:] /= 600.0 
+			#vals[i] = self.sol.trans()*psi - self.threshold
+			#print np.multiply(self.sol,psi)
+			#vals[i] *= -1.0
+			vals[i] = (vals[i]/np.linalg.norm(psi, ord=1) - self.threshold)
+			#vals[i] = self.sol[:4].trans()*psi[:4]/np.linalg.norm(psi[:4],ord=2) \
+			#	+ self.sol[4:].trans()*psi[4:]/np.linalg.norm(psi[4:],ord=2) - self.threshold
+			#vals[i] /= np.max(np.abs(psi))
 			structs.append(struct)
 
 		return (vals, structs)

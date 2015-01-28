@@ -84,7 +84,7 @@ class ToyData:
 						#print start
 						#print start+block_len
 						lbls[0,start:start+block_len] = 1
-						seqs[0,start:start+block_len] = bak[0,start:start+block_len]+4.0
+						seqs[0,start:start+block_len] = (bak[0,start:start+block_len]+4.0)
 						isDone = True
 						break
 

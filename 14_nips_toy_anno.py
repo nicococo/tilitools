@@ -38,9 +38,19 @@ def remove_mean(X, dims=1):
 		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
 	tst_mean /= float(cnt)
 	print tst_mean
+	
+	max_val = co.matrix(-1e10, (1, dims))
 	for i in range(len(X)):
 		for d in range(dims):
 			X[i][d,:] = X[i][d,:]-tst_mean[d]
+			foo = np.max(np.abs(X[i][d,:]))
+			max_val[d] = np.max([max_val[d], foo])
+	
+	print max_val
+	# for i in range(len(X)):
+	# 	for d in range(dims):
+	# 		X[i][d,:] /= max_val[d]
+
 	cnt = 0
 	tst_mean = co.matrix(0.0, (1, dims))
 	for i in range(len(X)):
@@ -53,16 +63,28 @@ def remove_mean(X, dims=1):
 
 def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, labels):
 	# transductive train/pred for structured anomaly detection
-	sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
+	sad = StructuredOCSVM(train, C=1.0/(num_train*(anom_prob)))
 	(lsol, lats, thres) = sad.train_dc(max_iter=80)
 	(pred_vals, pred_lats) = sad.apply(test)	
 	(cont, cont_exm) = test.evaluate(pred_lats)
 
+	print cont
+	plt.figure(1)
+	for i in range(20):
+		plt.plot(range(len(test.y[i])), np.array(pred_lats[i]).T + i*4, '-r',linewidth=3)
+		plt.plot(range(len(test.y[i])), np.array(test.y[i]).T + i*4, '-b')
+	plt.show()
+
 	# train structured svm
-	ssvm = SSVM(train)
-	(sol, slacks) = ssvm.train()
-	(vals, preds) = ssvm.apply(test)
-	(base_cont, base_cont_exm) = test.evaluate(preds)
+	#ssvm = SSVM(train)
+	#(sol, slacks) = ssvm.train()
+	#(vals, preds) = ssvm.apply(test)
+	#(base_cont, base_cont_exm) = test.evaluate(preds)
+	base_cont = {}
+	base_cont['fscore'] = 0.0
+	base_cont['sensitivity'] = 0.0
+	base_cont['specificity'] = 0.0
+	base_cont['precision'] = 0.0
 
 	print '##########################'
 	print cont
@@ -74,14 +96,14 @@ def experiment_anomaly_segmentation(train, test, comb, num_train, anom_prob, lab
 
 if __name__ == '__main__':
 	LENS = 600
-	EXMS = 1000
+	EXMS = 600
 	EXMS_TRAIN = 200
-	ANOM_PROB = 0.15
-	REPS = 20
+	ANOM_PROB = 0.1
+	REPS = 1
 	BLOCK_LEN = 100
 	#BLOCKS = [1]
 	BLOCKS = [1,2,5,10,20,40,60,80,100]
-	#BLOCKS = [1,5,10,25,50,100]
+	BLOCKS = [1]
 
 	# collected means
 	conts = []
@@ -149,6 +171,6 @@ if __name__ == '__main__':
 	data['var'] = var
 	data['var_base'] = var_base
 
-	io.savemat('15_icml_toy_anno_00.mat',data)
+	io.savemat('15_icml_toy_anno_04.mat',data)
 
 	print('finished')
