@@ -23,7 +23,7 @@ class SOHMM(SOInterface):
 
 	def get_hotstart_sol(self):
 		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
-		sol[0:self.states*self.states] = self.hotstart_tradeoff
+		#sol[0:self.states*self.states] = self.hotstart_tradeoff
 		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
 		return sol
 
@@ -92,9 +92,6 @@ class SOHMM(SOInterface):
 			states[t-1] = psi[states[t],t];
 		
 		psi_idx = self.get_joint_feature_map(idx,states)
-		#psi_idx[0] *= 0.1
-		#psi_idx[2] *= 0.1
-
 		val = sol.trans()*psi_idx
 		return (val, states, psi_idx)
 
@@ -154,7 +151,7 @@ class SOHMM(SOInterface):
 			(foo, inds) = np.where([y[0,1:T]==i])
 			for j in range(N):
 				(foo, indsj) = np.where([y[0,inds]==j]) 
-				jfm[j*N+i] = len(indsj)
+				jfm[j*N+i] = float(len(indsj))
 
 		# emission parts
 		for t in range(T):

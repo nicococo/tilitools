@@ -12,6 +12,8 @@ from ocsvm import OCSVM
 import pylab as pl
 import matplotlib.pyplot as plt
 
+
+
 class StructuredOCSVM:
 	""" Structured One-class SVM (a.k.a Structured Anomaly Detection).
 		Written by Nico Goernitz, TU Berlin, 2014
@@ -20,7 +22,8 @@ class StructuredOCSVM:
 	sobj = [] # structured object contains various functions
 			  # i.e. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
 	sol = [] # (vector) solution vector (after training, of course) 
-
+	slacks = None
+	svs_inds = None
 
 	def __init__(self, sobj, C=1.0):
 		self.C = C
@@ -56,6 +59,8 @@ class StructuredOCSVM:
 		iter = 0 
 		allobjs = []
 
+		restarts = 0
+
 		# terminate if objective function value doesn't change much
 		while iter<max_iter and (iter<3 or sum(sum(abs(np.array(psi-old_psi))))>=0.001):
 			print('Starting iteration {0}.'.format(iter))
@@ -69,8 +74,9 @@ class StructuredOCSVM:
 			# most likely latent variable configuration
 			for i in range(N):
 				(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
-				norm = np.linalg.norm(psi[:,i],2)
-				psi[:,i] /= norm
+				norm = np.linalg.norm(psi[:,i])
+				#psi[:,i] /= norm
+				psi[:,i] /= np.max(np.abs(psi[:,i]))
 				#if i>10:
 				#	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)
 				#else:
@@ -92,10 +98,45 @@ class StructuredOCSVM:
 			#alphas = svm.get_support_dual_values()
 			#sol = phi[:,inds]*alphas
 
-			#inds = svm.get_support_dual()
+			self.svs_inds = svm.get_support_dual()
 			#alphas = svm.get_support_dual_values()
 			sol = psi_star*svm.get_alphas()
 			print matrix([sol.trans(), old_sol.trans()]).trans()
+			if len(self.svs_inds)==N and self.C>(1.0/float(N)):
+				print('###################################')
+				print('Degenerate solution.')
+				print('###################################')
+
+				restarts += 1
+				if (restarts>10):
+					print('###################################')
+					print 'Too many restarts...'
+					print('###################################')
+					# calculate objective
+					slacks = [max([0.0, np.single(threshold - sol.trans()*psi[:,i]) ]) for i in xrange(N)]
+					obj = 0.5*np.single(sol.trans()*sol) - np.single(threshold) + self.C*sum(slacks)
+					print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(int(iter),np.single(threshold),np.single(sum(slacks)),np.single(obj)))
+					allobjs.append(float(np.single(obj)))
+					break
+
+				# intermediate solutions
+				# latent variables
+				latent = [0.0]*N
+
+				#setseed(0)
+				sol = self.sobj.get_hotstart_sol()
+				#sol[0:4] *= 0.01
+				if hotstart.size==(DIMS,1):
+					print('New hotstart position defined.')
+					sol = hotstart
+
+				psi = matrix(0.0, (DIMS,N)) # (dim x exm)
+				old_psi = matrix(0.0, (DIMS,N)) # (dim x exm)
+				threshold = 0
+
+				obj = -1
+				iter = 0 
+				allobjs = []
 
 			# calculate objective
 			slacks = [max([0.0, np.single(threshold - sol.trans()*psi[:,i]) ]) for i in xrange(N)]
@@ -103,11 +144,13 @@ class StructuredOCSVM:
 			print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(int(iter),np.single(threshold),np.single(sum(slacks)),np.single(obj)))
 			allobjs.append(float(np.single(obj)))
 
+
 		print '+++++++++'
 		print threshold
 		print slacks
 		print obj
 		print '+++++++++'
+		self.slacks = slacks
 
 		print allobjs
 		print(sum(sum(abs(np.array(psi-old_psi)))))
@@ -128,7 +171,8 @@ class StructuredOCSVM:
 		structs = []
 		for i in range(N):
 			(vals[i], struct, psi) = pred_sobj.argmax(self.sol, i, add_prior=True)
-			#vals[i] /= np.linalg.norm(psi,2)
+			#vals[i] /= np.linalg.norm(psi)
+			vals[i] /= np.max(np.abs(psi))
 			structs.append(struct)
 
 		return (vals, structs)

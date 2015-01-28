@@ -1,8 +1,10 @@
 from cvxopt import matrix,spmatrix,sparse
 from cvxopt.blas import dot,dotu
 from cvxopt.solvers import qp
+import cvxopt as co
 import numpy as np
 from kernel import Kernel
+import pdb
 
 class OCSVM:
 	"""One-class support vector machine
@@ -16,7 +18,7 @@ class OCSVM:
 	MSG_ERROR = -1	# (scalar) something went wrong
 	MSG_OK = 0	# (scalar) everything alright
 
-	PRECISION = 10**-3 # important: effects the threshold, support vectors and speed!
+	PRECISION = 1e-6 # important: effects the threshold, support vectors and speed!
 
 	kernel = [] 	# (matrix) our training kernel
 	samples = -1 	# (scalar) amount of training data in X
@@ -24,8 +26,8 @@ class OCSVM:
 
 	isDualTrained = False	# (boolean) indicates if the oc-svm was trained in dual space
 
-	alphas = []	# (vector) dual solution vector
-	svs = [] # (vector) support vector indices
+	alphas = None	# (vector) dual solution vector
+	svs = None # (vector) support vector indices
 	threshold = 0.0	# (scalar) the optimized threshold (rho)
 
 
@@ -49,6 +51,12 @@ class OCSVM:
 
 		# generate a kernel matrix
 		P = self.kernel
+		#print P
+		W = co.matrix(0.0, (N,1))
+		co.lapack.syev(co.matrix(P),W)
+		print 'Smallest eigenvalue:'
+		print np.min(W)
+
 		# there is no linear part of the objective
 		q = matrix(0.0, (N,1))
 
@@ -64,6 +72,7 @@ class OCSVM:
 		h = matrix([h1,h2])
 
 		sol = qp(P,-q,G,h,A,b)
+		print sol['status']
 
 		# mark dual as solved
 		self.isDualTrained = True
@@ -76,6 +85,9 @@ class OCSVM:
 		for i in range(N):
 			if self.alphas[i]>OCSVM.PRECISION:
 				self.svs.append(i)
+
+		if abs(sum(abs(self.alphas))-1.0)>OCSVM.PRECISION:
+			pdb.set_trace()
 
 		# find support vectors with alpha < C for threshold calculation
 		#self.threshold = 10**8
