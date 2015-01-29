@@ -151,7 +151,7 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 		# normalize data l1
 		phil1 = co.matrix(phi)
 		for idx in range(phil1.size[1]):
-			phil1[:,idx] /= np.linalg.norm(phil1[:,idx],ord=1)
+			phil1[:,idx] /= np.linalg.norm(phil1[:,idx],ord=2)
 
 		kern = Kernel.get_kernel(phil1[:,0:num_train], phil1[:,0:num_train])
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
@@ -189,7 +189,7 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 
 		# normalize data
 		for idx in range(phi.size[1]):
-			phi[:,idx] /= np.linalg.norm(phi[:,idx])
+			phi[:,idx] /= np.linalg.norm(phi[:,idx], ord=1)
 
 		# train one-class svm
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train])
@@ -286,14 +286,14 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 
 if __name__ == '__main__':
 	LENS = 600
-	EXMS = 800
-	EXMS_TRAIN = 400
+	EXMS = 400
+	EXMS_TRAIN = 200
 	ANOM_PROB = 0.1
-	REPS = 10
-	BLOCK_LEN = 100
+	REPS = 1
+	BLOCK_LEN = 200
 	#BLOCKS = [1,100]
-	BLOCKS = [1,2,5,10,20,40,60,80,100]
-	#BLOCKS = [1]
+	BLOCKS = [1,2,5,10,20,50,100]
+	BLOCKS = [1]
 
 	# collected means
 	mauc = []
@@ -436,6 +436,6 @@ if __name__ == '__main__':
 	data['vbase_hist_auc1'] = vbase_hist_auc1
 	data['vbase_hist_auc2'] = vbase_hist_auc2
 
-	io.savemat('15_icml_toy_ad_05.mat',data)
+	io.savemat('15_icml_toy_ad_06.mat',data)
 
 	print('finished')
