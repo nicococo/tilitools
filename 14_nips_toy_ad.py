@@ -20,13 +20,20 @@ def get_model(num_exm, num_train, lens, block_len, blocks=1, anomaly_prob=0.15):
 	X = [] 
 	Y = []
 	label = []
+	lblcnt = co.matrix(0.0,(1,lens))
 	for i in range(num_exm):
 		(exm, lbl, marker) = ToyData.get_2state_anom_seq(lens, block_len, anom_prob=anomaly_prob, num_blocks=blocks)
 		cnt += lens
 		X.append(exm)
 		Y.append(lbl)
 		label.append(marker)
+		# some lbl statistics
+		if i<num_train:
+			lblcnt += lbl
 	X = remove_mean(X,1)
+	#plt.figure(1)
+	#plt.plot(range(lens), lblcnt.trans(), '-r')
+	#plt.show()
 	return (SOHMM(X[0:num_train],Y[0:num_train]), SOHMM(X[num_train:],Y[num_train:]), SOHMM(X,Y), label)
 
 
@@ -39,16 +46,34 @@ def remove_mean(X, dims):
 		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
 	tst_mean /= float(cnt)
 	print tst_mean
+	
+	max_val = co.matrix(-1e10, (1, dims))
 	for i in range(len(X)):
 		for d in range(dims):
 			X[i][d,:] = X[i][d,:]-tst_mean[d]
+			foo = np.max(np.abs(X[i][d,:]))
+			max_val[d] = np.max([max_val[d], foo])
+	
+	print max_val
+	for i in range(len(X)):
+		for d in range(dims):
+			#X[i][d,:] *= -1
+			X[i][d,:] /= max_val[d]
+			#X[i][d,:] /= 600.0
+			#X[i][d,:] /= np.linalg.norm(X[i][d,:])
+
 	cnt = 0
+	max_val = co.matrix(-1e10, (1, dims))
 	tst_mean = co.matrix(0.0, (1, dims))
 	for i in range(len(X)):
 		lens = len(X[i][0,:])
 		cnt += lens
 		tst_mean += co.matrix(1.0, (1, lens))*X[i].trans()
+		for d in range(dims):
+			foo = np.max(np.abs(X[i][d,:]))
+			max_val[d] = np.max([max_val[d], foo])
 	print tst_mean/float(cnt)
+	print max_val
 	return X
 
 def calc_feature_vecs(data):
@@ -67,7 +92,7 @@ def calc_feature_vecs(data):
 	max_phi = np.max(phi)
 	min_phi = np.min(phi)
 
-	BINS = 4
+	BINS = 2
 	thres = np.linspace(min_phi, max_phi+1e-8, BINS+1)
 
 	print (max_phi, min_phi)
@@ -123,10 +148,15 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 	ALL = True
 	if ALL:
 		# oc-svm without pre-processing
-		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train])
+		# normalize data l1
+		phil1 = co.matrix(phi)
+		for idx in range(phil1.size[1]):
+			phil1[:,idx] /= np.linalg.norm(phil1[:,idx],ord=1)
+
+		kern = Kernel.get_kernel(phil1[:,0:num_train], phil1[:,0:num_train])
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
 		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi)
+		kern = Kernel.get_kernel(phil1, phil1)
 		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
 		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
 		base_auc = metric.auc(fpr, tpr)
@@ -149,14 +179,6 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
 		base_hist_auc2 = metric.auc(fpr, tpr)
 
-#		plt.figure(1)
-#		lbls = np.array(labels[num_train:], dtype='int')
-#		inds = np.where(lbls==1)[0].tolist()
-#		plt.plot(range(len(oc_as)), np.array(oc_as), '.r')
-#		for i in inds:
-#			plt.plot(i, np.array(oc_as[i]), 'ob')
-#		#plt.show()
-
 		# normalize data
 		for idx in range(phi.size[1]):
 			phi[:,idx] /= np.linalg.norm(phi[:,idx])
@@ -164,75 +186,79 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
 		# train one-class svm
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train])
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
-		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi)
-		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
-		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
-		base_auc1 = metric.auc(fpr, tpr)
+		msg = ocsvm.train_dual()
+		if msg==OCSVM.MSG_ERROR:
+			base_auc1 = 0.5
+		else:
+			kern = Kernel.get_kernel(phi, phi)
+			(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
+			(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
+			base_auc1 = metric.auc(fpr, tpr)
 
 		# train one-class svm RBF
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train], type='rbf', param=0.1)
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
-		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi, type='rbf', param=0.1)
-		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
-		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
-		base_auc2 = metric.auc(fpr, tpr)
+		msg = ocsvm.train_dual()
+		if msg==OCSVM.MSG_ERROR:
+			base_auc2 = 0.5
+		else:
+			kern = Kernel.get_kernel(phi, phi, type='rbf', param=0.1)
+			(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
+			(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
+			base_auc2 = metric.auc(fpr, tpr)
 
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train], type='rbf', param=1.0)
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
-		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi, type='rbf', param=1.0)
-		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
-		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
-		base_auc3 = metric.auc(fpr, tpr)
+		msg = ocsvm.train_dual()
+		if msg==OCSVM.MSG_ERROR:
+			base_auc3 = 0.5
+		else:
+			kern = Kernel.get_kernel(phi, phi, type='rbf', param=1.0)
+			(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
+			(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
+			base_auc3 = metric.auc(fpr, tpr)
 
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train], type='rbf', param=2.0)
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
-		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi, type='rbf', param=2.0)
-		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
-		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
-		base_auc4 = metric.auc(fpr, tpr)
+		msg = ocsvm.train_dual()
+		if msg==OCSVM.MSG_ERROR:
+			base_auc4 = 0.5
+		else:
+			kern = Kernel.get_kernel(phi, phi, type='rbf', param=2.0)
+			(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
+			(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
+			base_auc4 = metric.auc(fpr, tpr)
 
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train], type='rbf', param=4.0)
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
-		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi, type='rbf', param=4.0)
-		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
-		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
-		base_auc5 = metric.auc(fpr, tpr)
+		msg = ocsvm.train_dual()
+		if msg==OCSVM.MSG_ERROR:
+			base_auc5 = 0.5
+		else:
+			kern = Kernel.get_kernel(phi, phi, type='rbf', param=4.0)
+			(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
+			(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
+			base_auc5 = metric.auc(fpr, tpr)
 
 		kern = Kernel.get_kernel(phi[:,0:num_train], phi[:,0:num_train], type='rbf', param=10.0)
 		ocsvm = OCSVM(kern, C=1.0/(num_train*anom_prob))
-		ocsvm.train_dual()
-		kern = Kernel.get_kernel(phi, phi, type='rbf', param=10.0)
-		(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
-		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
-		base_auc6 = metric.auc(fpr, tpr)
+		msg = ocsvm.train_dual()
+		if msg==OCSVM.MSG_ERROR:
+			base_auc6 = 0.5
+		else:
+			kern = Kernel.get_kernel(phi, phi, type='rbf', param=10.0)
+			(oc_as, foo) = ocsvm.apply_dual(kern[num_train:,ocsvm.get_support_dual()])
+			(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], oc_as)
+			base_auc6 = metric.auc(fpr, tpr)
+		print base_auc6
 
 	if ALL:
 		# train structured anomaly detection
 		sad = StructuredOCSVM(train, C=1.0/(num_train*anom_prob))
-		(lsol, lats, thres) = sad.train_dc(max_iter=60)
+		(lsol, lats, thres) = sad.train_dc(max_iter=60,zero_shot=False)
 		(pred_vals, pred_lats) = sad.apply(test)	
 		(fpr, tpr, thres) = metric.roc_curve(labels[num_train:], pred_vals)
 		auc = metric.auc(fpr, tpr)
-
-		#plt.figure(2)
-		#(pred_vals, pred_lats) = sad.apply(train)
-		#oc_as = pred_vals
-		#lbls = np.array(labels[:num_train], dtype='int')
-		#inds = np.where(lbls==0)[0].tolist()
-		#svs = sad.svs_inds
-
-#		plt.plot(range(len(oc_as)), np.array(oc_as), '.r')
-#		for i in inds:
-#			plt.plot(i, np.array(oc_as[i]), 'ob')
-#		for i in svs:
-#			plt.plot(i, np.array(oc_as[i]), 'r', marker='x', markersize=10)
-#		#plt.show()
-
 	return (auc, base_auc, bayes_auc, base_auc1, base_auc2, base_auc3, base_auc4, base_auc5, base_auc6, base_hist_auc1, base_hist_auc2)
 
 
@@ -245,6 +271,7 @@ if __name__ == '__main__':
 	BLOCK_LEN = 100
 	#BLOCKS = [1,100]
 	BLOCKS = [1,2,5,10,20,40,60,80,100]
+	#BLOCKS = [1]
 
 	# collected means
 	mauc = []

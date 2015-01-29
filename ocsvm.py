@@ -89,6 +89,7 @@ class OCSVM:
 		if abs(sum(abs(self.alphas))-1.0)>OCSVM.PRECISION:
 			pdb.set_trace()
 
+
 		# find support vectors with alpha < C for threshold calculation
 		#self.threshold = 10**8
 		#flag = False
@@ -111,6 +112,13 @@ class OCSVM:
 		for i in range(len(self.svs)):
 			if thres[i,0]<(T-OCSVM.PRECISION):
 				cnt += 1
+
+		if len(self.svs)==N and cnt==0:
+			print('Degenerate Solution.')
+			print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))
+			print('Threshold is {0}'.format(self.threshold))
+			return OCSVM.MSG_ERROR
+			
 
 		#print(self.alphas)
 		print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs),cnt))

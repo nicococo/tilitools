@@ -18,11 +18,16 @@ class SOHMM(SOInterface):
 		SOInterface.__init__(self, X, y)	
 		self.states = num_states
 		self.start_p = matrix(1.0, (self.states, 1))
-		#self.start_p[0] = 0.0
+		#self.start_p[0] = 0.2
 		self.hotstart_tradeoff = hotstart_tradeoff
 
 	def get_hotstart_sol(self):
-		sol = uniform(self.get_num_dims(), 1, a=-1,b=+1)
+		sol = uniform(self.get_num_dims(), 1, a=0.1,b=+1.0)
+		#sol[0] = 1.0
+		#sol[1] = 0.1
+		#sol[2] = 1.0
+		#sol[3] = 0.1
+
 		#sol[0:self.states*self.states] = self.hotstart_tradeoff
 		print('Hotstart position uniformly random with transition tradeoff {0}.'.format(self.hotstart_tradeoff))
 		return sol
@@ -46,7 +51,10 @@ class SOHMM(SOInterface):
 			em += loss
 		
 		if (augment_prior==True):
-			prior = matrix(0.0, (N, T))
+			prior = matrix(-0.0, (N, T))
+			#prior = matrix(-10.0/float(T), (N, T))
+			#prior[:,0] = -10.0
+			#prior[0,:] = 0.0
 			#prior[0,:] = 1.0
 			em += prior
 
@@ -91,7 +99,7 @@ class SOHMM(SOInterface):
 		for t in reversed(xrange(1,T)):
 			states[t-1] = psi[states[t],t];
 		
-		psi_idx = self.get_joint_feature_map(idx,states)
+		psi_idx = self.get_joint_feature_map(idx, states)
 		val = sol.trans()*psi_idx
 		return (val, states, psi_idx)
 
@@ -151,7 +159,7 @@ class SOHMM(SOInterface):
 			(foo, inds) = np.where([y[0,1:T]==i])
 			for j in range(N):
 				(foo, indsj) = np.where([y[0,inds]==j]) 
-				jfm[j*N+i] = float(len(indsj))
+				jfm[j*N+i] = float(len(indsj))/float(1.0)
 
 		# emission parts
 		for t in range(T):
@@ -167,6 +175,9 @@ class SOHMM(SOInterface):
 	def evaluate(self, pred): 
 		(err1, err_exm1) = self.evaluate_impl(pred, change_sign=False)
 		(err2, err_exm2) = self.evaluate_impl(pred, change_sign=True)
+		print err1
+		print err2
+		print '-----------'
 		if err1['fscore']>err2['fscore']:
 			return (err1, err_exm1)
 		return (err2, err_exm2)
