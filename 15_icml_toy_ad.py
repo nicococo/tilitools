@@ -158,8 +158,8 @@ if __name__ == '__main__':
     LENS = 600
     EXMS = 800
     EXMS_TRAIN = 400
-    ANOM_PROB = 0.05
-    REPS = 10
+    ANOM_PROB = 0.10
+    REPS = 20
     BLOCK_LEN = 200
 
     BLOCKS = [1,2,5,10,20,40,60,100]
@@ -169,6 +169,11 @@ if __name__ == '__main__':
     kernels = ['Linear',''    ,'RBF'  ,'RBF'  ,'RBF'  ,'Hist' ,'Hist' ,'Hist' ,'Linear','Linear']
     kparams = [''      ,''    ,  00.1 ,  01.0 ,  10.0 , 4     , 8     , 10    , ''     , '']
     ords    = [+1      , 1    ,  1    ,  1    ,  1    , 1     , 1     , 1     , 1      , 2]
+
+    #methods = ['OcSvm','OcSvm','OcSvm']
+    #kernels = ['RBF'  ,'RBF'  ,'RBF'  ]
+    #kparams = [  10.1 ,  100.0  ,  1000.0  ]
+    #ords    = [  1    ,  1    ,  1    ]
 
     # collected means
     res = []
