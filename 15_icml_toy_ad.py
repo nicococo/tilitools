@@ -162,7 +162,7 @@ if __name__ == '__main__':
     REPS = 10
     BLOCK_LEN = 200
 
-    BLOCKS = [1,2,5,10,20,50,100]
+    BLOCKS = [1,2,5,10,20,40,60,100]
     #BLOCKS = [1,5]
 
     methods = ['Bayes' ,'HMAD','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm']
