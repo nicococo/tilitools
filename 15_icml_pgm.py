@@ -59,9 +59,9 @@ def add_intergenic(num_exm, signal, label, region_start, region_end, exm_lens):
             error += val
             lbl[t] = int(val)
 
-        phi1.append(phi1_i/sum(phi1_i))
-        phi2.append(phi2_i/sum(phi2_i))
-        phi3.append(phi3_i/sum(phi3_i))
+        phi1.append(phi1_i)
+        phi2.append(phi2_i)
+        phi3.append(phi3_i)
         if (error>0):
             print 'ERROR loading integenic regions: gene found!'
         trainX.append(exm)
@@ -178,9 +178,9 @@ def load_genes(max_genes, signal, label, exm_id_intervals, min_lens=600, max_len
                 phi3_i[DIMS + DIMS*DIMS + a_mere*DIMS*DIMS+b_mere*DIMS+c_mere] += 1.0
 
         marker.append(0)
-        phi1_list.append(phi1_i/sum(phi1_i))
-        phi2_list.append(phi2_i/sum(phi2_i))
-        phi3_list.append(phi3_i/sum(phi3_i))
+        phi1_list.append(phi1_i)
+        phi2_list.append(phi2_i)
+        phi3_list.append(phi3_i)
         trainX.append(exm)
         trainY.append(lbl)
     print '###################'
@@ -258,9 +258,17 @@ def feature_selection(fname, top_k=32, num_exms=100):
     return (gen_inds[64-top_k:], ige_inds[64-top_k:], phi_inds)
 
 
+def normalize_features(phi, ord=1):
+    phi_norm = co.matrix(phi)
+    for i in range(phi.size[1]):
+        phi_norm[:,i] /= np.linalg.norm(phi_norm[:,i], ord=ord)
+    return phi_norm
 
-def perf_ocsvm(phi, marker, train, test, anom_prob):
+
+def perf_ocsvm(phi, marker, train, test, anom_prob, ord=1):
     #phi = phi[phi_inds.tolist(),:]
+    print('(a) normalize features...')
+    phi = normalize_features(phi, ord=ord)
     print('(a) Build kernel...')
     kern = Kernel.get_kernel(phi, phi)
     print('(b) Train OCSVM...')
@@ -369,7 +377,7 @@ if __name__ == '__main__':
     showPlots = True
 
     #(gen_inds, ige_inds, phi_inds) = feature_selection('/home/nicococo/Code/fergusonii/data.mat', top_k=24)
-    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/{0}/fergusonii/data.mat'.format(arguments.basedir), top_k=24)
+    (gen_inds, ige_inds, phi_inds) = feature_selection('/home/{0}/fergusonii/data.mat'.format(arguments.basedir), top_k=8)
 
     all_auc = {}
     all_res = {}
@@ -451,27 +459,27 @@ if __name__ == '__main__':
             all_res['HMAD (FS)'] = []
 
         # structured output svm
-        # (auc, res) = perf_ssvm(inds_test, marker, train, test)
-        # all_auc['SSVM (FS)'].append(auc)
-        # all_res['SSVM (FS)'].append(res)
-        # (auc, res) = perf_ssvm(inds_test, marker, train_full, test_full)
-        # all_auc['SSVM (Full)'].append(auc)
-        # all_res['SSVM (Full)'].append(res)
+        (auc, res) = perf_ssvm(inds_test, marker, train, test)
+        all_auc['SSVM (FS)'].append(auc)
+        all_res['SSVM (FS)'].append(res)
+        (auc, res) = perf_ssvm(inds_test, marker, train_full, test_full)
+        all_auc['SSVM (Full)'].append(auc)
+        all_res['SSVM (Full)'].append(res)
 
         # spectrum kernel oc-svms
         auc = perf_ocsvm(co.matrix(phi1_list).trans(), marker, inds_train, inds_test, anom_prob)
         all_auc['OcSvm Spectrum (1)'].append(auc)
-        # auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
-        # all_auc['OcSvm Spectrum (2)'].append(auc)
-        # auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
-        # all_auc['OcSvm Spectrum (3)'].append(auc)
+        auc = perf_ocsvm(co.matrix(phi2_list).trans(), marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (2)'].append(auc)
+        auc = perf_ocsvm(co.matrix(phi3_list).trans(), marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (3)'].append(auc)
 
         # train one-class svm (use only filtered features)
         phi_fs = co.matrix(phi1_list).trans()
         phi_fs = phi_fs[phi_inds.tolist(),:]
 
-        # auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
-        # all_auc['OcSvm Spectrum (FS)'].append(auc)
+        auc = perf_ocsvm(phi_fs, marker, inds_train, inds_test, anom_prob)
+        all_auc['OcSvm Spectrum (FS)'].append(auc)
 
         (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
         all_auc['HMAD (FS)'].append(auc)
