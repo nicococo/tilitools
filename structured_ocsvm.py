@@ -26,10 +26,12 @@ class StructuredOCSVM:
 	svs_inds = None
 	threshold = 0.0
 	mean_psi = None
+	norm_ord = 1
 
-	def __init__(self, sobj, C=1.0):
+	def __init__(self, sobj, C=1.0, norm_ord=1):
 		self.C = C
 		self.sobj = sobj
+		self.norm_ord = norm_ord
 
 	def train_dc(self, zero_shot=False, max_iter=50, hotstart=matrix([])):
 		""" Solve the optimization problem with a  
@@ -81,7 +83,7 @@ class StructuredOCSVM:
 				#psi[:,i] /= 600.0
 				#psi[:4,i] = psi[:4,i]/np.linalg.norm(psi[:4,i],ord=2) 
 				#psi[4:,i] = psi[4:,i]/np.linalg.norm(psi[4:,i],ord=2) 
-				psi[:,i] /= np.linalg.norm(psi[:,i], ord=1)
+				psi[:,i] /= np.linalg.norm(psi[:,i], ord=self.norm_ord)
 				#psi[:,i] /= np.max(np.abs(psi[:,i]))
 				#psi[:,i] /= 600.0
 				#if i>10:
@@ -185,7 +187,7 @@ class StructuredOCSVM:
 			#vals[i] = self.sol.trans()*psi - self.threshold
 			#print np.multiply(self.sol,psi)
 			#vals[i] *= -1.0
-			vals[i] = (vals[i]/np.linalg.norm(psi, ord=1) - self.threshold)
+			vals[i] = (vals[i]/np.linalg.norm(psi, ord=self.norm_ord) - self.threshold)
 			#vals[i] = self.sol[:4].trans()*psi[:4]/np.linalg.norm(psi[:4],ord=2) \
 			#	+ self.sol[4:].trans()*psi[4:]/np.linalg.norm(psi[4:],ord=2) - self.threshold
 			#vals[i] /= np.max(np.abs(psi))
