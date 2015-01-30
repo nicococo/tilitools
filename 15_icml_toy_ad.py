@@ -159,7 +159,7 @@ if __name__ == '__main__':
     EXMS = 400
     EXMS_TRAIN = 200
     ANOM_PROB = 0.05
-    REPS = 10
+    REPS = 20
     BLOCK_LEN = 120
 
     BLOCKS = [1,2,5,10,20,40,60,100]
@@ -174,6 +174,11 @@ if __name__ == '__main__':
     #kernels = ['RBF'  ,'RBF'  ,'RBF'  ]
     #kparams = [  10.1 ,  1000.0  ,  0.1  ]
     #ords    = [  1    ,  1    ,  1    ]
+
+    #methods = ['Bayes','Bayes']
+    #kernels = ['Linear'  ,'Linear'  ]
+    #kparams = [  1 ,  1]
+    #ords    = [  1 ,  2]
 
     # collected means
     res = []
@@ -248,6 +253,6 @@ if __name__ == '__main__':
     data['varis'] = varis
     data['names'] = names
 
-    io.savemat('15_icml_toy_ad_a1.mat',data)
+    io.savemat('15_icml_toy_ad_a2.mat',data)
 
     print('finished')

@@ -159,10 +159,10 @@ if __name__ == '__main__':
     EXMS = 800
     EXMS_TRAIN = 400
     REPS = 20
-    BLOCK_LEN = 200
+    BLOCK_LEN = 120
 
     LVL = [0.025, 0.05, 0.1, 0.15, 0.2, 0.3]
-    BLOCKS = 1
+    BLOCKS = 2
 
     methods = ['Bayes' ,'HMAD','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm']
     kernels = ['Linear',''    ,'RBF'  ,'RBF'  ,'RBF'  ,'Hist' ,'Hist' ,'Hist' ,'Linear','Linear']
@@ -248,6 +248,6 @@ if __name__ == '__main__':
     data['varis'] = varis
     data['names'] = names
 
-    io.savemat('15_icml_toy_adfrac_a0.mat',data)
+    io.savemat('15_icml_toy_adfrac_a2.mat',data)
 
     print('finished')
