@@ -235,6 +235,7 @@ if __name__ == '__main__':
     data['ANOM_PROB'] = LVL
     data['REPS'] = REPS
     data['BLOCKS'] = BLOCKS
+    data['LVL'] = LVL
 
     data['methods'] = methods
     data['kernels'] = kernels

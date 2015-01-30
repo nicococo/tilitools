@@ -156,23 +156,23 @@ def test_hmad(phi, kern, train, test, num_train, anom_prob, labels, zero_shot=Fa
 
 if __name__ == '__main__':
     LENS = 600
-    EXMS = 800
-    EXMS_TRAIN = 400
-    ANOM_PROB = 0.10
-    REPS = 20
-    BLOCK_LEN = 200
+    EXMS = 400
+    EXMS_TRAIN = 200
+    ANOM_PROB = 0.05
+    REPS = 10
+    BLOCK_LEN = 120
 
     BLOCKS = [1,2,5,10,20,40,60,100]
-    #BLOCKS = [1,5]
+    #BLOCKS = [1,40]
 
     methods = ['Bayes' ,'HMAD','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm','OcSvm']
     kernels = ['Linear',''    ,'RBF'  ,'RBF'  ,'RBF'  ,'Hist' ,'Hist' ,'Hist' ,'Linear','Linear']
-    kparams = [''      ,''    ,  00.1 ,  01.0 ,  10.0 , 4     , 8     , 10    , ''     , '']
+    kparams = [''      ,''    ,  0.1  ,  1.0  ,  10.0 , 4     , 8     , 10    , ''     , '']
     ords    = [+1      , 1    ,  1    ,  1    ,  1    , 1     , 1     , 1     , 1      , 2]
 
     #methods = ['OcSvm','OcSvm','OcSvm']
     #kernels = ['RBF'  ,'RBF'  ,'RBF'  ]
-    #kparams = [  10.1 ,  100.0  ,  1000.0  ]
+    #kparams = [  10.1 ,  1000.0  ,  0.1  ]
     #ords    = [  1    ,  1    ,  1    ]
 
     # collected means
@@ -248,6 +248,6 @@ if __name__ == '__main__':
     data['varis'] = varis
     data['names'] = names
 
-    io.savemat('15_icml_toy_ad_a0.mat',data)
+    io.savemat('15_icml_toy_ad_a1.mat',data)
 
     print('finished')
