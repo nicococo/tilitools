@@ -156,10 +156,10 @@ def test_hmad(phi, kern, train, test, num_train, anom_prob, labels, zero_shot=Fa
 
 if __name__ == '__main__':
     LENS = 600
-    EXMS = 400
-    EXMS_TRAIN = 200
+    EXMS = 800
+    EXMS_TRAIN = 400
     ANOM_PROB = 0.05
-    REPS = 20
+    REPS = 50
     BLOCK_LEN = 120
 
     BLOCKS = [1,2,5,10,20,40,60,100]
@@ -253,6 +253,6 @@ if __name__ == '__main__':
     data['varis'] = varis
     data['names'] = names
 
-    io.savemat('15_icml_toy_ad_a2.mat',data)
+    io.savemat('15_icml_toy_ad_b0.mat',data)
 
     print('finished')
