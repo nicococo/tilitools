@@ -212,13 +212,14 @@ if __name__ == '__main__':
     directory = '/home/nicococo/Code/wind/'
     directory = '/home/nico/Data/wind/'
 
-    out_fname = '15_icml_wind_b'   
+    out_fname = '15_icml_wind_c'   
     
     DIMS = 5
     EXMS_ANOM = 200
     EXMS_NON = 200
     REPS = 20
     BLOCKS = [5, 10, 20, 30, 40, 60]
+    #BLOCKS = [30]
 
     for b in BLOCKS:
 
@@ -276,9 +277,9 @@ if __name__ == '__main__':
             # init result cache
             if not all_auc.has_key('SSVM'):
                 # collect aucs
-                all_auc['OcSvm (Hist 2)'] = []
                 all_auc['OcSvm (Hist 4)'] = []
                 all_auc['OcSvm (Hist 8)'] = []
+                all_auc['OcSvm (Hist 16)'] = []
                 all_auc['SSVM'] = []
                 all_auc['HMAD'] = []
                 # collect fscores,..
@@ -286,25 +287,25 @@ if __name__ == '__main__':
                 all_res['HMAD'] = []
 
             # structured output svm
-            (auc, res) = perf_ssvm(inds_test, marker, train, test)
-            all_auc['SSVM'].append(auc)
-            all_res['SSVM'].append(res)
+            #(auc, res) = perf_ssvm(inds_test, marker, train, test)
+            #all_auc['SSVM'].append(auc)
+            #all_res['SSVM'].append(res)
 
             num_train = NUM_TRAIN_ANOM+NUM_TRAIN_NON
             phis = co.matrix(phi_list).trans()
-            phis1 = build_histograms(comb.X, phis, num_train, bins=2, ord=2)
+            phis1 = build_histograms(comb.X, phis, num_train, bins=4, ord=2)
             phis = co.matrix(phi_list).trans()
-            phis2 = build_histograms(comb.X, phis, num_train, bins=4, ord=2)
+            phis2 = build_histograms(comb.X, phis, num_train, bins=8, ord=2)
             phis = co.matrix(phi_list).trans()
-            phis4 = build_histograms(comb.X, phis, num_train, bins=8, ord=2)
+            phis4 = build_histograms(comb.X, phis, num_train, bins=16, ord=2)
 
             # spectrum kernel oc-svms
             auc = perf_ocsvm(phis1, marker, inds_train, inds_test, anom_prob)
-            all_auc['OcSvm (Hist 2)'].append(auc)
-            auc = perf_ocsvm(phis2, marker, inds_train, inds_test, anom_prob)
             all_auc['OcSvm (Hist 4)'].append(auc)
-            auc = perf_ocsvm(phis4, marker, inds_train, inds_test, anom_prob)
+            auc = perf_ocsvm(phis2, marker, inds_train, inds_test, anom_prob)
             all_auc['OcSvm (Hist 8)'].append(auc)
+            auc = perf_ocsvm(phis4, marker, inds_train, inds_test, anom_prob)
+            all_auc['OcSvm (Hist 16)'].append(auc)
 
             (auc, res) = perf_sad(inds_test, marker, train, test, anom_prob)
             all_auc['HMAD'].append(auc)

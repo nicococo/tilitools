@@ -1,8 +1,8 @@
-import numpy as np
-import pylab as pl
 import matplotlib
 matplotlib.use('QT4Agg')
 import matplotlib.pyplot as plt
+import numpy as np
+import pylab as pl
 import scipy.io as io
 
 def plot_icml_pgm_results():
@@ -21,7 +21,7 @@ def plot_icml_pgm_results():
 
 
     for f in range(len(files)):
-        data = io.loadmat('icml_pgm_b{0}'.format(str(files[f])))
+        data = io.loadmat('icml_pgm_d{0}'.format(str(files[f])))
         res = data['res']
         auc = data['auc']
 
@@ -42,23 +42,24 @@ def plot_icml_pgm_results():
     plt.figure(1)
     cnt = 0
     names = []
-    style = ['-','-','-','--','D','o','s']
+    style = ['-','-','-','-','-','--','--']
     marker = ['D','^','p','o','D','o','s']
-    colors = [[0.,0.5,0.],[0.,0.75,0.],[0.,1.,0.],'b','m','y','k']
-    for idx in [2,3,4,7]:
+    colors = [[0.,0.5,0.],[0.,0.75,0.],[0.,1.,0.],'y','m','b','k']
+    for idx in [2,3,4,5,6,7]:
         names.append(anames[idx])
-        if not idx==7:
+        if not idx==7 and not idx==6:
             plt.errorbar(files, ascores[idx,:], yerr=avars[idx,:], \
                 fmt=style[cnt], color=colors[cnt], linewidth=4, alpha=0.7-(cnt*0.1), marker=marker[cnt], markersize=8)
         else:
             plt.errorbar(files, ascores[idx,:], yerr=avars[idx,:], \
-                fmt=style[cnt], color=colors[cnt], linewidth=4, alpha=1.0, marker=marker[cnt], markersize=8)
+                fmt=style[cnt], color=colors[cnt], linewidth=idx-2, alpha=1.0, marker=marker[cnt], markersize=8)
 
         plt.xticks(files, ['2.5%','5%','10%','15%','20%','30%'], fontsize=16)
         plt.yticks([0.58,0.6,0.7,0.8,0.9,1.0,1.02], ['','0.6','0.7','0.8','0.9','1.0',''], fontsize=16)
         cnt += 1
     plt.ylabel('AUC',fontsize=20)
     plt.xlabel('Outliers',fontsize=20)
+    names[-2] = 'Hidden Markov Anomaly Detection (FS)'
     names[-1] = 'Hidden Markov Anomaly Detection'
     plt.legend(names,loc=3)
     plt.show()
@@ -78,17 +79,19 @@ def plot_icml_wind_results():
 
     # annotation results
     rnames = ['SSVM','HMAD']
+    rnames = ['HMAD']
     rscores = np.zeros((len(rnames),len(files)))
     rvars = np.zeros((len(rnames),len(files)))
 
     # anomaly detection results
-    anames = ['SSVM','OcSvm Spectrum (1)','OcSvm Spectrum (4)','OcSvm Spectrum (8)','HMAD']
+    anames = ['SSVM','OcSvm (Hist 2)','OcSvm (Hist 4)','OcSvm (Hist 8)','HMAD']
+    anames = ['OcSvm (Hist 2)','OcSvm (Hist 4)','OcSvm (Hist 8)','HMAD']
     ascores = np.zeros((len(anames),len(files)))
     avars = np.zeros((len(anames),len(files)))
 
 
     for f in range(len(files)):
-        data = io.loadmat('15_icml_wind_a{0}'.format(str(files[f])))
+        data = io.loadmat('15_icml_wind_b{0}'.format(str(files[f])))
         res = data['res']
         auc = data['auc']
 
@@ -112,7 +115,7 @@ def plot_icml_wind_results():
     style = ['-','-','-','--','D','o','s']
     marker = ['D','^','p','o','D','o','s']
     colors = [[0.,0.5,0.],[0.,0.75,0.],[0.,1.,0.],'b','m','y','k']
-    for idx in [1,2,3,4]:
+    for idx in [0,1,2,3]:
         names.append(anames[idx])
         if not idx==7:
             plt.errorbar(files, ascores[idx,:], yerr=avars[idx,:], \
@@ -375,4 +378,4 @@ def plot_icml_toy_ad_results():
 
 
 if __name__ == '__main__':
-    plot_icml_wind_results()
+    plot_icml_toy_ad_results()
