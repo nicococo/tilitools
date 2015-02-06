@@ -57,11 +57,18 @@ def plot_icml_pgm_results():
         plt.xticks(files, ['2.5%','5%','10%','15%','20%','30%'], fontsize=16)
         plt.yticks([0.58,0.6,0.7,0.8,0.9,1.0,1.02], ['','0.6','0.7','0.8','0.9','1.0',''], fontsize=16)
         cnt += 1
-    plt.ylabel('Detection accuracy [in AUC]',fontsize=24)
-    plt.xlabel('Percentage of anomalous data',fontsize=24)
-    names[-2] = 'Hidden Markov Anomaly Detection (FS)'
-    names[-1] = 'Hidden Markov Anomaly Detection'
-    plt.legend(names,loc=3)
+    plt.ylabel('Detection accuracy [in AUC]',fontsize=18)
+    plt.xlabel('Percentage of anomalous data',fontsize=18)
+    #names[-2] = 'Hidden Markov Anomaly Detection (FS)'
+    #names[-1] = 'Hidden Markov Anomaly Detection'
+    names[-1] = 'HMAD'
+    legnames = []
+    for name in names:
+        if 'OcSvm' in name:
+            name = 'OC-SVM' + name[5:]
+            print name
+        legnames.append(name)
+    plt.legend(legnames,loc=3,fontsize=18,framealpha=0.7,fancybox=True)
     plt.show()
 
     print '.....................................................'
@@ -124,12 +131,12 @@ def plot_icml_wind_results():
         plt.xticks(files, ['2.5%','5%','10%','15%','20%','30%'], fontsize=16)
         plt.yticks([0.58,0.6,0.7,0.8,0.9,1.0,1.02], ['','0.6','0.7','0.8','0.9','1.0',''], fontsize=16)
         cnt += 1
-    plt.ylabel('Detection accuracy [in AUC]',fontsize=24)
-    plt.xlabel('Percentage of anomalous data',fontsize=24)
+    plt.ylabel('Detection accuracy [in AUC]',fontsize=18)
+    plt.xlabel('Percentage of anomalous data',fontsize=18)
 
-    #names = ['OcSvm (Hist 2)','OcSvm (Hist 4)','OcSvm (Hist 8)','Hidden Markov Anomaly Detection']
-    names[-1] = 'Hidden Markov Anomaly Detection'
-    plt.legend(names,loc=4)
+    names[:3] = ['OC-SVM (Hist 4)','OC-SVM (Hist 8)','OC-SVM (Hist 16)']
+    #names[-1] = 'Hidden Markov Anomaly Detection'
+    plt.legend(names,loc=4, fontsize=18, fancybox=True, framealpha=0.7)
     plt.show()
     print('finished')
 
@@ -137,20 +144,27 @@ def plot_icml_wind_results():
 
 
 def plot_icml_toy_results():
-    files = ['15_icml_toy_adfrac_b0']
+    filename = '15_icml_toy_runtime_b0'
+    filename = '15_icml_toy_ad_b0'
+    filename = '15_icml_toy_adfrac_b0'
+
     # anomaly detection results
-    data = io.loadmat('{0}'.format(files[0]))
+    data = io.loadmat('{0}'.format(filename))
 
     blocks = data['BLOCKS'][0][::-1]
-    blocks = data['BLOCKS'][0]
-    blocks = [0.025, 0.05, 0.1, 0.15, 0.2, 0.3]
+    blocks = data['BLOCKS'][0] # for ad experiment
+    if 'adfrac' in filename:
+        blocks = [0.025, 0.05, 0.1, 0.15, 0.2, 0.3] # for adfrac experiment
     print blocks
     lens = len(data['BLOCKS'][0])
     reps = float(data['REPS'][0][0])
     print reps
     names = data['names']
     print names
-    aucs = data['aucs']
+    if 'runtime' in filename:
+        aucs = data['times']
+    else:
+        aucs = data['aucs']
     stds = data['stds']
     varis = data['varis']
     print aucs
@@ -162,28 +176,50 @@ def plot_icml_toy_results():
     alphas = [1. ,0.9,.8 ,.6 ,.4 ,.8 ,.6 ,.4 ,1. ,.6 ]
     widths = [2  ,4  ,1  ,4  ,8  ,1  ,4  ,8  ,1  ,8  ]
 
+    remain_idx = [0,1,3,6,8]
     for i in range(len(names)):
+        if not i in remain_idx:
+            continue
+
         if i<len(names)-2:
             names[i] = names[i][:len(names[i])-5]
         plt.errorbar(blocks, aucs[i,:], yerr=stds[i,:], \
             fmt=style[i], color=colors[i], linewidth=widths[i], alpha=alphas[i], marker=marker[i], markersize=10)
 
     #plt.title('Anomaly Detection', fontsize=28)
-    #plt.xscale('log')
-    #plt.xticks(blocks, ['0%','2%','5%','10%','20%','40%','60%','100%'], fontsize=18)
-    #plt.xlabel('Disorganization in %',fontsize=24)
+    if  '_ad_' in filename:
+        plt.xscale('log')
+        plt.xticks(blocks, ['0%','2%','5%','10%','20%','40%','60%','100%'], fontsize=18)
+        plt.xlabel('Percentage of disorganization',fontsize=22)
+        plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0,1.02], ['','0.2','0.4','0.6','0.8','1.0',''], fontsize=18)
+        plt.ylabel('Detection accuracy [in AUC]',fontsize=22)
     
-    plt.xticks(blocks, ['2.5%','5%','10%','15%','20%','30%'], fontsize=18)
-    plt.xlim((0.025,0.3))
-    plt.xlabel('Percentage of anomalous data',fontsize=24)
+    if 'adfrac' in filename:
+        plt.xticks(blocks, ['2.5%','5%','10%','15%','20%','30%'], fontsize=18)
+        plt.xlim((0.025,0.3))
+        plt.xlabel('Percentage of anomalous data',fontsize=22)
+        plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0,1.02], ['','0.2','0.4','0.6','0.8','1.0',''], fontsize=18)
+        plt.ylabel('Detection accuracy [in AUC]',fontsize=22)
 
-    plt.yticks([0.0,0.2,0.4,0.6,0.8,1.0,1.02], ['','0.2','0.4','0.6','0.8','1.0',''], fontsize=18)
+    if  'runtime' in filename:
+        plt.yscale('log')
+        plt.xticks(blocks, fontsize=18)
+        plt.xlabel('Number of training examples',fontsize=22)
+        plt.yticks([0.00001,0.001,0.01,1.0,1000.], fontsize=18)
+        plt.ylabel('Time in [sec]',fontsize=22)
+        names[1] = 'HMAD'
+        names[4] += ')'
+        names = names[remain_idx]
+        legnames = []
+        for name in names:
+            if 'OcSvm' in name:
+                name = 'OC-SVM' + name[5:]
+                if 'Linear' in name:
+                   name = name[:len(name)-6]
+                print name
+            legnames.append(name)
+        plt.legend(legnames,loc=4, fancybox=True, framealpha=0.7, fontsize=20)
 
-    plt.ylabel('Detection accuracy [in AUC]',fontsize=24)
-
-    names[1] = 'HMAD'
-    names[4] += ')'
-    plt.legend(names,loc=4, fontsize=18)
     plt.show()
 
 
@@ -215,14 +251,14 @@ def plot_icml_toy_seqs():
             color='k', linewidth=2, alpha=0.8, marker='')
 
     #plt.yscale('log')
-    plt.xticks([0,300,600], ['0','300','600'], fontsize=18)
-    plt.yticks(ys, ['0%','100%'], fontsize=18)
-    plt.ylabel('Disorganization in %',fontsize=24)
-    plt.xlabel('Sequence position',fontsize=24)
-    plt.legend(['Noisy observations','True state sequence'])
+    plt.xticks([0,300,600], ['0','300','600'], fontsize=16)
+    plt.yticks(ys, ['0%','100%'], fontsize=16)
+    plt.ylabel('Percentage of disorganization',fontsize=18)
+    plt.xlabel('Sequence position',fontsize=18)
+    plt.legend(['Noisy observations','True state sequence'], fontsize=18, fancybox=True, framealpha=0.7)
     plt.show()
 
 
 
 if __name__ == '__main__':
-    plot_icml_toy_seqs()
+    plot_icml_pgm_results()
