@@ -1,7 +1,7 @@
-import cvxopt as co
 import numpy as np
 import pylab as pl
 import matplotlib.pyplot as plt
+import cvxopt as co
 
 from svdd import SVDD
 from kernel import Kernel
