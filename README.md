@@ -1,5 +1,8 @@
 tilitools
 =========
+Collection of various, random machine learning methods. This was my first
+Python/Github attempt and it does look exactly like it. This package might
+get improved soon...
 
 [ti]ny [li]ttle [tools] - Machine Learning related
 
@@ -11,3 +14,4 @@ tilitools
 - implementation of (primal) non-convex latent variable support vector data description
 - corresponding multi-class joint feature map and methods
 - examples
+
