@@ -41,9 +41,9 @@ if __name__ == '__main__':
     res, cls = ssvm.apply(predsobj)
 
     # nice visualization
-    Z = np.reshape(cls,(sx,sy))
-    plt.contourf(X, Y, Z)
-    plt.scatter(Dtrain[0, :], Dtrain[1, :], 10)
+    # Z = np.reshape(cls,(sx,sy))
+    # plt.contourf(X, Y, Z)
+    # plt.scatter(Dtrain[0, :], Dtrain[1, :], 10)
     # plt.show()
 
     print('finished')
