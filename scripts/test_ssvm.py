@@ -44,6 +44,6 @@ if __name__ == '__main__':
     Z = np.reshape(cls,(sx,sy))
     plt.contourf(X, Y, Z)
     plt.scatter(Dtrain[0, :], Dtrain[1, :], 10)
-    plt.show()
+    # plt.show()
 
     print('finished')

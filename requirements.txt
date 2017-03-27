@@ -1,5 +1,5 @@
 numpy
-scipy
+scipy >= 0.9
 cvxopt
 matplotlib
 scikit-learn
