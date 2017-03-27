@@ -1,8 +1,7 @@
 tilitools
 =========
 
-.. image:: https://travis-ci.org/nicococo/tilitools#
-    :target: https://travis-ci.org/nicococo/tilitools
+![Travis-CI](https://travis-ci.org/nicococo/tilitools.svg?branch=master)
 
 **ti**ny **li**ttle machine learning **tool**box
 
