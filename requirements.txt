@@ -1,3 +1,2 @@
 cvxopt
-matplotlib
 scikit-learn
