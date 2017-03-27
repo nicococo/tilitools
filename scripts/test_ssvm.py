@@ -2,9 +2,9 @@ import cvxopt as co
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ssvm import SSVM
-from so_multiclass import SOMultiClass
-from toydata import ToyData
+from tilitools.ssvm import SSVM
+from tilitools.so_multiclass import SOMultiClass
+from tilitools.toydata import ToyData
 
 
 if __name__ == '__main__':
