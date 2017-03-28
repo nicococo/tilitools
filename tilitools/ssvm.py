@@ -1,7 +1,9 @@
 from cvxopt import matrix, sparse, spdiag
 from cvxopt.solvers import qp
+
 import numpy as np
 
+from utils import profile
 
 class SSVM:
     """ (Primal) Structured Output Support Vector Machine
@@ -17,6 +19,7 @@ class SSVM:
         self.C = C
         self.sobj = sobj
 
+    @profile
     def train(self, heur_constr=4.4):
         N = self.sobj.get_num_samples()
         DIMS = self.sobj.get_num_dims()

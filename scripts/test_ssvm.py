@@ -4,15 +4,16 @@ import matplotlib.pyplot as plt
 
 from tilitools.ssvm import SSVM
 from tilitools.so_multiclass import SOMultiClass
-from tilitools.toydata import ToyData
+from tilitools import toydata
+from tilitools import utils
 
 
 if __name__ == '__main__':
     # generate raw training data
-    Dtrain1 = ToyData.get_gaussian(1000, dims=2, means=[4.0,2.0], vars=[1.0,0.3])
-    Dtrain2 = ToyData.get_gaussian(100, dims=2, means=[-2.0,1.0], vars=[0.3,1.3])
-    Dtrain3 = ToyData.get_gaussian(100, dims=2, means=[3.0,-1.0], vars=[0.3,0.3])
-    Dtrain4 = ToyData.get_gaussian(50, dims=2, means=[6.0,-3.0], vars=[0.2,0.1])
+    Dtrain1 = toydata.get_gaussian(1000, dims=2, means=[4.0,2.0], vars=[1.0,0.3])
+    Dtrain2 = toydata.get_gaussian(100, dims=2, means=[-2.0,1.0], vars=[0.3,1.3])
+    Dtrain3 = toydata.get_gaussian(100, dims=2, means=[3.0,-1.0], vars=[0.3,0.3])
+    Dtrain4 = toydata.get_gaussian(50, dims=2, means=[6.0,-3.0], vars=[0.2,0.1])
 
     Dtrain = co.matrix([[Dtrain1], [Dtrain2], [Dtrain3], [Dtrain4]])
     Dtrain = co.matrix([[Dtrain.trans()],[co.matrix(1.0,(1250,1))]]).trans()
@@ -45,5 +46,7 @@ if __name__ == '__main__':
     # plt.contourf(X, Y, Z)
     # plt.scatter(Dtrain[0, :], Dtrain[1, :], 10)
     # plt.show()
+
+    utils.print_profiles()
 
     print('finished')
