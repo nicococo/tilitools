@@ -15,7 +15,7 @@ config = {
     'author': 'Nico Goernitz',
     'author_email': 'nico.goernitz@tu-berlin.de',
     'version': '2017.03',
-    'install_requires': ['nose','scikit-learn','numpy', 'scipy', 'matplotlib', 'cvxopt'],
+    'install_requires': ['nose','scikit-learn','numpy', 'scipy', 'matplotlib', 'cvxopt', 'numba'],
     'packages': ['tilitools'],
     'package_dir' : {'tilitools': 'tilitools'},
     'classifiers':['Intended Audience :: Science/Research',
