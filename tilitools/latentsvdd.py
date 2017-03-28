@@ -1,16 +1,8 @@
-from cvxopt import matrix,spmatrix,sparse,uniform,normal,setseed
-from cvxopt.blas import dot,dotu
-from cvxopt.solvers import qp
-from cvxopt.lapack import syev
+from cvxopt import matrix, normal
 import numpy as np
-import math as math
 
-from kernel import Kernel  
-from svdd import SVDD
-from ocsvm import OCSVM
-
-import pylab as pl
-import matplotlib.pyplot as plt
+from kernel import get_kernel
+from svdd_dual_qp import SvddDualQP
 
 class LatentSVDD:
     """ Latent variable support vector data description.
@@ -32,8 +24,7 @@ class LatentSVDD:
         self.C = C
         self.sobj = sobj
 
-
-    def train_dc(self, max_iter=50):
+    def train(self, max_iter=50):
         """ Solve the LatentSVDD optimization problem with a
             sequential convex programming/DC-programming
             approach:
@@ -69,12 +60,12 @@ class LatentSVDD:
             for i in range(N):
                 # min_z ||sol - Psi(x,z)||^2 = ||sol||^2 + min_z -2<sol,Psi(x,z)> + ||Psi(x,z)||^2
                 # Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
-                (foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, opt_type='quadratic')
+                foo, latent[i], psi[:,i] = self.sobj.argmax(sol, i, opt_type='quadratic')
 
             # 2. solve the intermediate convex optimization problem
-            kernel = Kernel.get_kernel(psi,psi)
-            svdd = SVDD(kernel, self.C)
-            svdd.train_dual()
+            kernel = get_kernel(psi, psi)
+            svdd = SvddDualQP(kernel, self.C)
+            svdd.train()
             threshold = svdd.get_threshold()
             inds = svdd.get_support_dual()
             alphas = svdd.get_support_dual_values()
@@ -83,7 +74,6 @@ class LatentSVDD:
         self.sol = sol
         self.latent = latent
         return (sol, latent, threshold)
-
 
     def apply(self, pred_sobj):
         """ Application of the LatentSVDD:

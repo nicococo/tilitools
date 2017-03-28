@@ -1,5 +1,5 @@
 import numpy as np
-from cvxopt import matrix,spmatrix,sparse
+from cvxopt import matrix
 from cvxopt.solvers import qp
 import sys
 
@@ -18,7 +18,7 @@ class BDD:
         self.cov_mat = np.eye(self.n)
         print('Creating new SVDD with {0} samples.'.format(self.n))
 
-    def train_BDD(self):
+    def fit(self):
         """
         train a BDD
         """
@@ -46,7 +46,7 @@ class BDD:
         self.is_trained = True
 
 
-    def apply_BDD(self, test_data, kernel_map, norms):
+    def apply(self, test_data, kernel_map, norms):
         """
         apply the trained BDD
             test_data - the matrix of the test data

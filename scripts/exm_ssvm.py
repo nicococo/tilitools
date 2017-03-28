@@ -1,6 +1,5 @@
 import cvxopt as co
 import numpy as np
-import matplotlib.pyplot as plt
 
 from tilitools.ssvm import SSVM
 from tilitools.so_multiclass import SOMultiClass
@@ -40,12 +39,6 @@ if __name__ == '__main__':
     # generate structured object
     predsobj = SOMultiClass(co.matrix(Dtest), 4)
     res, cls = ssvm.apply(predsobj)
-
-    # nice visualization
-    # Z = np.reshape(cls,(sx,sy))
-    # plt.contourf(X, Y, Z)
-    # plt.scatter(Dtrain[0, :], Dtrain[1, :], 10)
-    # plt.show()
 
     utils.print_profiles()
 

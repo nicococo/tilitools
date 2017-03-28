@@ -6,7 +6,7 @@ import numpy as np
 import math as math
 
 from kernel import Kernel  
-from svdd import SVDD
+from svdd_dual_qp import SVDD
 from ocsvm import OCSVM
 
 import pylab as pl
