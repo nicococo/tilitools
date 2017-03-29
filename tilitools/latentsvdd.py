@@ -1,7 +1,7 @@
 from cvxopt import matrix, normal
 import numpy as np
 
-from kernel import get_kernel
+from utils_kernel import get_kernel
 from svdd_dual_qp import SvddDualQP
 
 class LatentSVDD:

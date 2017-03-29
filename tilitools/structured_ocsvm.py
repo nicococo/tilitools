@@ -5,7 +5,7 @@ from cvxopt.lapack import syev
 import numpy as np
 import math as math
 
-from kernel import Kernel  
+from utils_kernel import Kernel
 from svdd_dual_qp import SVDD
 from ocsvm import OCSVM
 
@@ -69,7 +69,7 @@ class StructuredOCSVM:
             # most likely latent variable configuration
             for i in range(N):
                 (foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
-                norm = np.linalg.norm(psi[:,i],2)
+                norm = np.linalg.norm(psi[:,i], 2)
                 psi[:,i] /= norm
                 #if i>10:
                 #	(foo, latent[i], psi[:,i]) = self.sobj.argmax(sol,i)

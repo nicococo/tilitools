@@ -24,14 +24,14 @@ class SSVM:
         N = self.sobj.get_num_samples()
         DIMS = self.sobj.get_num_dims()
 
-        w = self.sobj.get_hotstart_sol()
+        w = matrix(self.sobj.get_hotstart_sol())
 
         slacks = [-10**10]*N
         sol = matrix([[w.trans()], [matrix(slacks, (1, N))]]).trans()
 
         # quadratic regularizer
         P = spdiag(matrix([[matrix(0.0, (1, N))],[matrix(1.0, (1, DIMS))]]))
-        q = self.C*matrix([matrix(1.0, (N, 1)),matrix(0.0, (DIMS, 1))])
+        q = self.C * matrix([matrix(1.0, (N, 1)),matrix(0.0, (DIMS, 1))])
 
         # inequality constraints inits Gx <= h
         G1 = spdiag(matrix([[matrix(-1.0, (1, N))],[matrix(0.0, (1, DIMS))]]))
@@ -43,24 +43,27 @@ class SSVM:
         trigger = matrix(0.0, (N, 0))
 
         iter = 0
-        newConstr = N
-        while newConstr > 0:
-            newConstr = 0
+        new_constr = N
+        while new_constr > 0:
+            new_constr = 0
             for i in range(N):
-                val, ypred, psi_i = self.sobj.argmax(w, i, add_loss=True)
+                val, ypred, psi_i = self.sobj.argmax(np.array(w), i, add_loss=True)
                 psi_true = self.sobj.get_joint_feature_map(i)
+
+                psi_i = matrix(psi_i)
+                psi_true = matrix(psi_true)
 
                 v_true = w.trans()*psi_true
                 v_pred = w.trans()*psi_i
                 loss = self.sobj.calc_loss(i, ypred)
 
-                if slacks[i] < np.single(loss-v_true+v_pred):
-                    dpsi = matrix([[dpsi], [-(psi_true-psi_i)]])
+                if slacks[i] < np.single(loss - v_true + v_pred):
+                    dpsi = matrix([[dpsi], [-(psi_true - psi_i)]])
                     delta = matrix([[delta], [-loss]])
                     tval = matrix(0.0, (N, 1))
                     tval[i] = -1.0
                     trigger = sparse([[trigger], [tval]])
-                    newConstr += 1
+                    new_constr += 1
 
             # G1/h1: -\xi_i <= 0
             # G2/h2: -dpsi -xi_i <= -delta_i
@@ -84,13 +87,13 @@ class SSVM:
             sol = res['x']
             slacks = sol[0:N]
             w = sol[N:N+DIMS]
-            print('Iter{0}: objective {1} #new constraints {2}'.format(iter,obj_primal,newConstr))
+            print('Iter{0}: objective {1} #new constraints {2}'.format(iter,obj_primal,new_constr))
             iter += 1
 
         # store obtained solution
-        self.w = w
-        self.slacks = slacks
-        return w, slacks
+        self.w = np.array(w)
+        self.slacks = np.array(slacks)
+        return self.w, self.slacks
 
     def apply(self, pred_sobj):
         """ Application of the SSVM:
@@ -99,10 +102,10 @@ class SSVM:
                 struct = argmanx_y <w,\Psi(x,y)>
         """
         N = pred_sobj.get_num_samples()
-        vals = []
-        structs = []
+        vals = list()
+        structs = list()
         for i in range(N):
-            (val, struct, foo) = pred_sobj.argmax(self.w, i)
+            val, struct, _ = pred_sobj.argmax(self.w, i)
             vals.append(val)
             structs.append(struct)
         return vals, structs

@@ -1,11 +1,8 @@
 from cvxopt import matrix,spmatrix,sparse,uniform,normal,setseed
-from cvxopt.blas import dot,dotu
-from cvxopt.solvers import qp
 from cvxopt.lapack import syev
 import numpy as np
-import math as math
 
-from kernel import Kernel  
+from utils_kernel import Kernel
 
 class StructuredPCA:
     """ Structured Extension for Principle Component Analysis.

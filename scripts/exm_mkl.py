@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from tilitools.ssad_convex import ConvexSSAD
 from tilitools.ocsvm import OCSVM
 from tilitools.mkl import MKLWrapper
-from tilitools.kernel import get_diag_kernel, get_kernel
+from tilitools.utils_kernel import get_diag_kernel, get_kernel
 
 
 if __name__ == '__main__':

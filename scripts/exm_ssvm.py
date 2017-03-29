@@ -3,23 +3,27 @@ import numpy as np
 
 from tilitools.ssvm import SSVM
 from tilitools.so_multiclass import SOMultiClass
-from tilitools import toydata
+from tilitools import utils_data
 from tilitools import utils
 
 
 if __name__ == '__main__':
     # generate raw training data
-    Dtrain1 = toydata.get_gaussian(1000, dims=2, means=[4.0,2.0], vars=[1.0,0.3])
-    Dtrain2 = toydata.get_gaussian(100, dims=2, means=[-2.0,1.0], vars=[0.3,1.3])
-    Dtrain3 = toydata.get_gaussian(100, dims=2, means=[3.0,-1.0], vars=[0.3,0.3])
-    Dtrain4 = toydata.get_gaussian(50, dims=2, means=[6.0,-3.0], vars=[0.2,0.1])
+    Dtrain1 = utils_data.get_gaussian(1000, dims=2, means=[4.0, 2.0], vars=[1.0, 0.3])
+    Dtrain2 = utils_data.get_gaussian(100, dims=2, means=[-2.0, 1.0], vars=[0.3, 1.3])
+    Dtrain3 = utils_data.get_gaussian(100, dims=2, means=[3.0, -1.0], vars=[0.3, 0.3])
+    Dtrain4 = utils_data.get_gaussian(50, dims=2, means=[6.0, -3.0], vars=[0.2, 0.1])
 
-    Dtrain = co.matrix([[Dtrain1], [Dtrain2], [Dtrain3], [Dtrain4]])
-    Dtrain = co.matrix([[Dtrain.trans()],[co.matrix(1.0,(1250,1))]]).trans()
-    Dy = co.matrix([[co.matrix(0,(1,1000))], [co.matrix(1,(1,100))], [co.matrix(2,(1,100))], [co.matrix(3,(1,50))]])
+    Dtrain = np.concatenate((Dtrain1.T, Dtrain2.T, Dtrain3.T, Dtrain4.T)).T
+    Dtrain = np.concatenate((Dtrain, np.ones((1250, 1)).T))
+    print Dtrain.shape
+    Dy = np.zeros(Dtrain.shape[1], dtype=np.int)
+    Dy[1000:1100] = 1
+    Dy[1100:1200] = 2
+    Dy[1200:] = 3
 
     # generate structured object
-    sobj = SOMultiClass(Dtrain, 4, Dy)
+    sobj = SOMultiClass(Dtrain, np.unique(Dy).size, Dy)
 
     # train structured output support vector machine
     ssvm = SSVM(sobj, 1.0)
@@ -37,7 +41,7 @@ if __name__ == '__main__':
     Dtest = np.append(Dtest, np.reshape([1.0]*(sx*sy), (1,sx*sy)), axis=0)
 
     # generate structured object
-    predsobj = SOMultiClass(co.matrix(Dtest), 4)
+    predsobj = SOMultiClass(Dtest, np.unique(Dy).size)
     res, cls = ssvm.apply(predsobj)
 
     utils.print_profiles()

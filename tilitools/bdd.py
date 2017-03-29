@@ -3,6 +3,7 @@ from cvxopt import matrix
 from cvxopt.solvers import qp
 import sys
 
+from utils import profile
 
 class BDD:
     """
@@ -18,6 +19,7 @@ class BDD:
         self.cov_mat = np.eye(self.n)
         print('Creating new SVDD with {0} samples.'.format(self.n))
 
+    @profile
     def fit(self):
         """
         train a BDD

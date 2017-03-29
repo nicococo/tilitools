@@ -1,6 +1,5 @@
 from cvxopt import matrix,spmatrix,sparse,exp,uniform
 import numpy as np
-import math as math
 from so_interface import SOInterface
 
 

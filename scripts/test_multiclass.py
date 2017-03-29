@@ -8,7 +8,7 @@ from latentsvdd import LatentSVDD
 from structured_ocsvm import StructuredOCSVM
 from structured_pca import StructuredPCA
 from so_multiclass import SOMultiClass
-from toydata import ToyData
+from utils_data import ToyData
 
 
 if __name__ == '__main__':

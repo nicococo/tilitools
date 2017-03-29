@@ -2,7 +2,7 @@ from cvxopt import matrix, spmatrix, sparse
 from cvxopt.solvers import qp
 import numpy as np
 
-from kernel import get_diag_kernel, get_kernel
+from utils_kernel import get_diag_kernel, get_kernel
 
 
 class SvddDualQP:

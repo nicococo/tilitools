@@ -4,7 +4,7 @@ import pylab as pl
 import matplotlib.pyplot as plt
 
 from ocsvm import OCSVM
-from kernel import Kernel
+from utils_kernel import Kernel
 
 if __name__ == '__main__':
 	# kernel parameter and type

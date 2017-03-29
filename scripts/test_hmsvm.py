@@ -4,14 +4,14 @@ import pylab as pl
 import sklearn.metrics as metric
 import matplotlib.pyplot as plt
 
-from kernel import Kernel
+from utils_kernel import Kernel
 from ocsvm import OCSVM
 from ssvm import SSVM
 from latentsvdd import LatentSVDD
 from structured_ocsvm import StructuredOCSVM
 from structured_pca import StructuredPCA
 
-from toydata import ToyData
+from utils_data import ToyData
 from so_hmm import SOHMM
 
 

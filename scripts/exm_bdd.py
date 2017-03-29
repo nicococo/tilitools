@@ -2,7 +2,7 @@ import numpy as np
 import pylab as pl
 
 from tilitools.bdd import BDD
-from tilitools.kernel import get_kernel, get_diag_kernel
+from tilitools.utils_kernel import get_kernel, get_diag_kernel
 
 
 if __name__ == '__main__':
