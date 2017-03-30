@@ -4,7 +4,7 @@ import pylab as pl
 import matplotlib.pyplot as plt
 
 from ssvm import SSVM
-from latentsvdd import LatentSVDD
+from latent_svdd import LatentSVDD
 from structured_ocsvm import StructuredOCSVM
 from structured_pca import StructuredPCA
 from so_multiclass import SOMultiClass

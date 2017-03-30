@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from utils_kernel import Kernel
 from ocsvm import OCSVM
 from ssvm import SSVM
-from latentsvdd import LatentSVDD
+from latent_svdd import LatentSVDD
 from structured_ocsvm import StructuredOCSVM
 from structured_pca import StructuredPCA
 

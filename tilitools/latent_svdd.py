@@ -65,15 +65,15 @@ class LatentSVDD:
             # 2. solve the intermediate convex optimization problem
             kernel = get_kernel(psi, psi)
             svdd = SvddDualQP(kernel, self.C)
-            svdd.train()
-            threshold = svdd.get_threshold()
-            inds = svdd.get_support_dual()
-            alphas = svdd.get_support_dual_values()
-            sol = psi[:,inds]*alphas
+            svdd.fit()
+            threshold = svdd.get_radius()
+            inds = svdd.svs
+            alphas = svdd.get_support()
+            sol = psi[:,inds] * alphas
 
         self.sol = sol
         self.latent = latent
-        return (sol, latent, threshold)
+        return sol, latent, threshold
 
     def apply(self, pred_sobj):
         """ Application of the LatentSVDD:
@@ -81,7 +81,6 @@ class LatentSVDD:
             anomaly_score = min_z ||c*-\Psi(x,z)||^2
             latent_state = argmin_z ||c*-\Psi(x,z)||^2
         """
-
         N = pred_sobj.get_num_samples()
         norm2 = self.sol.trans()*self.sol
 
