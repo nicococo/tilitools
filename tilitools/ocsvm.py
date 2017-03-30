@@ -68,8 +68,6 @@ class OCSVM:
         thres = self.apply(k)
         inds = np.where(self.alphas[self.svs] <= 1.-OCSVM.PRECISION)[0]
         if inds.size > 0:
-            print 'kdjfksdjlkjfd', inds.size
-            print self.alphas[inds]
             self.threshold = np.min(thres[inds])
         else:
             # if no alpha < 1.-precision could be found

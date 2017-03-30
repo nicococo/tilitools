@@ -45,7 +45,6 @@ class SvddDualQP:
 
         # number of training examples
         N = self.samples
-        C = 1. / np.float(self.samples*self.nu)
 
         kernel = get_kernel(X, X, self.kernel, self.kparam)
         norms = np.diag(kernel).copy()
@@ -58,6 +57,8 @@ class SvddDualQP:
             self.pobj = 0.0  # TODO: calculate real primal objective
             self.cTc = self.alphas[self.svs].T.dot(kernel[self.svs, :][:, self.svs].dot(self.alphas[self.svs]))
             return self.alphas, self.radius2
+
+        C = 1. / np.float(self.samples*self.nu)
 
         # generate a kernel matrix
         P = 2.0*matrix(kernel)
@@ -92,18 +93,6 @@ class SvddDualQP:
         thres = self.predict(X[:, self.svs])
         self.radius2 = np.min(thres)
 
-        # self.radius2 = 0.
-        # thres = self.predict(X)
-        # sort_thres = np.sort(thres)
-        # self.radius2 = sort_thres[np.floor(N*(1.0-self.nu))]
-        # print 'RADIUS => Index: ', np.floor(N*(1.0-self.nu)), self.radius2
-        # print sort_thres
-
-        # print 'jkdsajfjsaldj', np.min(thres)
-        # print np.sum(self.alphas)
-        # print self.nu, np.sum(self.alphas>1e-6), self.samples
-
-        # print('Threshold is {0}'.format(self.radius2))
         return self.alphas, thres
 
     def get_radius(self):

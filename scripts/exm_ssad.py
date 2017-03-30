@@ -11,48 +11,37 @@ if __name__ == '__main__':
     k_type = 'rbf'
     # attention: this is the shape parameter of a Gaussian
     # which is 1/sigma^2
-    k_param = 0.7
+    k_param = 2.
 
     N_pos = 20
     N_neg = 20
     N_unl = 200
 
-    foo = [co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i'), co.matrix(1,(4,5),'i')]
-    print(len(foo))
-
     # generate training labels
-    yp = co.matrix(1,(1,N_pos),'i')
-    yu = co.matrix(0,(1,N_unl),'i')
-    yn = co.matrix(-1,(1,N_neg),'i')
-    Dy = co.matrix([[yp], [yu], [yn], [yn], [yn], [yn]])
+    Dy = np.zeros(N_pos+N_neg+N_unl, dtype=np.int)
+    Dy[:N_pos] = 1
+    Dy[N_pos+N_unl:] = -1
 
     # generate training data
     co.setseed(11)
     Dtrainp = co.normal(2,N_pos)*0.4
     Dtrainu = co.normal(2,N_unl)*0.5
-    Dtrainn = co.normal(2,N_neg)*0.3
+    Dtrainn = co.normal(2,N_neg)*0.2
     Dtrain21 = Dtrainn-1
     Dtrain21[0,:] = Dtrainn[0,:]+1
     Dtrain22 = -Dtrain21
 
     # training data
-    Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0], [Dtrainn-1.0], [Dtrain21], [Dtrain22]])
+    Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0]])
+
     Dtrain = np.array(Dtrain)
 
     # build the training kernel
     kernel = get_kernel(Dtrain, Dtrain, type=k_type, param=k_param)
 
     # use SSAD
-    ssad = ConvexSSAD(kernel, Dy, 1.0, 1.0, 1.0 / (N_unl * 0.1), 1.0)
+    ssad = ConvexSSAD(kernel, Dy, 2., 1., 0.1, 10.0)
     ssad.fit()
-
-    # build the test kernel
-    kernel = get_kernel(Dtrain, Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param)
-
-    thres = ssad.get_threshold()
-    pred = ssad.apply(kernel)
-    pred = np.array(pred)
-    pred = pred.transpose()
 
     # generate test data from a grid for nicer plots
     delta = 0.1
@@ -66,17 +55,17 @@ if __name__ == '__main__':
     print(Dtest.shape)
 
     # build the test kernel
-    kernel = get_kernel(Dtest, Dtrain[:,ssad.get_support_dual()], type=k_type, param=k_param)
+    kernel = get_kernel(Dtest, Dtrain[:, ssad.svs], type=k_type, param=k_param)
     res = ssad.apply(kernel)
 
     # make a nice plot of it
     Z = np.reshape(res,(sx,sy))
-    plt.contourf(X, Y, Z, 20)
-    plt.contour(X, Y, Z, [ssad.get_threshold()])
-    plt.scatter(Dtrain[0,ssad.get_support_dual()],Dtrain[1,ssad.get_support_dual()],60,c='w')
-    plt.scatter(Dtrain[0,N_pos:N_pos+N_unl-1],Dtrain[1,N_pos:N_pos+N_unl-1],10,c='g')
-    plt.scatter(Dtrain[0,0:N_pos],Dtrain[1,0:N_pos],20,c='r')
-    plt.scatter(Dtrain[0,N_pos+N_unl:],Dtrain[1,N_pos+N_unl:],20,c='b')
+    plt.contourf(X, Y, Z, 20, cmap='Blues')
+    plt.contour(X, Y, Z, [0.])
+    plt.scatter(Dtrain[0, ssad.svs], Dtrain[1, ssad.svs], 60, c='w')
+
+    plt.scatter(Dtrain[0,N_pos:N_pos+N_unl-1],Dtrain[1,N_pos:N_pos+N_unl-1], 10, c='g')
+    plt.scatter(Dtrain[0,0:N_pos],Dtrain[1,0:N_pos], 20, c='r')
+    plt.scatter(Dtrain[0,N_pos+N_unl:],Dtrain[1,N_pos+N_unl:], 20, c='b')
 
     plt.show()
-    print('finished')

@@ -8,7 +8,7 @@ from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
 
 if __name__ == '__main__':
     # kernel parameter and type
-    kparam = 10.
+    kparam = 4.
     ktype = 'rbf'
 
     # generate raw training data
@@ -19,10 +19,10 @@ if __name__ == '__main__':
     kernel = normalize_kernel(kernel)
     # train svdd
 
-    svm = OCSVM(kernel, 0.2)
+    svm = OCSVM(kernel, 0.1)
     svm.fit()
 
-    skl_svm = OneClassSVM(kernel='precomputed', nu=0.2, shrinking=False, verbose=True, tol=1e-3)
+    skl_svm = OneClassSVM(kernel='precomputed', nu=0.1, shrinking=False, verbose=True, tol=1e-3)
     skl_svm.fit(kernel)
     dists = skl_svm.decision_function(kernel)
     print skl_svm._intercept_
