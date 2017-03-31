@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tilitools.ssad_convex import ConvexSSAD
-from tilitools.utils_kernel import get_diag_kernel, get_kernel
+from tilitools.utils_kernel import get_kernel
 
 
 if __name__ == '__main__':
@@ -13,8 +13,8 @@ if __name__ == '__main__':
     # which is 1/sigma^2
     k_param = 2.
 
-    N_pos = 20
-    N_neg = 20
+    N_pos = 10
+    N_neg = 10
     N_unl = 200
 
     # generate training labels
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     kernel = get_kernel(Dtrain, Dtrain, type=k_type, param=k_param)
 
     # use SSAD
-    ssad = ConvexSSAD(kernel, Dy, 2., 1., 0.1, 10.0)
+    ssad = ConvexSSAD(kernel, Dy, 1., 1., 1., 1.)
     ssad.fit()
 
     # generate test data from a grid for nicer plots

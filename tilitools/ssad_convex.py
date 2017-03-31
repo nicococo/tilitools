@@ -4,11 +4,11 @@ import numpy as np
 
 
 class ConvexSSAD:
-    """Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer
+    """ Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer
         as described in Goernitz et al., Towards Supervised Anomaly Detection, JAIR, 2013
 
-               minimize 			0.5 ||w||^2_2 - rho - kappa*gamma
-        {w,rho,gamma>=0,xi>=0} 		+ eta_u sum_i xi_i + eta_l sum_j xi_j
+               minimize 			0.5 ||w||^2_2 - rho - kappa*gamma + eta_u sum_i xi_i + eta_l sum_j xi_j
+        {w,rho,gamma>=0,xi>=0}
         subject to   <w,phi(x_i)> >= rho - xi_i
                   y_j<w,phi(x_j)> >= y_j*rho + gamma - xi_j
 
@@ -16,10 +16,10 @@ class ConvexSSAD:
 
             maximize -0.5 sum_(i,j) alpha_i alpha_j y_i y_j k(x_i,x_j)
         {0<=alpha_i<=eta_i}
-        subject to 	kappa <= sum_j alpha_j  (for all labeled examples)
+            subject to 	kappa <= sum_j alpha_j  (for all labeled examples)
+                        1 = sum_j y_i alpha_j  (for all examples)
 
-        For better readability, we also introduce labels y_i=+1 for all unlabeled
-        examples which enables us to combine sums.
+        We introduce labels y_i = +1 for all unlabeled examples which enables us to combine sums.
 
         Note: Only dual solution is supported.
 
@@ -136,27 +136,33 @@ class ConvexSSAD:
         # these should sum to one
         print('Validate solution:')
         print('- found {0} support vectors'.format(len(self.svs)))
+        print('0 <= alpha_i : {0} of {1}'.format(np.sum(0. <= self.alphas), N))
         print('- sum_(i) alpha_i cy_i = {0} = 1.0'.format(np.sum(self.alphas*self.cy)))
         print('- sum_(i in sv) alpha_i cy_i = {0} ~ 1.0 (approx error)'.format(np.sum(self.alphas[self.svs]*self.cy[self.svs])))
-        print('- sum_(i in labeled) alpha_i = {0} >= {1} = kappa'.format(np.sum(self.alphas*self.cl), self.kappa))
-        print('- sum_(i in unlabeled) alpha_i = {0}'.format(np.sum(self.alphas*(1.0-self.cl))))
+        print('- sum_(i in labeled) alpha_i = {0} >= {1} = kappa'.format(np.sum(self.alphas[self.cl == 1]), self.kappa))
+        print('- sum_(i in unlabeled) alpha_i = {0}'.format(np.sum(self.alphas[self.y == 0])))
         print('- sum_(i in positives) alpha_i = {0}'.format(np.sum(self.alphas[self.y == 1])))
         print('- sum_(i in negatives) alpha_i = {0}'.format(np.sum(self.alphas[self.y ==-1])))
 
         # infer threshold (rho)
-        psvs = np.where(self.cy[self.svs] == 1)[0]
-        psvs = self.svs[psvs]
-        print psvs
-        k = self.kernel[:, self.svs]
-        k = k[psvs, :]
-        thres = self.apply(k)
-        inds = np.where(self.alphas[psvs].reshape(psvs.size) <= self.cC[psvs]-ConvexSSAD.PRECISION)[0]
-        if inds.size > 0:
-            self.threshold = np.min(thres[inds])
-        else:
-            # if no alpha < 1.-precision could be found
-            self.threshold = np.max(thres)
-        self.outliers = self.svs[np.where(thres < self.threshold)[0]]
+        psvs = np.where(self.y[self.svs] == 0)[0]
+
+        # case 1: unlabeled support vectors available
+        if psvs.size > 0:
+            psvs = self.svs[psvs]
+            print self.y[self.svs]
+            print psvs
+            k = self.kernel[:, self.svs]
+            k = k[psvs, :]
+            thres = self.apply(k)
+            inds = np.where(self.alphas[psvs].reshape(psvs.size) <= self.Cu-ConvexSSAD.PRECISION)[0]
+            if inds.size > 0:
+                self.threshold = np.min(thres[inds])
+            else:
+                # if no alpha < 1.-precision could be found
+                self.threshold = np.max(thres)
+
+            self.outliers = self.svs[np.where(thres < self.threshold)[0]]
         print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs), self.outliers))
 
     def get_threshold(self):

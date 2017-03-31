@@ -92,7 +92,6 @@ class SvddDualQP:
         self.radius2 = 0.
         thres = self.predict(X[:, self.svs])
         self.radius2 = np.min(thres)
-
         return self.alphas, thres
 
     def get_radius(self):
