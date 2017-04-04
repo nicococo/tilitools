@@ -2,6 +2,7 @@ from cvxopt import matrix, spmatrix, sparse, spdiag
 from cvxopt.solvers import qp
 import numpy as np
 
+from utils import profile
 
 class ConvexSSAD:
     """ Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer
@@ -49,6 +50,7 @@ class ConvexSSAD:
     threshold = 0.0 # (scalar) the optimized threshold (rho)
 
     def __init__(self, kernel, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0):
+        print('Check if labels y are only 1-d.')
         assert(len(y.shape) == 1)
         self.kernel = kernel
         self.y = y
@@ -62,7 +64,7 @@ class ConvexSSAD:
 
         self.cy = y.copy().reshape((y.size, 1))
         self.cy[y == 0] = 1  # cy=+1.0 (unlabeled,pos) & cy=-1.0 (neg)
-        self.cl = np.abs(y)  # cl=+1.0 (labeled) cl=0.0 (unlabeled)
+        self.cl = np.abs(y.copy())  # cl=+1.0 (labeled) cl=0.0 (unlabeled)
 
         self.cC = np.zeros(y.size) # cC=Cu (unlabeled) cC=Cp (pos) cC=Cn (neg)
         self.cC[y == 0] = Cu
@@ -72,7 +74,7 @@ class ConvexSSAD:
         # if there are no labeled examples, then set kappa to 0.0 otherwise
         # the dual constraint kappa <= sum_{i \in labeled} alpha_i = 0.0 will
         # prohibit a solution
-        if self.labeled == self.samples:
+        if self.labeled == 0:
             print('There are no labeled examples hence, setting kappa=0.0')
             self.kappa = 0.0
         print('Convex semi-supervised anomaly detection with {0} samples ({1} labeled).'.format(self.samples, self.labeled))
@@ -82,12 +84,13 @@ class ConvexSSAD:
         assert(dim1 == dim2 and dim1 == self.samples)
         self.kernel = kernel
 
+    @profile
     def fit(self, check_psd_eigs=False):
         # number of training examples
         N = self.samples
 
         # generate the label kernel
-        Y = self.cy.T.dot(self.cy)
+        Y = self.cy.dot(self.cy.T)
 
         # generate the final PDS kernel
         P = matrix(self.kernel*Y)
@@ -109,18 +112,17 @@ class ConvexSSAD:
         # inequality constraints: G alpha <= h
         # 1) alpha_i  <= C_i
         # 2) -alpha_i <= 0
-        # 3) kappa <= \sum_i labeled_i alpha_i -> -cl' alpha <= -kappa
-        G1 = spmatrix(1.0, range(N), range(N))
-        G3 = -matrix(self.cl).trans()
+        G12 = spmatrix(1.0, range(N), range(N))
         h1 = matrix(self.cC)
         h2 = matrix(0.0, (N, 1))
-        h3 = -self.kappa
-
-        G = sparse([G1, -G1])
+        G = sparse([G12, -G12])
         h = matrix([h1, h2])
         if self.labeled > 0:
+            # 3) kappa <= \sum_i labeled_i alpha_i -> -cl' alpha <= -kappa
             print('Labeled data found.')
-            G = sparse([G1, -G1, G3])
+            G3 = -matrix(self.cl, (1, self.cl.size), 'd')
+            h3 = -matrix(self.kappa, (1, 1))
+            G = sparse([G12, -G12, G3])
             h = matrix([h1, h2, h3])
 
         # solve the quadratic programm
@@ -146,12 +148,9 @@ class ConvexSSAD:
 
         # infer threshold (rho)
         psvs = np.where(self.y[self.svs] == 0)[0]
-
         # case 1: unlabeled support vectors available
         if psvs.size > 0:
             psvs = self.svs[psvs]
-            print self.y[self.svs]
-            print psvs
             k = self.kernel[:, self.svs]
             k = k[psvs, :]
             thres = self.apply(k)
@@ -161,7 +160,26 @@ class ConvexSSAD:
             else:
                 # if no alpha < 1.-precision could be found
                 self.threshold = np.max(thres)
-
+                # still, this can be wrong if all unsupervised SVs are outliers
+            self.outliers = self.svs[np.where(thres < self.threshold)[0]]
+        else:
+        # case 2: only labeled examples available
+            k = self.kernel[:, self.svs]
+            k = k[self.svs, :]
+            thres = self.apply(k)
+            pinds = np.where(self.y[self.svs] == +1)[0]
+            ninds = np.where(self.y[self.svs] == -1)[0]
+            # only negatives is not possible
+            if ninds.size > 0 and pinds.size == 0:
+                print('ERROR: Check pre-defined PRECISION.')
+                self.threshold = np.max(thres[ninds])
+            elif ninds.size == 0:
+                self.threshold = np.min(thres[pinds])
+            else:
+                # smallest negative + largest positive
+                p = np.max(thres[pinds])
+                n = np.min(thres[ninds])
+                self.threshold = (n+p)/2.
             self.outliers = self.svs[np.where(thres < self.threshold)[0]]
         print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs), self.outliers))
 

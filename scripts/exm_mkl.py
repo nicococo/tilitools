@@ -2,10 +2,10 @@ import cvxopt as co
 import numpy as np
 import matplotlib.pyplot as plt
 
+from tilitools.utils import print_profiles
 from tilitools.ssad_convex import ConvexSSAD
-from tilitools.ocsvm import OCSVM
 from tilitools.mkl import MKLWrapper
-from tilitools.utils_kernel import get_diag_kernel, get_kernel
+from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
 
 
 if __name__ == '__main__':
@@ -28,10 +28,10 @@ if __name__ == '__main__':
     support vectors (N_1 <= N).
 
     """
-    P_NORM = 2.0 # mixing coefficient lp-norm regularizer
+    P_NORM = 1.1 # mixing coefficient lp-norm regularizer
     N_pos = 100
     N_neg = 100
-    N_unl = 0
+    N_unl = 10
 
     # 1. STEP: TRAINING DATA
     # 1.1. generate training labels
@@ -39,6 +39,8 @@ if __name__ == '__main__':
     yu = co.matrix( 0, (1, N_unl),'i')
     yn = co.matrix(-1, (1, N_neg),'i')
     Dy = co.matrix([[yp], [yu], [yn], [yn], [yn], [yn]])
+    Dy = np.array(Dy)
+    Dy = Dy.reshape((Dy.size))
 
     # 1.2. generate training data
     co.setseed(11)
@@ -59,17 +61,28 @@ if __name__ == '__main__':
     #   e.g., kernel1 is a BOW kernel, kernel2 a Lexical Diversity kernel
     #   here: kernel1 und kernel2 are Gaussian kernels with different shape parameters
     # 	and kernel3 is a simple linear kernel
-    kernel1 = get_kernel(Dtrain, Dtrain, type='rbf', param=1.0)
-    kernel2 = get_kernel(Dtrain, Dtrain, type='rbf', param=1.0/50.0)
-    kernel3 = get_kernel(Dtrain, Dtrain, type='rbf', param=1.0/100.0)
-    kernel4 = get_kernel(Dtrain, Dtrain, type='linear')
+    kernel1 = get_kernel(Dtrain, Dtrain, type='rbf', param=0.01)
+    kernel1 = center_kernel(kernel1)
+    kernel1 = normalize_kernel(kernel1)
+
+    kernel2 = get_kernel(Dtrain, Dtrain, type='rbf', param=1.)
+    kernel2 = center_kernel(kernel2)
+    kernel2 = normalize_kernel(kernel2)
+
+    kernel3 = get_kernel(Dtrain, Dtrain, type='rbf', param=10.)
+    kernel3 = center_kernel(kernel3)
+    kernel3 = normalize_kernel(kernel3)
+
+    kernel4 = get_kernel(Dtrain, Dtrain, type='rbf', param=100.)
+    kernel4 = center_kernel(kernel4)
+    kernel4 = normalize_kernel(kernel4)
 
     # MKL: (default) use SSAD
     ad = ConvexSSAD([], Dy, 1.0, 1.0, 1.0 / (100 * 0.05), 1.0)
     #ad = OCSVM(kernel1,C=0.02)
 
     # 2. STEP: TRAIN WITH A LIST OF KERNELS
-    ssad = MKLWrapper(ad,[kernel1, kernel2, kernel3, kernel4], Dy, P_NORM)
+    ssad = MKLWrapper(ad,[kernel1, kernel2, kernel3, kernel4], P_NORM)
     ssad.fit()
 
     # 3. TEST THE TRAINING DATA (just because we are curious)
@@ -124,4 +137,6 @@ if __name__ == '__main__':
     plt.bar([i+1 for i in range(4)], ssad.get_mixing_coefficients())
 
     plt.show()
+
+    print_profiles()
     print('finished')

@@ -11,11 +11,11 @@ if __name__ == '__main__':
     k_type = 'rbf'
     # attention: this is the shape parameter of a Gaussian
     # which is 1/sigma^2
-    k_param = 2.
+    k_param = 2.4
 
     N_pos = 10
     N_neg = 10
-    N_unl = 200
+    N_unl = 10
 
     # generate training labels
     Dy = np.zeros(N_pos+N_neg+N_unl, dtype=np.int)
@@ -24,15 +24,15 @@ if __name__ == '__main__':
 
     # generate training data
     co.setseed(11)
-    Dtrainp = co.normal(2,N_pos)*0.4
-    Dtrainu = co.normal(2,N_unl)*0.5
-    Dtrainn = co.normal(2,N_neg)*0.2
+    Dtrainp = co.normal(2,N_pos)*0.6
+    Dtrainu = co.normal(2,N_unl)*0.6
+    Dtrainn = co.normal(2,N_neg)*0.6
     Dtrain21 = Dtrainn-1
     Dtrain21[0,:] = Dtrainn[0,:]+1
     Dtrain22 = -Dtrain21
 
     # training data
-    Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+1.0]])
+    Dtrain = co.matrix([[Dtrainp], [Dtrainu], [Dtrainn+0.8]])
 
     Dtrain = np.array(Dtrain)
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     kernel = get_kernel(Dtrain, Dtrain, type=k_type, param=k_param)
 
     # use SSAD
-    ssad = ConvexSSAD(kernel, Dy, 1., 1., 1., 1.)
+    ssad = ConvexSSAD(kernel, Dy, 1./(10.*0.1), 1./(10.*0.1), 1., 1/(10.*0.1))
     ssad.fit()
 
     # generate test data from a grid for nicer plots
@@ -61,7 +61,9 @@ if __name__ == '__main__':
     # make a nice plot of it
     Z = np.reshape(res,(sx,sy))
     plt.contourf(X, Y, Z, 20, cmap='Blues')
-    plt.contour(X, Y, Z, [0.])
+    plt.colorbar()
+    plt.contour(X, Y, Z, np.linspace(0.0, np.max(res), 10))
+    # plt.contour(X, Y, Z, [-0.6, 0., 0.6])
     plt.scatter(Dtrain[0, ssad.svs], Dtrain[1, ssad.svs], 60, c='w')
 
     plt.scatter(Dtrain[0,N_pos:N_pos+N_unl-1],Dtrain[1,N_pos:N_pos+N_unl-1], 10, c='g')
