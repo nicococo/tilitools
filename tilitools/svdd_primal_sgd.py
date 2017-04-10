@@ -23,7 +23,7 @@ class SvddPrimalSGD(object):
         if X.shape[1] < 1:
             print('Invalid training data.')
             return -1, -1
-        self.c, self.radius2, self.pobj, iter = fit_extern(X, self.nu, max_iter, prec, rate)
+        self.c, self.radius2, self.pobj, iter = optimize_subgradient_svdd(X, self.nu, max_iter, prec, rate)
         print('Iter={2}: obj={0}  T={1}'.format(self.pobj, self.radius2, iter+1))
         return self.c, self.radius2
 
@@ -37,7 +37,7 @@ class SvddPrimalSGD(object):
 
 
 @autojit(nopython=True)
-def fit_extern(X, nu, max_iter, prec, rate):
+def optimize_subgradient_svdd(X, nu, max_iter, prec, rate):
     """ Subgradient descent solver for primal SVDD.
         Optimized for 'numba'
     """

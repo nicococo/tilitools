@@ -5,6 +5,7 @@ import numpy as np
 
 from utils import profile
 
+
 class SSVM:
     """ (Primal) Structured Output Support Vector Machine
         Written by Nico Goernitz, TU Berlin, 2014
@@ -69,11 +70,10 @@ class SSVM:
             # G2/h2: -dpsi -xi_i <= -delta_i
             G2 = sparse([[trigger.trans()], [dpsi.trans()]])
             h2 = delta
-
             # skip fullfilled constraints for this run (heuristic)
             if iter > 2:
                 diffs = np.array(delta - (G2*sol).trans())
-                inds = np.where(diffs<heur_constr)[1]
+                inds = np.where(diffs < heur_constr)[1]
                 G2 = G2[inds.tolist(),:]
                 h2 = delta[:,inds.tolist()]
                 print('Iter{0}: Solving with {1} of {2} constraints.'.format(iter, inds.shape[0], diffs.shape[1]))

@@ -12,7 +12,6 @@ class SOMultiClass(SOInterface):
         # the class also acts as indices therefore: y >= 0!
         SOInterface.__init__(self, X, y)
         self.num_classes = classes
-        self.dims = self.feats
 
     @profile
     def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
@@ -50,8 +49,8 @@ class SOMultiClass(SOInterface):
             y = self.y[idx]
         nd = self.feats
         mc = self.num_classes
-        psi = np.zeros((nd*mc, 1))
-        psi[nd*y:nd*(y+1), 0] = self.X[:, idx]
+        psi = np.zeros((nd*mc))
+        psi[nd*y:nd*(y+1)] = self.X[:, idx]
         return psi
 
     def get_num_dims(self):

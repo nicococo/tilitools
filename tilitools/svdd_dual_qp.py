@@ -2,7 +2,8 @@ from cvxopt import matrix, spmatrix, sparse
 from cvxopt.solvers import qp
 import numpy as np
 
-from utils_kernel import get_diag_kernel, get_kernel
+from utils_kernel import get_diag_kernel, get_kernel, center_kernel, normalize_kernel
+
 
 
 class SvddDualQP:
@@ -31,7 +32,7 @@ class SvddDualQP:
         self.nu = nu
         print('Creating new dual QP SVDD ({0}) with nu={1}.'.format(kernel, nu))
 
-    def fit(self, X, max_iter=-1):
+    def fit(self, X, max_iter=-1, center=True, normalize=True):
         """
         :param X: Data matrix is assumed to be feats x samples.
         :param max_iter: *ignored*, just for compatibility.
@@ -47,6 +48,11 @@ class SvddDualQP:
         N = self.samples
 
         kernel = get_kernel(X, X, self.kernel, self.kparam)
+        if center:
+            kernel = center_kernel(kernel)
+        if normalize:
+            kernel = normalize_kernel(kernel)
+
         norms = np.diag(kernel).copy()
 
         if self.nu >= 1.0:

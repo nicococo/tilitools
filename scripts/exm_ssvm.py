@@ -1,4 +1,3 @@
-import cvxopt as co
 import numpy as np
 
 from tilitools.ssvm import SSVM
@@ -14,7 +13,7 @@ if __name__ == '__main__':
     Dtrain3 = utils_data.get_gaussian(100, dims=2, means=[3.0, -1.0], vars=[0.3, 0.3])
     Dtrain4 = utils_data.get_gaussian(50, dims=2, means=[6.0, -3.0], vars=[0.2, 0.1])
 
-    Dtrain = np.concatenate((Dtrain1.T, Dtrain2.T, Dtrain3.T, Dtrain4.T)).T
+    Dtrain = np.concatenate((Dtrain1, Dtrain2, Dtrain3, Dtrain4)).T
     Dtrain = np.concatenate((Dtrain, np.ones((1250, 1)).T))
     print Dtrain.shape
     Dy = np.zeros(Dtrain.shape[1], dtype=np.int)

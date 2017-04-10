@@ -2,22 +2,18 @@ from cvxopt import matrix,spmatrix,sparse,uniform,normal,setseed
 from cvxopt.lapack import syev
 import numpy as np
 
-from utils_kernel import Kernel
-
-class StructuredPCA:
+class LatentPCA:
     """ Structured Extension for Principle Component Analysis.
         Written by Nico Goernitz, TU Berlin, 2014
     """
-    sobj = [] # structured object contains various functions
+    sobj = None  # structured object contains various functions
               # i.e. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
-    sol = [] # (vector) solution vector (after training, of course)
-
+    sol = None  # (vector) solution vector (after training, of course)
 
     def __init__(self, sobj):
         self.sobj = sobj
 
-
-    def train_dc(self, max_iter=50):
+    def fit(self, max_iter=50):
         """ Solve the optimization problem with a
             sequential convex programming/DC-programming
             approach:
@@ -32,54 +28,40 @@ class StructuredPCA:
         # latent variables
         latent = [0.0]*N
 
-        sol = normal(DIMS,1)
-        psi = matrix(0.0, (DIMS,N)) # (dim x exm)
-        old_psi = matrix(0.0, (DIMS,N)) # (dim x exm)
-        threshold = matrix(0.0)
-
-        obj = -1
+        sol = np.random.randn(DIMS)
+        psi = np.zeros((DIMS, N)) # (dim x exm)
+        old_psi = np.zeros((DIMS,N)) # (dim x exm)
+        threshold = 0.
+        obj = -1.
         iter = 0
-
         # terminate if objective function value doesn't change much
-        while iter<max_iter and (iter<2 or sum(sum(abs(np.array(psi-old_psi))))>=0.001):
+        while iter < max_iter and (iter < 2 or np.sum(abs(np.array(psi-old_psi))) >= 0.001):
             print('Starting iteration {0}.'.format(iter))
-            print(sum(sum(abs(np.array(psi-old_psi)))))
+            print(np.sum(abs(np.array(psi-old_psi))))
             iter += 1
-            old_psi = matrix(psi)
+            old_psi = psi.copy()
 
             # 1. linearize
             # for the current solution compute the
             # most likely latent variable configuration
-            mean = matrix(0.0, (DIMS, 1))
+            mean = np.zeros(DIMS)
             for i in range(N):
-                (foo, latent[i], psi[:,i]) = self.sobj.argmax(sol, i, add_prior=True)
-                mean += psi[:,i]
-
-            mpsi = matrix(psi)
+                _, latent[i], psi[:, i] = self.sobj.argmax(sol, i)
+                mean += psi[:, i]
             mean /= float(N)
-            #for i in range(N):
-                #mphi[:,i] -= mean
+            mpsi = psi - np.repeat(mean.reshape((DIMS, 1)), N, axis=1)
 
             # 2. solve the intermediate convex optimization problem
-            A = mpsi*mpsi.trans()
-            print A.size
-            W = matrix(0.0, (DIMS,DIMS))
-            syev(A,W,jobz='V')
-            print W
-            print A
-            print A*A.trans()
-            #sol = (W[3:,0].trans() * A[:,3:].trans()).trans()
-            #sol = (W[3:,0].trans() * A[:,3:].trans()).trans()
-            sol = A[:,DIMS-1]
-            print sol
+            A = mpsi.dot(mpsi.T)
+            print A.shape
+            W = np.zeros((DIMS, DIMS))
+            syev(matrix(A), matrix(W), jobz='V')
+            sol = np.array(A[:, DIMS-1]).reshape(DIMS)
 
-        print(sum(sum(abs(np.array(psi-old_psi)))))
+        print(np.sum(abs(np.array(psi-old_psi))))
         self.sol = sol
         self.latent = latent
-        return (sol, latent, threshold)
-
-
-
+        return sol, latent, threshold
 
     def apply(self, pred_sobj):
         """ Application of the StructuredPCA:
@@ -88,10 +70,9 @@ class StructuredPCA:
             latent_state = argmax_z <sol*,\Psi(x,z)>
         """
         N = pred_sobj.get_num_samples()
-        vals = matrix(0.0, (N,1))
+        vals = np.zeros(N)
         structs = []
         for i in range(N):
-            (vals[i], struct, foo) = pred_sobj.argmax(self.sol, i, add_prior=True)
+            vals[i], struct, _ = pred_sobj.argmax(self.sol, i)
             structs.append(struct)
-
-        return (vals, structs)
+        return vals, structs

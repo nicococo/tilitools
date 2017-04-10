@@ -10,7 +10,6 @@ class SOInterface:
     y = None  # (list of np.arrays) state sequences (if present)
 
     samples = -1  # (scalar) number of training data samples
-    dims = -1     # (scalar) overall number of dimensions of the model (=! number of features)
     feats = -1    # (scalar) number of features for each sample
 
     def __init__(self, X, y=None):
