@@ -1,10 +1,9 @@
 from cvxopt import matrix,spmatrix,sparse
-from cvxopt.blas import dotu
 from cvxopt.solvers import qp
 import numpy as np
 
 
-class OCSVM:
+class OcSvmDualQP:
     """ One-class support vector machine
 
         'Estimating the support of a high-dimensional distribution.',
@@ -61,12 +60,12 @@ class OCSVM:
         # store solution
         self.alphas = np.array(sol['x']).reshape((N, 1))
         # find support vectors
-        self.svs = np.where(self.alphas >= OCSVM.PRECISION)[0]
+        self.svs = np.where(self.alphas >= OcSvmDualQP.PRECISION)[0]
 
         k = self.kernel[:, self.svs]
         k = k[self.svs, :]
         thres = self.apply(k)
-        inds = np.where(self.alphas[self.svs] <= 1.-OCSVM.PRECISION)[0]
+        inds = np.where(self.alphas[self.svs] <= 1. - OcSvmDualQP.PRECISION)[0]
         if inds.size > 0:
             self.threshold = np.min(thres[inds])
         else:

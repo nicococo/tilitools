@@ -1,4 +1,3 @@
-from cvxopt import matrix
 import numpy as np
 
 from utils import profile
@@ -31,7 +30,7 @@ class MKLWrapper:
 
     def combine_kernels(self,kernels):
         dim1, dim2 = kernels[0].shape
-        mixed = matrix(0.0, (dim1,dim2))
+        mixed = np.zeros((dim1, dim2))
         for i in range(self.num_kernels):
             mixed += self.dm[i] * kernels[i]
         return mixed

@@ -3,7 +3,7 @@ import numpy as np
 from numba import autojit
 
 
-@autojit(nopython=True)
+@autojit(nopython=False)
 def optimize_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate):
     """ Subgradient descent solver. Optimized for numba.
 

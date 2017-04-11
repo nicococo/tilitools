@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.svm import OneClassSVM
-
+from tilitools.lp_ocsvm_primal_sgd import LpOcSvmPrimalSGD
 from tilitools.ocsvm_dual_qp import OcSvmDualQP
 from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
 
@@ -10,36 +9,20 @@ from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
 if __name__ == '__main__':
     # kernel parameter and type
     kparam = 4.
-    ktype = 'rbf'
+    ktype = 'linear'
 
     # generate raw training data
-    Dtrain = np.random.randn(2, 100)
-    # build kernel
+    Dtrain = np.random.randn(3, 1000)*0.5
+    Dtrain[2, :] = 1.0
+    for i in range(Dtrain.shape[1]):
+        Dtrain[:2, i] /= np.linalg.norm(Dtrain[:2, i])
     kernel = get_kernel(Dtrain, Dtrain, ktype, kparam)
-    # kernel = center_kernel(kernel)
-    kernel = normalize_kernel(kernel)
-    # train svdd
 
-    svm = OcSvmDualQP(kernel, 0.1)
+    svm = OcSvmDualQP(kernel, 0.5)
     svm.fit()
 
-    skl_svm = OneClassSVM(kernel='precomputed', nu=0.1, shrinking=False, verbose=True, tol=1e-3)
-    skl_svm.fit(kernel)
-    dists = skl_svm.decision_function(kernel)
-    print skl_svm._intercept_
-    print skl_svm.support_.shape
-    print np.sum(skl_svm.dual_coef_)
-    k = kernel[skl_svm.support_, :]
-    k = k[:, skl_svm.support_]
-    print 0.5*skl_svm.dual_coef_.dot(k).dot(skl_svm.dual_coef_.T)
-    print skl_svm.dual_coef_
-
-    print np.sum(dists < 0.)
-    print np.sum(dists <= 0.)
-
-    skl_outliers = np.where(dists < 0.)[0]
-    print skl_outliers
-    print svm.outliers
+    skl_svm = LpOcSvmPrimalSGD(pnorm=2., nu=.5)
+    skl_svm.fit(Dtrain)
 
     delta = 0.1
     x = np.arange(-4.0, 4.0, delta)
@@ -48,28 +31,27 @@ if __name__ == '__main__':
     (sx,sy) = X.shape
     Xf = np.reshape(X,(1,sx*sy))
     Yf = np.reshape(Y,(1,sx*sy))
-    Dtest = np.append(Xf,Yf,axis=0)
-    foo = 3. * delta
+    Dtest = np.ones((3, sx*sy))
+    Dtest[:2, :] = np.append(Xf, Yf, axis=0)
 
     # build test kernel
     kernel = get_kernel(Dtest, Dtrain[:,svm.get_support_dual()], ktype, kparam)
-
     res = svm.apply(kernel)
+    skl_res = skl_svm.apply(Dtest)
 
     plt.figure(1)
     plt.subplot(1, 2, 1)
     Z = np.reshape(res,(sx,sy))
     plt.contourf(X, Y, Z)
-    plt.contour(X, Y, Z, [0.])
+    plt.contour(X, Y, Z, [0.], linewidth=4., color='k')
     plt.scatter(Dtrain[0, svm.get_support_dual()], Dtrain[1, svm.get_support_dual()], 40, c='k')
     plt.scatter(Dtrain[0, svm.get_outliers()], Dtrain[1, svm.get_outliers()], 40, c='c')
     plt.scatter(Dtrain[0,:], Dtrain[1,:], 10)
 
     plt.subplot(1, 2, 2)
-    Z = np.reshape(res,(sx,sy))
+    Z = np.reshape(skl_res,(sx,sy))
     plt.contourf(X, Y, Z)
-    plt.contour(X, Y, Z, [0.])
-    plt.scatter(Dtrain[0, skl_outliers], Dtrain[1, skl_outliers], 40, c='c')
+    plt.contour(X, Y, Z, [0.], linewidth=4., color='k')
     plt.scatter(Dtrain[0,:], Dtrain[1,:], 10)
     plt.show()
 

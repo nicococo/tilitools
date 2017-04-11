@@ -2,7 +2,7 @@ from cvxopt import matrix
 import numpy as np
 
 from utils_kernel import get_kernel, center_kernel, normalize_kernel
-from ocsvm import OCSVM
+from ocsvm_dual_qp import OcSvmDualQP
 
 
 class LatentOCSVM:
@@ -70,7 +70,7 @@ class LatentOCSVM:
             kernel = get_kernel(psi, psi)
             # kernel = center_kernel(kernel)
             # kernel = normalize_kernel(kernel)
-            svm = OCSVM(kernel, self.nu)
+            svm = OcSvmDualQP(kernel, self.nu)
             svm.fit()
             threshold = svm.get_threshold()
 

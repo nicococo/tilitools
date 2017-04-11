@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from tilitools.utils import print_profiles
 from tilitools.ssad_convex import ConvexSSAD
-from tilitools.mkl import MKLWrapper
+from tilitools.lp_mkl_wrapper import MKLWrapper
 from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
 
 

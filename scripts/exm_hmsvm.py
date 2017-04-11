@@ -5,7 +5,7 @@ from utils import print_profiles
 from utils_kernel import get_kernel
 from utils_data import get_2state_gaussian_seq, get_2state_anom_seq
 
-from ocsvm import OCSVM
+from ocsvm_dual_qp import OcSvmDualQP
 from latent_ocsvm import LatentOCSVM
 
 from so_hmm import SOHMM
@@ -45,7 +45,7 @@ def experiment_anomaly_detection(train, test, comb, num_train, anom_prob, labels
     # train one-class svm
     phi = calc_feature_vecs(comb.X)
     kern = get_kernel(phi[:,0:num_train], phi[:,0:num_train])
-    ocsvm = OCSVM(kern, anom_prob)
+    ocsvm = OcSvmDualQP(kern, anom_prob)
     ocsvm.fit()
     kern = get_kernel(phi, phi)
     oc_as = ocsvm.apply(kern[num_train:,ocsvm.get_support_dual()])
