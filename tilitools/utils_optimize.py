@@ -4,9 +4,8 @@ from numba import autojit
 
 
 @autojit(nopython=False)
-def optimize_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate):
+def min_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate, step_method):
     """ Subgradient descent solver. Optimized for numba.
-
         Solves:
                 min_x f(x)  for non-smooth f
     """
@@ -14,8 +13,7 @@ def optimize_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate):
     x = x0
     best_x = x
     best_obj = np.float64(1e20)
-
-    obj_bak = -100.
+    obj_bak = -1e10
     iter = 0
     is_converged = False
     while not is_converged and iter < max_iter:
@@ -33,15 +31,16 @@ def optimize_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate):
 
         # gradient step for threshold
         grad = fgrad(x)
-        norm_grad = 0.0
+        if step_method == 1:
+            # constant step
+            max_change = rate
+        elif step_method == 2:
+            # dimishing step size
+            max_change = rate / np.float(iter+1)
+        else:
+            # const. step length
+            max_change = rate / np.linalg.norm(grad)
         for d in range(dims):
-            norm_grad += grad[d]*grad[d]
-        norm_grad = np.sqrt(norm_grad)
-
-        # dimishing stepsize
-        max_change = rate / np.float(iter+1)*10.
-
-        for d in range(dims):
-            x[d] -= grad[d] * max_change / norm_grad
+            x[d] -= grad[d]*max_change
         iter += 1
     return best_x, best_obj, iter

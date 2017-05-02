@@ -3,7 +3,7 @@ from cvxopt.solvers import qp
 import numpy as np
 
 from utils_kernel import get_diag_kernel, get_kernel, center_kernel, normalize_kernel
-
+from utils import profile
 
 
 class SvddDualQP:
@@ -32,6 +32,7 @@ class SvddDualQP:
         self.nu = nu
         print('Creating new dual QP SVDD ({0}) with nu={1}.'.format(kernel, nu))
 
+    @profile
     def fit(self, X, max_iter=-1, center=True, normalize=True):
         """
         :param X: Data matrix is assumed to be feats x samples.

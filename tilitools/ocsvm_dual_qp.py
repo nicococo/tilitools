@@ -2,6 +2,8 @@ from cvxopt import matrix,spmatrix,sparse
 from cvxopt.solvers import qp
 import numpy as np
 
+from utils import profile
+
 
 class OcSvmDualQP:
     """ One-class support vector machine
@@ -26,6 +28,7 @@ class OcSvmDualQP:
         samples, _ = kernel.shape
         print('Creating new one-class svm with {0} samples and C=1/(n*nu)={1}.'.format(samples, 1./(samples * nu)))
 
+    @profile
     def fit(self):
         """ Trains an one-class svm in dual with kernel. """
         # number of training examples

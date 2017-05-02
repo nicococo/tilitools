@@ -81,6 +81,7 @@ class ConvexSSAD:
 
     def set_train_kernel(self, kernel):
         dim1, dim2 = kernel.shape
+        print dim1, dim2
         assert(dim1 == dim2 and dim1 == self.samples)
         self.kernel = kernel
 
@@ -196,5 +197,9 @@ class ConvexSSAD:
         """ Application of dual trained ssad.
             kernel = get_kernel(Y, X[:, cssad.svs], kernel_type, kernel_param)
         """
-        ay = self.alphas[self.svs] * self.cy[self.svs]
+        inds = self.svs
+        if kernel.shape[1] == self.samples:
+            # if kernel is not restricted to support vectors
+            inds = np.arange(self.samples)
+        ay = self.alphas[inds] * self.cy[inds]
         return ay.T.dot(kernel.T).T - self.threshold
