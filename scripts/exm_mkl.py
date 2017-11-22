@@ -62,7 +62,7 @@ if __name__ == '__main__':
     rbf_vals = [0.01, 1., 10., 100.]
     for val in rbf_vals:
         data = np.concatenate((Dtrain, Dtest), axis=1)
-        print data.shape
+        print(data.shape)
         kernel = get_kernel(data, data, type='rbf', param=val)
         kernel = center_kernel(kernel)
         kernel = normalize_kernel(kernel)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     # 4.2. plot the influence of each kernel
     plt.figure()
-    plt.bar([i+1 for i in range(4)], ssad.get_mixing_coefficients())
+    plt.bar(np.arange(1, ssad.get_mixing_coefficients().size+1), ssad.get_mixing_coefficients().flatten())
     plt.show()
 
     print_profiles()

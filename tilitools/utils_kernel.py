@@ -41,7 +41,7 @@ def normalize_kernel(K):
     N = K.shape[0]
     a = np.sqrt(np.diag(K)).reshape((N, 1))
     if any(np.isnan(a)) or any(np.isinf(a)) or any(np.abs(a)<=1e-16):
-        print 'Numerical instabilities.'
+        print('Numerical instabilities.')
         C = np.eye(N)
     else:
         b = 1. / a

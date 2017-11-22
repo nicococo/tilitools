@@ -81,7 +81,7 @@ class ConvexSSAD:
 
     def set_train_kernel(self, kernel):
         dim1, dim2 = kernel.shape
-        print dim1, dim2
+        print([dim1, dim2])
         assert(dim1 == dim2 and dim1 == self.samples)
         self.kernel = kernel
 

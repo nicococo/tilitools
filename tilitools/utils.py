@@ -1,26 +1,15 @@
+import numpy as np
+import time
+import resource
+
 __version__ = '0.0.1'
 __author__ = 'Nico Goernitz'
-__date__ = '12.2015'
+__date__ = '11.2017'
 
-import numpy as np
-import numba
-import time, resource
-
-global_profiles = dict()  # contains the global profile information
-
-
-@numba.autojit(nopython=True)
-def argwhere_values_in_array(vals, arr):
-    # 1. assume that vals are in arr
-    # 2. assume that vals is exactly once in arr
-    # 3. assume vals.size < arr.size
-    inds = -np.ones(vals.size)
-    for i in range(arr.size):
-        for j in range(vals.size):
-            if arr[i] == vals[j]:
-                inds[j] == i
-    return inds
-
+"""
+    Basic profiler using decorators.
+    Does _not_ work with Python 3.6.
+"""
 
 def profile(fn=None):
     """
@@ -39,7 +28,7 @@ def profile(fn=None):
 
     # get the name of the file of the function
     fname = fn.__code__.co_filename
-    fname = fname[fname.rfind('/')+1:-3]
+    fname = fname[fname.rfind('/') + 1:-3]
 
     # dictionary key.
     # assumes that only one function with name 'name' exists
@@ -47,16 +36,18 @@ def profile(fn=None):
     fkey = '{0}'.format(fname)
     key = '{0}'.format(name)
 
-    if global_profiles.has_key(fkey):
-        if global_profiles.has_key(fkey):
-            fcalls, ftime, fdict = global_profiles[fkey]
-            if not fdict.has_key(key):
-                fdict[key] = 0, 0., 0, 0
-                global_profiles[fkey] = fcalls, ftime, fdict
+    if 'profiles' not in globals():
+        globals()['profiles'] = dict()
+
+    if fkey in globals()['profiles']:
+        fcalls, ftime, fdict = globals()['profiles'][fkey]
+        if key not in fdict:
+            fdict[key] = 0, 0., 0, 0
+            globals()['profiles'][fkey] = fcalls, ftime, fdict
     else:
         fdict = dict()
         fdict[key] = 0, 0., 0, 0
-        global_profiles[fkey] = 0, 0., fdict
+        globals()['profiles'][fkey] = 0, 0., fdict
 
     def timed(*args, **kw):
         mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -65,12 +56,12 @@ def profile(fn=None):
         t = time.time() - t
         mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - mem
 
-        fcalls, ftime, fdict = global_profiles[fkey]
+        fcalls, ftime, fdict = globals()['profiles'][fkey]
         ncalls, ntime, nmem, skip = fdict[key]
-        if ncalls==0:
+        if ncalls == 0:
             skip = t
         fdict[key] = ncalls + 1, ntime + t, max(nmem, mem), skip
-        global_profiles[fkey] = fcalls + 1, ftime + t, fdict
+        globals()['profiles'][fkey] = fcalls + 1, ftime + t, fdict
         return result
     return timed
 
@@ -81,13 +72,14 @@ def print_profiles():
     global profile and should therefore be called only once, before the
     programs quits.
     """
-    for fkey in  global_profiles.keys():
-        fcalls, ftime, fdict = global_profiles[fkey]
-        if fcalls==0:
+    # print(globals()['profiles'])
+    for fkey in globals()['profiles']:
+        fcalls, ftime, fdict = globals()['profiles'][fkey]
+        if fcalls == 0:
             print('\n-------{0}: unused.'.format(fkey.ljust(34)))
         else:
-            print('\n-------{0}: ncalls={1:3d} total_time={2:1.4f} avg_time={3:1.4f}'.format( \
-                fkey.ljust(34), fcalls, ftime, ftime/float(fcalls)))
+            print('\n-------{0}: ncalls={1:3d} total_time={2:1.4f} avg_time={3:1.4f}'.format(
+                fkey.ljust(34), fcalls, ftime, ftime / float(fcalls)))
 
         keys = fdict.keys()
         times = list()
@@ -98,8 +90,9 @@ def print_profiles():
         sidx = np.argsort(times).tolist()
         for i in sidx:
             ncalls, ntime, max_mem, first_call = fdict[keys[i]]
-            if ncalls==0:
+            if ncalls == 0:
                 print('      -{0}: unused.'.format(keys[i].ljust(34)))
             else:
-                print('      -{0}: ncalls={1:3d} total_time={2:1.4f} first_call={3:1.4f} avg_time={4:1.4f} max_mem={5}'.format( \
-                    keys[i].ljust(34), ncalls, ntime, first_call, ntime/float(ncalls), max_mem))
+                print('      -{0}: ncalls={1:3d} total_time={2:1.4f} first_call={3:1.4f} '
+                      'avg_time={4:1.4f} max_mem={5}'.format(
+                        keys[i].ljust(34), ncalls, ntime, first_call, ntime / float(ncalls), max_mem))
