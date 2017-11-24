@@ -1,15 +1,17 @@
-import numpy as np
 import time
 import resource
+import numpy as np
 
 __version__ = '0.0.1'
 __author__ = 'Nico Goernitz'
 __date__ = '11.2017'
 
 """
-    Basic profiler using decorators.
-    Does _not_ work with Python 3.6.
+    Mini runtime profiler using decorators.
 """
+
+tilitools_profiles = None
+
 
 def profile(fn=None):
     """
@@ -36,18 +38,20 @@ def profile(fn=None):
     fkey = '{0}'.format(fname)
     key = '{0}'.format(name)
 
-    if 'profiles' not in globals():
-        globals()['profiles'] = dict()
+    # from settings import my_list
+    import utils
+    if utils.tilitools_profiles is None:
+        utils.tilitools_profiles = {}
 
-    if fkey in globals()['profiles']:
-        fcalls, ftime, fdict = globals()['profiles'][fkey]
+    if fkey in utils.tilitools_profiles:
+        fcalls, ftime, fdict = utils.tilitools_profiles[fkey]
         if key not in fdict:
             fdict[key] = 0, 0., 0, 0
-            globals()['profiles'][fkey] = fcalls, ftime, fdict
+            utils.tilitools_profiles[fkey] = fcalls, ftime, fdict
     else:
         fdict = dict()
         fdict[key] = 0, 0., 0, 0
-        globals()['profiles'][fkey] = 0, 0., fdict
+        utils.tilitools_profiles[fkey] = 0, 0., fdict
 
     def timed(*args, **kw):
         mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -56,12 +60,12 @@ def profile(fn=None):
         t = time.time() - t
         mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - mem
 
-        fcalls, ftime, fdict = globals()['profiles'][fkey]
+        fcalls, ftime, fdict = utils.tilitools_profiles[fkey]
         ncalls, ntime, nmem, skip = fdict[key]
         if ncalls == 0:
             skip = t
         fdict[key] = ncalls + 1, ntime + t, max(nmem, mem), skip
-        globals()['profiles'][fkey] = fcalls + 1, ftime + t, fdict
+        utils.tilitools_profiles[fkey] = fcalls + 1, ftime + t, fdict
         return result
     return timed
 
@@ -72,19 +76,20 @@ def print_profiles():
     global profile and should therefore be called only once, before the
     programs quits.
     """
-    # print(globals()['profiles'])
-    for fkey in globals()['profiles']:
-        fcalls, ftime, fdict = globals()['profiles'][fkey]
+    import utils
+    print(utils.tilitools_profiles)
+    for fkey in utils.tilitools_profiles:
+        fcalls, ftime, fdict = utils.tilitools_profiles[fkey]
         if fcalls == 0:
             print('\n-------{0}: unused.'.format(fkey.ljust(34)))
         else:
             print('\n-------{0}: ncalls={1:3d} total_time={2:1.4f} avg_time={3:1.4f}'.format(
                 fkey.ljust(34), fcalls, ftime, ftime / float(fcalls)))
 
-        keys = fdict.keys()
+        keys = list(fdict.keys())
         times = list()
-        for i in range(len(keys)):
-            ncalls, ntime, max_mem, skip = fdict[keys[i]]
+        for k in keys:
+            ncalls, ntime, max_mem, skip = fdict[k]
             times.append(-ntime)
 
         sidx = np.argsort(times).tolist()
