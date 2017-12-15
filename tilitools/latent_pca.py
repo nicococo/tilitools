@@ -53,7 +53,6 @@ class LatentPCA:
 
             # 2. solve the intermediate convex optimization problem
             A = mpsi.dot(mpsi.T)
-            print A.shape
             W = np.zeros((DIMS, DIMS))
             syev(matrix(A), matrix(W), jobz='V')
             sol = np.array(A[:, DIMS-1]).reshape(DIMS)

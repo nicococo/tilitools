@@ -3,9 +3,9 @@ import numpy as np
 from so_interface import SOInterface
 from utils import profile
 
+
 class SOHMM(SOInterface):
     """ Hidden Markov Structured Object."""
-
     ninf = -10.0**15
     start_p = None  # (vector) start probabilities
     states = -1  # (scalar) number transition states
@@ -33,14 +33,14 @@ class SOHMM(SOInterface):
         F = self.feats
 
         em = np.zeros((N, T))
-        for t in xrange(T):
-            for s in xrange(N):
-                for f in xrange(F):
+        for t in range(T):
+            for s in range(N):
+                for f in range(F):
                     em[s,t] += sol[N*N + s*F + f] * self.X[idx][f, t]
         # augment with loss
         if augment_loss:
             loss = np.ones((N, T))
-            for t in xrange(T):
+            for t in range(T):
                 loss[self.y[idx][t], t] = 0.0
             em += loss
         return em
@@ -50,8 +50,8 @@ class SOHMM(SOInterface):
         N = self.states
         # transition matrix
         A = np.zeros((N, N))
-        for i in xrange(N):
-            for j in xrange(N):
+        for i in range(N):
+            for j in range(N):
                 A[i, j] = sol[i*N+j]
         return A
 
@@ -72,18 +72,18 @@ class SOHMM(SOInterface):
         delta = np.zeros((N, T))
         psi = np.zeros((N, T))
         # initialization
-        for i in xrange(N):
+        for i in range(N):
             delta[i, 0] = self.start_p[i] + em[i, 0]
 
         # recursion
-        for t in xrange(1, T):
-            for i in xrange(N):
-                delta[i, t], psi[i, t] = max([(delta[j,t-1] + A[j,i] + em[i,t], j) for j in xrange(N)])
+        for t in range(1, T):
+            for i in range(N):
+                delta[i, t], psi[i, t] = max([(delta[j,t-1] + A[j,i] + em[i,t], j) for j in range(N)])
 
         states = np.zeros(T, dtype=np.int)
-        prob, states[T-1]  = max([delta[i, T-1], i] for i in xrange(N))
+        prob, states[T-1]  = max([delta[i, T-1], i] for i in range(N))
 
-        for t in reversed(xrange(1,T)):
+        for t in reversed(range(1,T)):
             states[t-1] = psi[states[t], t]
 
         psi_idx = self.get_joint_feature_map(idx, states)
