@@ -1,5 +1,5 @@
 import numpy as np
-from numba import autojit
+from numba import jit
 from functools import partial
 
 from utils_optimize import min_subgradient_descent
@@ -19,15 +19,19 @@ class LpOcSvmPrimalSGD:
     def __init__(self, pnorm=2., nu=1.0):
         self.nu = nu
         self.pnorm = pnorm
-        print('Creating new primal lp (p={0}) one-class svm with C=1/(n*nu) (nu={1}).'.format(pnorm, nu))
+        # print('Creating new primal lp (p={0}) one-class svm with C=1/(n*nu) (nu={1}).'.format(pnorm, nu))
 
     @profile
-    def fit(self, X, max_iter=1000000, prec=1e-6, step_rate=0.01, step_method=1):
+    def fit(self, X, max_iter=1000000, prec=1e-3, step_rate=0.01, step_method=1, verbosity=0):
         # number of training examples
         feats, n = X.shape
         x0 = np.zeros(feats+1)
         x0[1:] = np.mean(X, axis=1)
-        # x0[0] = np.min(np.median(X, axis=0))
+        x0[1:] /= np.linalg.norm(x0[1:])
+        x0[0] = np.linalg.norm(np.mean(X, axis=1))
+        if verbosity > 0:
+            print('Threshold is {0}'.format(x0[0]))
+            print('Norm of w is {0}'.format(np.linalg.norm(x0[1:])))
 
         # x0 = np.random.randn(feats+1)
         xstar, obj, iter = min_subgradient_descent(x0,
@@ -38,16 +42,18 @@ class LpOcSvmPrimalSGD:
         self.w = xstar[1:]
         scores = self.apply(X)
         self.outliers = np.where(scores < 0.)[0]
-        print('---------------------------------------------------------------')
-        print('Stats:')
-        print('Number of samples: {0}, nu: {1}; C: ~{2:1.2f}; %Outliers: {3:3.2f}%.'
-              .format(n, self.nu, 1./(self.nu*n),np.float(self.outliers.size) / np.float(n) * 100.0))
-        print('Hyperparameter nu ({0}) is an upper bound on the fraction of outliers ({0} >= {1:3.2f}%). '
-              .format(self.nu, np.float(self.outliers.size) / np.float(n) * 100.0))
-        print('Threshold is {0}'.format(self.threshold))
-        print('Objective is {0}'.format(fun(xstar, X, self.pnorm, self.nu)))
-        print('Iterations {0}'.format(iter))
-        print('---------------------------------------------------------------')
+        if verbosity > 0:
+            print('---------------------------------------------------------------')
+            print('Stats:')
+            print('Number of samples: {0}, nu: {1}; C: ~{2:1.2f}; %Outliers: {3:3.2f}%.'
+                  .format(n, self.nu, 1./(self.nu*n),np.float(self.outliers.size) / np.float(n) * 100.0))
+            # print('Hyperparameter nu ({0}) is an upper bound on the fraction of outliers ({0} >= {1:3.2f}%). '
+            #       .format(self.nu, np.float(self.outliers.size) / np.float(n) * 100.0))
+            print('Threshold is {0}'.format(self.threshold))
+            print('Norm of w is {0}'.format(np.linalg.norm(self.w)))
+            print('Objective is {0}'.format(fun(xstar, X, self.pnorm, self.nu)))
+            print('Iterations {0}'.format(iter))
+            print('---------------------------------------------------------------')
 
 
     def get_threshold(self):
@@ -58,6 +64,31 @@ class LpOcSvmPrimalSGD:
 
     def apply(self, X):
         return self.w.T.dot(X) - self.threshold
+
+
+def fun1(x, data, p, nu):
+    feat, n = data.shape
+    C = 1./(np.float(n)*nu)
+    w = x[1:]
+    slacks = 1. - w.T.dot(data)
+    slacks[slacks < 0.] = 0.
+    return np.sum(np.abs(w)) + C*np.sum(slacks)
+
+
+def grad1(x, data, p, nu):
+    feats, n = data.shape
+    C = 1./(np.float(n)*nu)
+    w = x[1:]
+    slacks = 1. - w.T.dot(data)
+    inds = np.where(slacks >= 0.0)[0]
+    grad = np.zeros(feats+1)
+
+    threshold = 0.1
+    soft = w - np.sign(w)*threshold
+    soft[np.abs(w) < threshold] = 0.
+
+    grad[1:] = soft - C * np.sum(data[:, inds])
+    return grad
 
 
 def fun2(x, data, p, nu):
@@ -84,7 +115,7 @@ def grad2(x, data, p, nu):
     return grad
 
 
-@autojit(nopython=True)
+@jit(nopython=True)
 def fun(x, data, p, nu):
     feat, n = data.shape
     w = x[1:]
@@ -101,7 +132,7 @@ def fun(x, data, p, nu):
     return pnorm - rho + 1./(np.float(n)*nu) * slacks
 
 
-@autojit(nopython=True)
+@jit(nopython=True)
 def grad(x, data, p, nu):
     feats, n = data.shape
     C = 1./(np.float(n)*nu)

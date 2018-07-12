@@ -24,7 +24,7 @@ def min_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate, step_method):
             best_obj = obj
 
         # stop, if progress is too slow
-        if np.abs((obj-obj_bak)/obj) < prec:
+        if np.abs((obj-obj_bak)) < prec:
             is_converged = True
             continue
         obj_bak = obj

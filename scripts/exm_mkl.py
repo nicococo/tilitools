@@ -14,10 +14,10 @@ if __name__ == '__main__':
     takes a list of kernels as input argument.
     support vectors (N_1 <= N).
     """
-    P_NORM = 1.1 # mixing coefficient lp-norm regularizer
-    N_pos = 100
-    N_neg = 100
-    N_unl = 10
+    P_NORM = 1.0 # mixing coefficient lp-norm regularizer
+    N_pos = 0
+    N_neg = 0
+    N_unl = 100
 
     # 1. STEP: GENERATE DATA
     # 1.1. generate training labels
@@ -30,11 +30,14 @@ if __name__ == '__main__':
 
     # 1.2. generate training data
     co.setseed(11)
-    Dtrainp = co.normal(2, N_pos)*0.4
-    Dtrainu = co.normal(2, N_unl)*0.4
-    Dtrainn = co.normal(2, N_neg)*0.1
+    Dtrainp = co.normal(2, N_pos)*0.6
+    Dtrainu = co.normal(2, N_unl)*0.6
+    # Dtrainu[1, :] *= 2
+    # Dtrainu[0, :] = 0.2*Dtrainu[0, :] + 0.8*Dtrainu[1, :]
+
+    Dtrainn = co.normal(2, N_neg)*0.4
     Dtrain21 = Dtrainn-1
-    Dtrain21[0, :] = Dtrainn[0, :] + 1
+    Dtrain21[0, :] = Dtrainn[0, :] + 0.8
     Dtrain22 = -Dtrain21
 
     # 1.3. concatenate training data
@@ -59,21 +62,34 @@ if __name__ == '__main__':
     # 	and kernel3 is a simple linear kernel
     train_kernels = []
     test_kernels = []
-    rbf_vals = [0.01, 1., 10., 100.]
+    rbf_vals = [0.001, 0.01, 1., 2., 4., 10., 100.]
+    eigenvalues = []
+    stats = []
     for val in rbf_vals:
         data = np.concatenate((Dtrain, Dtest), axis=1)
         print(data.shape)
         kernel = get_kernel(data, data, type='rbf', param=val)
+        # if np.abs(val-1.)<0.2:
+        #     foo = np.random.randn(data.shape[0], data.shape[1])
+        #     kernel = get_kernel(foo, foo, type='rbf', param=val)
+
         kernel = center_kernel(kernel)
         kernel = normalize_kernel(kernel)
 
+        stats.append((np.min(kernel), np.max(kernel), np.sum(kernel<0.), np.sum(kernel>0.)))
+
         train_kernel = kernel[:Dtrain.shape[1], :].copy()
         test_kernel = kernel[:Dtrain.shape[1], :].copy()
+
+        values = np.sort(np.real(np.linalg.eigvals(kernel)))
+        eigenvalues.append(values[-1]/values[-2])
+        # eigenvalues.append(np.sum(np.linalg.eigvals(kernel[:Dtrain.shape[1],:Dtrain.shape[1]])))
+
         train_kernels.append(train_kernel[:, :Dtrain.shape[1]])
         test_kernels.append(test_kernel[:, Dtrain.shape[1]:].T)
 
     # MKL: (default) use SSAD
-    ad = ConvexSSAD([], Dy, 1.0, 1.0, 1.0 / (100 * 0.05), 1.0)
+    ad = ConvexSSAD([], Dy, 1.0, 1.0, 1.0 / (N_unl * 0.5), 0.0)
 
     # 2. STEP: TRAIN WITH A LIST OF KERNELS
     ssad = MKLWrapper(ad, train_kernels, P_NORM)
@@ -99,8 +115,17 @@ if __name__ == '__main__':
 
     # 4.2. plot the influence of each kernel
     plt.figure()
-    plt.bar(np.arange(1, ssad.get_mixing_coefficients().size+1), ssad.get_mixing_coefficients().flatten())
+    plt.bar(np.arange(0, ssad.get_mixing_coefficients().size), ssad.get_mixing_coefficients().flatten())
+    plt.xticks(np.arange(0, ssad.get_mixing_coefficients().size), rbf_vals, rotation=40)
+    plt.xlabel('Kernel width parameter'.format(P_NORM), fontsize=14)
+    plt.ylabel('Kernel weighting', fontsize=14)
+    plt.title('$p={0:1.2f}$'.format(P_NORM), fontsize=14)
+    plt.tight_layout()
+    plt.savefig('sparsity_mkl_exm_p1.pdf')
     plt.show()
 
     print_profiles()
+    print(eigenvalues)
+    print(stats)
+
     print('finished')
