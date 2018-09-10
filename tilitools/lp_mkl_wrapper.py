@@ -40,7 +40,7 @@ class MKLWrapper:
         pnorm = self.pnorm
         iter = 0
         lastsol = np.zeros((self.num_kernels))
-        while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)])>precision:
+        while sum([abs(lastsol[i]-self.dm[i]) for i in range(self.num_kernels)]) > precision:
             # train ssad with current kernel mixing coefficients
             self.ssad.set_train_kernel(self.combine_kernels(self.kernels))
             self.ssad.fit()
@@ -78,7 +78,7 @@ class MKLWrapper:
             dm_norm = np.sum(np.power(abs(dm), pnorm))
             # for i in range(self.num_kernels):
             #     dm_norm += np.power(abs(dm[i]), pnorm)
-            dm_norm = np.power(dm_norm,1.0/pnorm)
+            dm_norm = np.power(dm_norm, 1.0/pnorm)
 
             print(dm_norm)
             self.dm = dm
