@@ -22,7 +22,7 @@ config = {
                          'matplotlib',
                          'cvxopt',
                          'numba',
-                         'pytorch',
+                         # 'pytorch',
                          'scikit-image'],
     'packages': ['tilitools'],
     'package_dir' : {'tilitools': 'tilitools'},
