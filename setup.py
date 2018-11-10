@@ -9,7 +9,7 @@ description = "Tilitools is  a collection of (non-mainstream) machine learning m
               "Descriptive examples can be found in the notebooks/ and scripts/ sub-directories. "
 
 config = {
-    'name': 'tilitools --- tiny little machine learning toolbox',
+    'name': 'tilitools',
     'description': description,
     'url': 'https://github.com/nicococo/tilitools',
     'author': 'Nico Goernitz',
