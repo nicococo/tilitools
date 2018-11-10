@@ -3,7 +3,7 @@ from cvxopt.solvers import qp
 
 import numpy as np
 
-from tilitools.utils import profile
+from utils import profile
 
 
 class SSVM:

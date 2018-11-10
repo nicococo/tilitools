@@ -39,7 +39,7 @@ def profile(fn=None):
     key = '{0}'.format(name)
 
     # from settings import my_list
-    import tilitools.utils as utils
+    import utils
     if utils.tilitools_profiles is None:
         utils.tilitools_profiles = {}
 
@@ -76,7 +76,7 @@ def print_profiles():
     global profile and should therefore be called only once, before the
     programs quits.
     """
-    import tilitools.utils as utils
+    import utils
     print(utils.tilitools_profiles)
     for fkey in utils.tilitools_profiles:
         fcalls, ftime, fdict = utils.tilitools_profiles[fkey]
