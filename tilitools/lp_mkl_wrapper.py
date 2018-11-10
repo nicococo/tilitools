@@ -2,6 +2,7 @@ import numpy as np
 
 from utils import profile
 
+
 class MKLWrapper:
     """Lp-norm Multiple Kernel Learning Wrapper for convex semi-supervised anomaly detection
 
@@ -55,34 +56,22 @@ class MKLWrapper:
             res = cy.dot(cy.T)*alphas.dot(alphas.T)
             for l in range(self.num_kernels):
                 norm_w_sq_m[l] = np.sum(self.dm[l]*self.dm[l] * res * self.kernels[l])
-            #
-            # for j in range(self.samples):
-            #     for k in range(self.samples):
-            #         foo = float(cy[k])*float(cy[j])*alphas[k]*alphas[j]
-            #         for l in range(self.num_kernels):
-            #             norm_w_sq_m[l] += self.dm[l]*self.dm[l]*foo*self.kernels[l][j,k]
 
             # solve the quadratic programm
             sum_norm_w = np.sum(np.power(norm_w_sq_m, pnorm/(pnorm+1.0)))
-            # for i in range(self.num_kernels):
-            #     sum_norm_w += np.power(norm_w_sq_m[i], pnorm/(pnorm+1.0))
             sum_norm_w = np.power(sum_norm_w, 1.0/pnorm)
 
             dm = np.power(norm_w_sq_m, 1.0/(pnorm+1.0))/sum_norm_w
-            # for i in range(self.num_kernels):
-            #     dm[i] = np.power(norm_w_sq_m[i], 1.0/(pnorm+1.0))/sum_norm_w
 
             print('New mixing coefficients:')
             print(dm)
 
             dm_norm = np.sum(np.power(abs(dm), pnorm))
-            # for i in range(self.num_kernels):
-            #     dm_norm += np.power(abs(dm[i]), pnorm)
             dm_norm = np.power(dm_norm, 1.0/pnorm)
 
             print(dm_norm)
             self.dm = dm
-            iter+=1
+            iter += 1
 
         print('Num iterations = {0}.'.format(iter))
         return 0

@@ -26,29 +26,29 @@ if __name__ == '__main__':
     skl_svm = OneClassSVM(kernel='precomputed', nu=0.1, shrinking=False, verbose=True, tol=1e-3)
     skl_svm.fit(kernel)
     dists = skl_svm.decision_function(kernel)
-    print skl_svm._intercept_
-    print skl_svm.support_.shape
-    print np.sum(skl_svm.dual_coef_)
+    print(skl_svm._intercept_)
+    print(skl_svm.support_.shape)
+    print(np.sum(skl_svm.dual_coef_))
     k = kernel[skl_svm.support_, :]
     k = k[:, skl_svm.support_]
-    print 0.5*skl_svm.dual_coef_.dot(k).dot(skl_svm.dual_coef_.T)
-    print skl_svm.dual_coef_
+    print(0.5*skl_svm.dual_coef_.dot(k).dot(skl_svm.dual_coef_.T))
+    print(skl_svm.dual_coef_)
 
-    print np.sum(dists < 0.)
-    print np.sum(dists <= 0.)
+    print(np.sum(dists < 0.))
+    print(np.sum(dists <= 0.))
 
     skl_outliers = np.where(dists < 0.)[0]
-    print skl_outliers
-    print svm.outliers
+    print(skl_outliers)
+    print(svm.outliers)
 
     delta = 0.1
     x = np.arange(-4.0, 4.0, delta)
     y = np.arange(-4.0, 4.0, delta)
     X, Y = np.meshgrid(x, y)
-    (sx,sy) = X.shape
-    Xf = np.reshape(X,(1,sx*sy))
-    Yf = np.reshape(Y,(1,sx*sy))
-    Dtest = np.append(Xf,Yf,axis=0)
+    sx, sy = X.shape
+    Xf = np.reshape(X, (1, sx*sy))
+    Yf = np.reshape(Y, (1, sx*sy))
+    Dtest = np.append(Xf, Yf, axis=0)
     foo = 3. * delta
 
     # build test kernel

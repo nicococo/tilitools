@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     Dtrain = np.concatenate((Dtrain1, Dtrain2, Dtrain3, Dtrain4)).T
     Dtrain = np.concatenate((Dtrain, np.ones((1250, 1)).T))
-    print Dtrain.shape
+    print(Dtrain.shape)
     Dy = np.zeros(Dtrain.shape[1], dtype=np.int)
     Dy[1000:1100] = 1
     Dy[1100:1200] = 2

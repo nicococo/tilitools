@@ -6,14 +6,14 @@ from tilitools.svdd_primal_sgd import SvddPrimalSGD
 
 
 if __name__ == '__main__':
-    nu = 0.15  # outlier fraction
+    nu = 0.05  # outlier fraction
 
     # generate raw training data
-    Dtrain = np.random.randn(2, 1000)
+    Dtrain = np.random.randn(2, 100)
     Dtrain /= np.max(np.abs(Dtrain))
 
     # train dual svdd
-    svdd = SvddDualQP('linear', 0.1, nu)
+    svdd = SvddDualQP('linear', 1.1, nu)
     svdd.fit(Dtrain)
 
     # train primal svdd

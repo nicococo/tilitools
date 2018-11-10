@@ -35,8 +35,8 @@ def calc_feature_vecs(data):
     N = len(data)
     F, LEN = data[0].shape
     phi = np.zeros((F*LEN, N))
-    for i in xrange(N):
-        for f in xrange(F):
+    for i in range(N):
+        for f in range(F):
             phi[(f*LEN):(f*LEN)+LEN, i] = data[i][f,:].T
     return phi
 
@@ -71,15 +71,15 @@ if __name__ == '__main__':
 
     # anomaly detection experiment
     aucs = np.zeros((2, REPS))
-    for r in xrange(REPS):
+    for r in range(REPS):
         train, test, comb, labels = get_model(EXMS, EXMS_TRAIN, LENS, DIMS, ANOM_PROB)
         aucs[0, r], aucs[1, r] = experiment_anomaly_detection(train, test, comb, EXMS_TRAIN, ANOM_PROB, labels)
 
-    print aucs
-    print '####################'
+    print(aucs)
+    print('####################')
     print('  SAD={0:1.2f} +/- {1:1.2f}'.format(np.mean(aucs[0, :]), np.var(aucs[0, :])))
     print('OCSVM={0:1.2f} +/- {1:1.2f}'.format(np.mean(aucs[1, :]), np.var(aucs[1, :])))
-    print '####################'
+    print('####################')
 
     print_profiles()
     print('finished')

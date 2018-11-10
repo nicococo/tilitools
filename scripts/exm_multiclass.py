@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     # for all methods
     fig = plt.figure()
-    for i in xrange(4):
+    for i in range(4):
         plt.subplot(2,4,i+1)
 
         if i==0:

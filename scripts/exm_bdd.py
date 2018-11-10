@@ -13,7 +13,7 @@ if __name__ == '__main__':
     Dtrain1 = np.random.randn(2, 100)*0.2
     Dtrain2 = np.random.randn(2, 100)*0.3 + 0.8
     Dtrain = np.concatenate([Dtrain1.T, Dtrain2.T]).T
-    print Dtrain.shape
+    print(Dtrain.shape)
     kernel = get_kernel(Dtrain, Dtrain, ktype, kparam)
     bdd = BDD(kernel)
     bdd.fit()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     Xf = np.reshape(X, (1, sx*sy))
     Yf = np.reshape(Y, (1, sx*sy))
     Dtest = np.append(Xf, Yf, axis=0)
-    print Dtest.shape
+    print(Dtest.shape)
 
     # build kernel map
     kernel_map = get_kernel(Dtest, Dtrain, ktype, kparam)

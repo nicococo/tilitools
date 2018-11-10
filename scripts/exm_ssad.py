@@ -1,5 +1,5 @@
-import cvxopt as co
 import numpy as np
+import cvxopt as co
 import matplotlib.pyplot as plt
 
 from tilitools.ssad_convex import ConvexSSAD
@@ -44,14 +44,14 @@ if __name__ == '__main__':
     ssad.fit()
 
     # generate test data from a grid for nicer plots
-    delta = 0.1
+    delta = 0.25
     x = np.arange(-3.0, 3.0, delta)
     y = np.arange(-3.0, 3.0, delta)
     X, Y = np.meshgrid(x, y)
     (sx,sy) = X.shape
-    Xf = np.reshape(X,(1,sx*sy))
-    Yf = np.reshape(Y,(1,sx*sy))
-    Dtest = np.append(Xf,Yf,axis=0)
+    Xf = np.reshape(X, (1, sx*sy))
+    Yf = np.reshape(Y, (1, sx*sy))
+    Dtest = np.append(Xf, Yf, axis=0)
     print(Dtest.shape)
 
     # build the test kernel
@@ -59,6 +59,7 @@ if __name__ == '__main__':
     res = ssad.apply(kernel)
 
     # make a nice plot of it
+    fig = plt.figure(1)
     Z = np.reshape(res,(sx,sy))
     plt.contourf(X, Y, Z, 20, cmap='Blues')
     plt.colorbar()

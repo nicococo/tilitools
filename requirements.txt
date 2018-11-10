@@ -1,6 +1,8 @@
 scipy
 numpy
 numba
-matplotlib
 cvxopt
+pytorch
 scikit-learn
+scikit-image
+matplotlib

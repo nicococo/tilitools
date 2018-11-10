@@ -10,7 +10,7 @@ class SvddDualQP:
     """ Dual QP implementation of the support vector data description (SVDD).
         Author: Nico Goernitz, TU Berlin, 2015
     """
-    PRECISION = 1e-3  # important: effects the threshold, support vectors and speed!
+    PRECISION = 1e-6  # important: effects the threshold, support vectors and speed!
 
     kernel = None 	# (string) name of the kernel to use
     kparam = None 	# (-) kernel parameter
@@ -33,7 +33,7 @@ class SvddDualQP:
         print('Creating new dual QP SVDD ({0}) with nu={1}.'.format(kernel, nu))
 
     @profile
-    def fit(self, X, max_iter=-1, center=True, normalize=True):
+    def fit(self, X, max_iter=-1, center=False, normalize=False):
         """
         :param X: Data matrix is assumed to be feats x samples.
         :param max_iter: *ignored*, just for compatibility.
