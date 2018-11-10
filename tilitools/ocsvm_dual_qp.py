@@ -2,7 +2,7 @@ from cvxopt import matrix,spmatrix,sparse
 from cvxopt.solvers import qp
 import numpy as np
 
-from utils import profile
+from tilitools.utils import profile
 
 
 class OcSvmDualQP:

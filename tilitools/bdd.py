@@ -3,7 +3,8 @@ from cvxopt import matrix
 from cvxopt.solvers import qp
 import sys
 
-from utils import profile
+from tilitools.utils import profile
+
 
 class BDD:
     """

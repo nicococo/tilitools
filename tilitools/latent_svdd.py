@@ -1,6 +1,6 @@
 import numpy as np
 
-from svdd_dual_qp import SvddDualQP
+from tilitools.svdd_dual_qp import SvddDualQP
 
 class LatentSVDD:
     """ Latent variable support vector data description.
