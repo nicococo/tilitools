@@ -25,15 +25,15 @@ config = {
                          # 'pytorch',
                          'scikit-image'],
     'packages': ['tilitools'],
-    'package_dir' : {'tilitools': 'tilitools'},
-    'classifiers':['Intended Audience :: Science/Research',
-                   'Programming Language :: Python',
-                   'Topic :: Scientific/Engineering',
-                   'Operating System :: POSIX',
-                   'Operating System :: Unix',
-                   'Operating System :: MacOS',
-                   'Programming Language :: Python :: 3',
-                   'Programming Language :: Python :: 3.6']
+    'package_dir': {'tilitools': 'tilitools'},
+    'classifiers': ['Intended Audience :: Science/Research',
+                    'Programming Language :: Python',
+                    'Topic :: Scientific/Engineering',
+                    'Operating System :: POSIX',
+                    'Operating System :: Unix',
+                    'Operating System :: MacOS',
+                    'Programming Language :: Python :: 3',
+                    'Programming Language :: Python :: 3.6']
 }
 
 setup(**config)
