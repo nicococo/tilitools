@@ -3,7 +3,7 @@ from cvxopt.solvers import qp
 import numpy as np
 
 from tilitools.utils_kernel import get_diag_kernel, get_kernel, center_kernel, normalize_kernel
-from tilitools.utils import profile
+from tilitools.profiler import profile
 
 
 class SvddDualQP:

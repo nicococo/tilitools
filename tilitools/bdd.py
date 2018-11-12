@@ -3,7 +3,7 @@ from cvxopt import matrix
 from cvxopt.solvers import qp
 import sys
 
-from tilitools.utils import profile
+from tilitools.profiler import profile
 
 
 class BDD:

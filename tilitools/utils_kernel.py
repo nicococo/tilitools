@@ -15,7 +15,7 @@ def get_kernel(X, Y, type='linear', param=1.0):
         print('Calculating Gaussian kernel with size {0}x{1} and sigma2={2}.'.format(Xn, Yn, param))
         Dx = (np.ones((Yn, 1)) * np.diag(X.T.dot(X)).reshape(1, Xn)).T
         Dy = (np.ones((Xn, 1)) * np.diag(Y.T.dot(Y)).reshape(1, Yn))
-        kernel = Dx - 2.* np.array(X.T.dot(Y)) + Dy
+        kernel = Dx - 2. * np.array(X.T.dot(Y)) + Dy
         kernel = np.exp(-kernel / param)
 
     return kernel
@@ -40,7 +40,7 @@ def normalize_kernel(K):
     # A kernel K is normalized, iff K_ii = 1 \forall i
     N = K.shape[0]
     a = np.sqrt(np.diag(K)).reshape((N, 1))
-    if any(np.isnan(a)) or any(np.isinf(a)) or any(np.abs(a)<=1e-16):
+    if any(np.isnan(a)) or any(np.isinf(a)) or any(np.abs(a) <= 1e-16):
         print('Numerical instabilities.')
         C = np.eye(N)
     else:
@@ -58,7 +58,6 @@ def center_kernel(K):
 
 def kta_align_general(K1, K2):
     # Computes the (empirical) alignment of two kernels K1 and K2
-
     # Definition 1: (Empirical) Alignment
     #   a = <K1, K2>_Frob
     #   b = sqrt( <K1, K1> <K2, K2>)
@@ -70,7 +69,6 @@ def kta_align_general(K1, K2):
 def kta_align_binary(K, y):
     # Computes the (empirical) alignment of kernel K1 and
     # a corresponding binary label  vector y \in \{+1, -1\}^m
-
     m = np.int(y.size)
     YY = y.reshape((m, 1)).dot(y.reshape((1, m)))
     return K.dot(YY).trace() / (m * np.sqrt(K.dot(K.T).trace()))

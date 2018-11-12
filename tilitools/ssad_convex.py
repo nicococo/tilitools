@@ -2,7 +2,7 @@ from cvxopt import matrix, spmatrix, sparse, spdiag
 from cvxopt.solvers import qp
 import numpy as np
 
-from tilitools.utils import profile
+from tilitools.profiler import profile
 
 class ConvexSSAD:
     """ Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer

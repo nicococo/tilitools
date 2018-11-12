@@ -1,9 +1,9 @@
 import numpy as np
 
-from numba import autojit
+from numba import jit
 
 
-@autojit(nopython=False)
+@jit(nopython=False)
 def min_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate, step_method):
     """ Subgradient descent solver. Optimized for numba.
         Solves:

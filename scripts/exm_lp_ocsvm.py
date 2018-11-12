@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from tilitools.lp_ocsvm_primal_sgd import LpOcSvmPrimalSGD
 from tilitools.ocsvm_dual_qp import OcSvmDualQP
 from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
-from tilitools.utils import print_profiles
+from tilitools.profiler import print_profiles
 
 
 if __name__ == '__main__':

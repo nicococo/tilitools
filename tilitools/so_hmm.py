@@ -1,7 +1,7 @@
 import numpy as np
 
 from tilitools.so_interface import SOInterface
-from tilitools.utils import profile
+from tilitools.profiler import profile
 
 
 class SOHMM(SOInterface):

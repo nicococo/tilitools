@@ -1,7 +1,7 @@
 import numpy as np
 import sklearn.metrics as metric
 
-from utils import print_profiles
+from profiler import print_profiles
 from utils_kernel import get_kernel
 from utils_data import get_2state_gaussian_seq, get_2state_anom_seq
 

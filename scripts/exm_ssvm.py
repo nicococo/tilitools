@@ -3,7 +3,7 @@ import numpy as np
 from tilitools.ssvm import SSVM
 from tilitools.so_multiclass import SOMultiClass
 from tilitools import utils_data
-from tilitools import utils
+from tilitools import profiler
 
 
 if __name__ == '__main__':
@@ -43,6 +43,6 @@ if __name__ == '__main__':
     predsobj = SOMultiClass(Dtest, np.unique(Dy).size)
     res, cls = ssvm.apply(predsobj)
 
-    utils.print_profiles()
+    profiler.print_profiles()
 
     print('finished')

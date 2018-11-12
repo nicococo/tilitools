@@ -3,7 +3,7 @@ from numba import jit
 from functools import partial
 
 from tilitools.utils_optimize import min_subgradient_descent
-from tilitools.utils import profile
+from tilitools.profiler import profile
 
 class LpOcSvmPrimalSGD:
     """ Lp-norm regularized primal one-class support vector machine.

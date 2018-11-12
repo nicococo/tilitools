@@ -1,6 +1,6 @@
 import numpy as np
 
-from tilitools.utils import profile
+from tilitools.profiler import profile
 
 
 class MKLWrapper:
