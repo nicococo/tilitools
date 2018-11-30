@@ -22,6 +22,9 @@ config = {
                          'matplotlib',
                          'cvxopt',
                          'numba',
+                         'pandas',  # for notebooks only
+                         'pyod',  # for notebooks only
+                         'h5py',  # for notebooks only
                          # 'pytorch',
                          'scikit-image'],
     'packages': ['tilitools'],

@@ -8,7 +8,7 @@ class ConvexSSAD:
     """ Convex semi-supervised anomaly detection with hinge-loss and L2 regularizer
         as described in Goernitz et al., Towards Supervised Anomaly Detection, JAIR, 2013
 
-               minimize 			0.5 ||w||^2_2 - rho - kappa*gamma + eta_u sum_i xi_i + eta_l sum_j xi_j
+             minimize  0.5 ||w||^2_2 - rho - kappa*gamma + eta_u sum_i xi_i + eta_l sum_j xi_j
         {w,rho,gamma>=0,xi>=0}
         subject to   <w,phi(x_i)> >= rho - xi_i
                   y_j<w,phi(x_j)> >= y_j*rho + gamma - xi_j
@@ -26,50 +26,35 @@ class ConvexSSAD:
 
         Written by: Nico Goernitz, TU Berlin, 2013/14
     """
-    PRECISION = 1e-6  # important: effects the threshold, support vectors and speed!
-
-    cy = None  # (vector) converted label vector (+1 for pos and unlabeled, -1 for outliers)
-    cl = None  # (vector) converted label vector (+1 for labeled examples, 0.0 for unlabeled)
-
-    samples = -1 	# (scalar) amount of training data in X
-    labeled = -1 	# (scalar) amount of labeled data
-
-    cC = None   # (vector) converted upper bound box constraint for each example
-    Cp = 1.0    # (scalar) the regularization constant for positively labeled samples > 0
-    Cu = 1.0    # (scalar) the regularization constant for unlabeled samples > 0
-    Cn = 1.0    # (scalar) the regularization constant for outliers > 0
-
-    kappa = 1.0  # (scalar) regularizer for importance of the margin
-
-    kernel = None  # (matrix) kernel matrix
-    y = None  # (vector) corresponding labels (+1,-1 and 0 for unlabeled)
-
-    alphas = None  # (vector) dual solution vector
-    svs = None  # (vector) list of support vector (contains indices)
-
-    threshold = 0.0 # (scalar) the optimized threshold (rho)
+    PRECISION = 1e-9  # important: effects the threshold, support vectors and speed!
 
     def __init__(self, kernel, y, kappa=1.0, Cp=1.0, Cu=1.0, Cn=1.0):
-        print('Check if labels y are only 1-d.')
         assert(len(y.shape) == 1)
         self.kernel = kernel
-        self.y = y
-        self.kappa = kappa
-        self.Cp = Cp
-        self.Cu = Cu
-        self.Cn = Cn
+        self.y = y  # (vector) corresponding labels (+1,-1 and 0 for unlabeled)
+        self.kappa = kappa  # (scalar) regularizer for importance of the margin
+        self.Cp = Cp  # (scalar) the regularization constant for positively labeled samples > 0
+        self.Cu = Cu  # (scalar) the regularization constant for unlabeled samples > 0
+        self.Cn = Cn  # (scalar) the regularization constant for outliers > 0
         self.samples = y.size
-
         self.labeled = np.sum(np.abs(y))
 
+        # cy: (vector) converted label vector (+1 for pos and unlabeled, -1 for outliers)
         self.cy = y.copy().reshape((y.size, 1))
         self.cy[y == 0] = 1  # cy=+1.0 (unlabeled,pos) & cy=-1.0 (neg)
+
+        # cl: (vector) converted label vector (+1 for labeled examples, 0.0 for unlabeled)
         self.cl = np.abs(y.copy())  # cl=+1.0 (labeled) cl=0.0 (unlabeled)
 
-        self.cC = np.zeros(y.size) # cC=Cu (unlabeled) cC=Cp (pos) cC=Cn (neg)
+        # (vector) converted upper bound box constraint for each example
+        self.cC = np.zeros(y.size)  # cC=Cu (unlabeled) cC=Cp (pos) cC=Cn (neg)
         self.cC[y == 0] = Cu
         self.cC[y == 1] = Cp
         self.cC[y ==-1] = Cn
+
+        self.alphas = None
+        self.svs = None  # (vector) list of support vector (contains indices)
+        self.threshold = 0.0  # (scalar) the optimized threshold (rho)
 
         # if there are no labeled examples, then set kappa to 0.0 otherwise
         # the dual constraint kappa <= sum_{i \in labeled} alpha_i = 0.0 will
@@ -150,20 +135,15 @@ class ConvexSSAD:
         # infer threshold (rho)
         psvs = np.where(self.y[self.svs] == 0)[0]
         # case 1: unlabeled support vectors available
+        self.threshold = 0.
+        unl_threshold = -1e12
+        lbl_threshold = -1e12
         if psvs.size > 0:
-            psvs = self.svs[psvs]
             k = self.kernel[:, self.svs]
-            k = k[psvs, :]
-            thres = self.apply(k)
-            inds = np.where(self.alphas[psvs].reshape(psvs.size) <= self.Cu-ConvexSSAD.PRECISION)[0]
-            if inds.size > 0:
-                self.threshold = np.min(thres[inds])
-            else:
-                # if no alpha < 1.-precision could be found
-                self.threshold = np.max(thres)
-                # still, this can be wrong if all unsupervised SVs are outliers
-            self.outliers = self.svs[np.where(thres < self.threshold)[0]]
-        else:
+            k = k[self.svs[psvs], :]
+            unl_threshold = np.max(self.apply(k))
+
+        if np.sum(self.cl) > 1e-12:
         # case 2: only labeled examples available
             k = self.kernel[:, self.svs]
             k = k[self.svs, :]
@@ -173,16 +153,15 @@ class ConvexSSAD:
             # only negatives is not possible
             if ninds.size > 0 and pinds.size == 0:
                 print('ERROR: Check pre-defined PRECISION.')
-                self.threshold = np.max(thres[ninds])
+                lbl_threshold = np.max(thres[ninds])
             elif ninds.size == 0:
-                self.threshold = np.min(thres[pinds])
+                lbl_threshold = np.max(thres[pinds])
             else:
                 # smallest negative + largest positive
                 p = np.max(thres[pinds])
                 n = np.min(thres[ninds])
-                self.threshold = (n+p)/2.
-            self.outliers = self.svs[np.where(thres < self.threshold)[0]]
-        print('Found {0} support vectors. {1} of them are outliers.'.format(len(self.svs), self.outliers))
+                lbl_threshold = (n+p)/2.
+        self.threshold = np.max((unl_threshold, lbl_threshold))
 
     def get_threshold(self):
         return self.threshold
@@ -197,9 +176,9 @@ class ConvexSSAD:
         """ Application of dual trained ssad.
             kernel = get_kernel(Y, X[:, cssad.svs], kernel_type, kernel_param)
         """
-        inds = self.svs
         if kernel.shape[1] == self.samples:
             # if kernel is not restricted to support vectors
-            inds = np.arange(self.samples)
-        ay = self.alphas[inds] * self.cy[inds]
+            ay = self.alphas * self.cy
+        else:
+            ay = self.alphas[self.svs] * self.cy[self.svs]
         return ay.T.dot(kernel.T).T - self.threshold

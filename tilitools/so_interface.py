@@ -1,28 +1,23 @@
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
+
 class SOInterface:
     """ Structured Object Interface
     """
     __metaclass__ = ABCMeta  # This is an abstract base class (ABC)
 
-    X = None  # (list of np.arrays) data
-    y = None  # (list of np.arrays) state sequences (if present)
-
-    samples = -1  # (scalar) number of training data samples
-    feats = -1    # (scalar) number of features for each sample
-
     def __init__(self, X, y=None):
-        self.X = X
-        self.y = y
+        self.X = X  # (list of np.arrays) data
+        self.y = y  # (list of np.arrays) state sequences (if present)
 
         # assume either numpy array or list-of-objects
         if isinstance(X, list):
             self.samples = len(X)
-            self.feats, _ = X[0].shape
+            self.feats = X[0].shape[0]
         else:
             self.feats, self.samples = X.shape
-        print('Create structured object with #{0} training examples, each consiting of #{1} features.'.format(self.samples, self.feats))
+        print('Structured object with #{0} samples and #{1} features.'.format(self.samples, self.feats))
 
     def get_hotstart_sol(self):
         print('Generate a random solution vector for hot start.')
@@ -32,11 +27,15 @@ class SOInterface:
         return self.samples
 
     @abstractmethod
+    def get_num_states(self):
+        raise NotImplementedError
+
+    @abstractmethod
     def get_num_dims(self):
         raise NotImplementedError
 
     @abstractmethod
-    def argmax(self, sol, idx, add_loss=False, opt_type='linear'):
+    def argmax(self, sol, idx, add_loss=False, **kwargs):
         raise NotImplementedError
 
     @abstractmethod

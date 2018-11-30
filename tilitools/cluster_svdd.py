@@ -6,11 +6,6 @@ class ClusterSvdd:
     """ Implementation of the cluster support vector data description (ClusterSVDD).
         Author: Nico Goernitz, TU Berlin, 2015
     """
-    PRECISION = 1e-4  # This parameter can be important as it effects the threshold,
-                      # support vectors and speed!
-    clusters = 0     # (scalar) number of clusters
-    svdds = None     # (list) list of dual qp svdds
-    nu = -1.0        # (scalar) 0 < nu <= 1.0
 
     def __init__(self, svdds, nu=-1.0):
         self.clusters = len(svdds)
@@ -29,7 +24,7 @@ class ClusterSvdd:
                                 sample (used for initialization).
         :return: (Integer array ) Cluster affiliations for all samples.
         """
-        (dims, samples) = X.shape
+        dims, samples = X.shape
 
         # init majorization step
         cinds_old = np.zeros(samples)

@@ -1,4 +1,4 @@
-from cvxopt import matrix,spmatrix,sparse
+from cvxopt import matrix, spmatrix, sparse
 from cvxopt.solvers import qp
 import numpy as np
 
@@ -12,7 +12,7 @@ class OcSvmDualQP:
         Sch\"{o}lkopf, B and Platt, J C and Shawe-Taylor, J and Smola, a J and Williamson, R C, Microsoft, 1999
 
     """
-    PRECISION = 1e-3 # important: effects the threshold, support vectors and speed!
+    PRECISION = 1e-3  # important: effects the threshold, support vectors and speed!
 
     kernel = None 	# (matrix) our training kernel n x n
     nu = 1.0	 # (scalar) the regularization constant 1/n <= nu <= 1
@@ -27,6 +27,12 @@ class OcSvmDualQP:
         self.nu = nu
         samples, _ = kernel.shape
         print('Creating new one-class svm with {0} samples and C=1/(n*nu)={1}.'.format(samples, 1./(samples * nu)))
+
+    def set_train_kernel(self, kernel):
+        dim1, dim2 = kernel.shape
+        print([dim1, dim2])
+        assert(dim1 == dim2 and dim1 == self.samples)
+        self.kernel = kernel
 
     @profile
     def fit(self):

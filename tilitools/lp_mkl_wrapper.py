@@ -12,19 +12,13 @@ class MKLWrapper:
 
         Written by: Nico Goernitz, TU Berlin, 2013/14
     """
-    samples = -1  # (scalar) number of samples
-    pnorm = 2.0     # (scalar) mixing coefficient regularizer norm
-    kernels = None  # (3-tensor) (=list of cvxopt.matrix) kernel matrices
-    dm = None  # (vector) kernel mixing coefficients
-    ssad = None  # (method)
-    num_kernels = 0  # (scalar) number of kernels used
 
     def __init__(self, ssad, kernels, pnorm=2.0):
-        self.kernels = kernels
+        self.kernels = kernels  # (list of 2d arrays) kernel matrices
         self.samples = kernels[0].shape[0]
         self.pnorm = pnorm
         self.num_kernels = len(kernels)
-        self.dm = np.ones((self.num_kernels), dtype=np.float) / np.float(self.num_kernels)
+        self.dm = np.ones(self.num_kernels, dtype=np.float) / np.float(self.num_kernels)  # (vector) mixing coefficients
         self.ssad = ssad
         self.ssad.set_train_kernel(self.combine_kernels(kernels))
         print('MKL with {0} kernels.'.format(self.num_kernels))
@@ -57,24 +51,21 @@ class MKLWrapper:
             for l in range(self.num_kernels):
                 norm_w_sq_m[l] = np.sum(self.dm[l]*self.dm[l] * res * self.kernels[l])
 
-            # solve the quadratic programm
+            # solve the quadratic program
             sum_norm_w = np.sum(np.power(norm_w_sq_m, pnorm/(pnorm+1.0)))
             sum_norm_w = np.power(sum_norm_w, 1.0/pnorm)
 
             dm = np.power(norm_w_sq_m, 1.0/(pnorm+1.0))/sum_norm_w
 
-            print('New mixing coefficients:')
-            print(dm)
-
+            print('New mixing coefficients:', dm)
             dm_norm = np.sum(np.power(abs(dm), pnorm))
             dm_norm = np.power(dm_norm, 1.0/pnorm)
 
-            print(dm_norm)
+            print('Norm of mixing coefficients: ', dm_norm)
             self.dm = dm
             iter += 1
-
         print('Num iterations = {0}.'.format(iter))
-        return 0
+        return self
 
     def get_threshold(self):
         return self.ssad.get_threshold()

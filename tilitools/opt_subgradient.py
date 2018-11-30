@@ -36,7 +36,7 @@ def min_subgradient_descent(x0, fun, fgrad, max_iter, prec, rate, step_method):
             max_change = rate
         elif step_method == 2:
             # dimishing step size
-            max_change = rate / np.float(iter+1)
+            max_change = rate / np.float(iter+1) / np.linalg.norm(grad)
         else:
             # const. step length
             max_change = rate / np.linalg.norm(grad)

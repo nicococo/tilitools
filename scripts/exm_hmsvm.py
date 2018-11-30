@@ -3,7 +3,7 @@ import sklearn.metrics as metric
 
 from profiler import print_profiles
 from utils_kernel import get_kernel
-from utils_data import get_2state_gaussian_seq, get_2state_anom_seq
+from utils_data import get_2state_gaussian_seq
 
 from ocsvm_dual_qp import OcSvmDualQP
 from latent_ocsvm import LatentOCSVM

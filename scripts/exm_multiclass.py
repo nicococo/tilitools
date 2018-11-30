@@ -61,10 +61,10 @@ if __name__ == '__main__':
             scores, lats = lsvdd.apply(predsobj)
         if i==1:
             plt.title("StructPCA")
-            (scores,lats) = spca.apply(predsobj)
+            scores, lats = spca.apply(predsobj)
         if i==2:
             plt.title("StructOCSVM")
-            scores,lats = socsvm.apply(predsobj)
+            scores, lats = socsvm.apply(predsobj)
         if i==3:
             plt.title("SSVM")
             scores, lats = ssvm.apply(predsobj)
@@ -73,14 +73,14 @@ if __name__ == '__main__':
         Z = np.reshape(scores, (sx,sy))
         plt.contourf(X, Y, Z)
         plt.grid()
-        plt.scatter(Dtrain[:, 0], Dtrain[:, 1], 10)
+        plt.scatter(Dtrain[:, 0], Dtrain[:, 1], 10, Dy)
 
         # plot latent variable
         Z = np.reshape(lats, (sx,sy))
         plt.subplot(2, 4, i+4+1)
         plt.contourf(X, Y, Z)
         plt.grid()
-        plt.scatter(Dtrain[:, 0], Dtrain[:, 1], 10)
+        plt.scatter(Dtrain[:, 0], Dtrain[:, 1], 10, Dy)
     plt.show()
 
     print('finished')

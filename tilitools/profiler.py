@@ -9,7 +9,6 @@ __date__ = '11.2017'
 """
     Mini runtime profiler using decorators.
 """
-
 tilitools_profiles = None
 
 

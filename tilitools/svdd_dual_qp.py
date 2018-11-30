@@ -32,6 +32,11 @@ class SvddDualQP:
         self.nu = nu
         print('Creating new dual QP SVDD ({0}) with nu={1}.'.format(kernel, nu))
 
+    def set_train_kernel(self, kernel):
+        dim1, dim2 = kernel.shape
+        assert(dim1 == dim2 and dim1 == self.samples)
+        self.kernel = kernel
+
     @profile
     def fit(self, X, max_iter=-1, center=False, normalize=False):
         """

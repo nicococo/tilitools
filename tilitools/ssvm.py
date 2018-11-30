@@ -10,15 +10,12 @@ class SSVM:
     """ (Primal) Structured Output Support Vector Machine
         Written by Nico Goernitz, TU Berlin, 2014
     """
-    C = 1.0	 # (scalar) the regularization constant > 0
-    sobj = None  # structured object contains various functions
-               # e.g. get_num_dims(), get_num_samples(), get_sample(i), argmax(sol,i)
-    w = None  # (vector) solution vector
-    slacks = None  # (vector) slack variables
 
     def __init__(self, sobj, C=1.0):
         self.C = C
         self.sobj = sobj
+        self.w = None  # (vector) solution vector
+        self.slacks = None  # (vector) slack variables
 
     @profile
     def train(self, heur_constr=4.4):
@@ -97,7 +94,6 @@ class SSVM:
 
     def apply(self, pred_sobj):
         """ Application of the SSVM:
-
                 value = max_y <w,\Psi(x,y)>
                 struct = argmanx_y <w,\Psi(x,y)>
         """

@@ -1,4 +1,3 @@
-from cvxopt import matrix
 import numpy as np
 
 from tilitools.utils_kernel import get_kernel, center_kernel, normalize_kernel
@@ -12,7 +11,7 @@ class LatentOCSVM:
     nu = 1.0	 # (scalar) the regularization constant > 0
     sobj = None  # structured object contains various functions
                  # i.e. get_num_dims(), get_num_samples(), get_sample(i), argmin(sol,i)
-    sol = None  # (vector) solution vector (after training, of course)
+    sol = None   # (vector) solution vector (after training, of course)
     slacks = None
     svs_inds = None
     threshold = 0.0
@@ -24,7 +23,7 @@ class LatentOCSVM:
         self.sobj = sobj
         self.norm_ord = norm_ord
 
-    def fit(self, max_iter=50, hotstart=None, prec=1e-3):
+    def fit(self, max_iter=50, hotstart=None, prec=1e-3, center=False, normalize=False):
         """ Solve the optimization problem with a
             sequential convex programming/DC-programming
             approach:
@@ -48,28 +47,28 @@ class LatentOCSVM:
         old_psi = np.zeros((DIMS, N))  # (dim x exm)
         threshold = 0.
 
-        obj = -1.
+        # terminate if objective function value doesn't change much
         iter = 0
         allobjs = []
-
-        # terminate if objective function value doesn't change much
         while iter < max_iter and (iter < 2 or np.sum(abs(np.array(psi-old_psi))) >= prec):
             print('Starting iteration {0}.'.format(iter))
             print(np.sum(abs(np.array(psi-old_psi))))
             iter += 1
             old_psi = psi.copy()
 
-            # 1. linearize
+            # 1. most likely configuration
             # for the current solution compute the
             # most likely latent variable configuration
             for i in range(N):
-                _, latent[i], psi[:,i] = self.sobj.argmax(sol, i)
-                psi[:,i] /= np.linalg.norm(psi[:, i], ord=self.norm_ord)
+                _, latent[i], psi[:, i] = self.sobj.argmax(sol, i)
+                psi[:, i] /= np.linalg.norm(psi[:, i], ord=self.norm_ord)
 
             # 2. solve the intermediate convex optimization problem
             kernel = get_kernel(psi, psi)
-            # kernel = center_kernel(kernel)
-            # kernel = normalize_kernel(kernel)
+            if center:
+                kernel = center_kernel(kernel)
+            if normalize:
+                kernel = normalize_kernel(kernel)
             svm = OcSvmDualQP(kernel, self.nu)
             svm.fit()
             threshold = svm.get_threshold()
@@ -85,16 +84,7 @@ class LatentOCSVM:
             print("Iter {0}: Values (Threshold-Slacks-Objective) = {1}-{2}-{3}".format(
                 iter, threshold, np.sum(slacks), obj))
             allobjs.append(obj)
-
-            # print '+++++++++'
-            # print threshold
-            # print slacks
-            # print obj
-            # print '+++++++++'
         self.slacks = slacks
-        # print allobjs
-        # print np.sum(abs(np.array(psi-old_psi)))
-        # print '+++++++++ SAD END'
         self.sol = sol
         self.latent = latent
         return sol, latent, threshold

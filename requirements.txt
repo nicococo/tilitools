@@ -5,3 +5,6 @@ cvxopt
 scikit-learn
 scikit-image
 matplotlib
+pandas
+pyod
+h5py

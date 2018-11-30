@@ -1,10 +1,10 @@
 import numpy as np
 import cvxopt as co
 
+import torchvision.datasets as datasets
+
 
 def load_mnist_dataset():
-    import torchvision.datasets as datasets
-
     mnist_train = datasets.MNIST(root='./data/mnist', train=True, download=True, transform=None)
     mnist_test = datasets.MNIST(root='./data/mnist', train=False, download=True, transform=None)
     test_labels = np.array([mnist_test[i][1].numpy() for i in range(len(mnist_test))], dtype=np.int)
@@ -17,8 +17,6 @@ def load_mnist_dataset():
 
 
 def load_fashion_mnist_dataset():
-    import torchvision.datasets as datasets
-
     mnist_train = datasets.FashionMNIST(root='./data/fashion-mnist', train=True, download=True, transform=None)
     mnist_test = datasets.FashionMNIST(root='./data/fashion-mnist', train=False, download=True, transform=None)
     test_labels = np.array([mnist_test[i][1].numpy() for i in range(len(mnist_test))], dtype=np.int)
@@ -31,8 +29,6 @@ def load_fashion_mnist_dataset():
 
 
 def load_emnist_dataset():
-    import torchvision.datasets as datasets
-
     mnist_train = datasets.EMNIST(root='./data/emnist', split='balanced', train=True, download=True, transform=None)
     mnist_test = datasets.EMNIST(root='./data/emnist', split='balanced', train=False, download=True, transform=None)
     test_labels = np.array([mnist_test[i][1].numpy() for i in range(len(mnist_test))], dtype=np.int)
@@ -45,8 +41,6 @@ def load_emnist_dataset():
 
 
 def load_cifar10_dataset():
-    import torchvision.datasets as datasets
-
     cifar_train = datasets.CIFAR10(root='./data/cifar10', train=True, download=True, transform=None)
     cifar_test = datasets.CIFAR10(root='./data/cifar10', train=False, download=True, transform=None)
     test_labels = np.array([cifar_test[i][1] for i in range(len(cifar_test))], dtype=np.int)
@@ -65,7 +59,7 @@ def get_gaussian(num, dims=2, means=[0,0], vars=[1,1]):
 
 def get_2state_gaussian_seq(lens,dims=2,means1=[2,2,2,2],means2=[5,5,5,5],vars1=[1,1,1,1],vars2=[1,1,1,1],anom_prob=1.0):
     seqs = np.zeros((dims, lens))
-    lbls = np.zeros((1, lens), dtype=np.int)
+    lbls = np.zeros((1, lens), dtype=np.int8)
     marker = 0
 
     # generate first state sequence
@@ -89,7 +83,6 @@ def get_2state_gaussian_seq(lens,dims=2,means1=[2,2,2,2],means2=[5,5,5,5],vars1=
         for d in range(dims):
             seqs[d,block_start:block_start+block_len-1] = np.random.randn(1,block_len-1)*vars2[d] + means2[d]
     return seqs, lbls, marker
-
 
 
 def get_2state_anom_seq(lens, comb_block_len, anom_prob=1.0, num_blocks=1):
@@ -124,5 +117,4 @@ def get_2state_anom_seq(lens, comb_block_len, anom_prob=1.0, num_blocks=1):
                     isDone = True
                     break
             blen += block_len
-        # print('Anomamly block lengths (target/reality)= {0}/{1} '.format(comb_block_len, blen))
     return seqs, lbls, marker

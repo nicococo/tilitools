@@ -1,7 +1,7 @@
 __author__ = 'nicococo'
 import numpy as np
 
-from numba import autojit
+from numba import jit
 
 
 class SvddPrimalSGD(object):
@@ -10,7 +10,7 @@ class SvddPrimalSGD(object):
     """
     PRECISION = 10**-3  # important: effects the threshold, support vectors and speed!
     nu = 0.95	    # (scalar) the regularization constant > 0
-    c = None        # (vecor) center of the hypersphere
+    c = None        # (vector) center of the hypersphere
     radius2 = 0.0   # (scalar) the optimized threshold (rho)
     pobj = 0.0      # (scalar) primal objective after training
 
@@ -18,7 +18,7 @@ class SvddPrimalSGD(object):
         self.nu = nu
         print('Creating new primal SVDD with nu={0}.'.format(nu))
 
-    @autojit
+    @jit
     def fit(self, X, max_iter=20000, prec=1e-6, rate=0.01):
         if X.shape[1] < 1:
             print('Invalid training data.')
@@ -36,7 +36,7 @@ class SvddPrimalSGD(object):
         return dist - self.radius2
 
 
-@autojit(nopython=True)
+@jit(nopython=True)
 def optimize_subgradient_svdd(X, nu, max_iter, prec, rate):
     """ Subgradient descent solver for primal SVDD.
         Optimized for 'numba'
@@ -139,5 +139,4 @@ def optimize_subgradient_svdd(X, nu, max_iter, prec, rate):
         for d in range(dims):
             c[d] -= dc[d]/norm_dc * max_change
         iter += 1
-
     return best_c, best_radius2, obj_best, iter

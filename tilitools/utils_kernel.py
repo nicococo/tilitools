@@ -1,4 +1,5 @@
 import numpy as np
+import skimage.feature as skim_feat
 
 
 def get_kernel(X, Y, type='linear', param=1.0):
@@ -17,8 +18,40 @@ def get_kernel(X, Y, type='linear', param=1.0):
         Dy = (np.ones((Xn, 1)) * np.diag(Y.T.dot(Y)).reshape(1, Yn))
         kernel = Dx - 2. * np.array(X.T.dot(Y)) + Dy
         kernel = np.exp(-kernel / param)
-
     return kernel
+
+
+def get_hist_intersect_kernel(X, Y=None):
+    # X, Y need to be histograms
+    if Y is None:
+        Y = X
+    nx, nbins = X.shape
+    ny, nbins = Y.shape
+    x = X.reshape((nx, 1, nbins))
+    y = Y.reshape((1, ny, nbins))
+    K = 0.5*(x+y - np.abs(x-y))
+    K = K.sum(axis = 2).reshape(nx,ny)
+    return K
+
+
+def calc_histogram_features(X, bins=10):
+    num_samples, num_features = X.shape
+    transformed_data = np.zeros((num_samples, bins))
+    for i in range(num_samples):
+        transformed_data[i, :], _ = np.histogram(X[i, :], bins=bins, range=(0., 1.), density=False)
+        transformed_data[i, :] /= np.sum(transformed_data[i, :])
+    return transformed_data
+
+
+def calc_hog_features(X, im_width, im_height, orientations=8, cell_pixel=16, cells_per_block=1):
+    feats = list
+    for i in range(X.shape[0]):
+        image = X[i, :].reshape(im_width, im_height)
+        fv = skim_feat.hog(image, orientations=orientations, pixels_per_cell=(cell_pixel, cell_pixel), feature_vector=True, \
+                    cells_per_block=(cells_per_block, cells_per_block), visualize=False, multichannel=False, block_norm='L2-Hys')
+        fv /= np.linalg.norm(fv)
+        feats.append(fv)
+    return np.asarray(feats)
 
 
 def get_diag_kernel(X, type='linear', param=1.0):

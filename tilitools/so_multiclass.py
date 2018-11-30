@@ -18,7 +18,7 @@ class SOMultiClass(SOInterface):
         nd = self.feats
         d = 0  # start of dimension in sol
         val = -10.**10.
-        cls = -1 # best class
+        cls = -1  # best class
 
         for c in range(self.num_classes):
             foo = sol[d:d+nd].T.dot(self.X[:, idx])
@@ -55,3 +55,6 @@ class SOMultiClass(SOInterface):
 
     def get_num_dims(self):
         return self.feats*self.num_classes
+
+    def get_num_states(self):
+        return self.num_classes

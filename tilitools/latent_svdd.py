@@ -2,6 +2,7 @@ import numpy as np
 
 from tilitools.svdd_dual_qp import SvddDualQP
 
+
 class LatentSVDD:
     """ Latent variable support vector data description.
         Written by Nico Goernitz, TU Berlin, 2014
@@ -56,7 +57,7 @@ class LatentSVDD:
                 # min_z ||sol - Psi(x,z)||^2 = ||sol||^2 + min_z -2<sol,Psi(x,z)> + ||Psi(x,z)||^2
                 # Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
                 _, latent[i], foo = self.sobj.argmax(sol, i, opt_type='quadratic')
-                psi[:, i] = foo.reshape((DIMS))
+                psi[:, i] = foo.ravel()
 
             # 2. solve the intermediate convex optimization problem
             svdd = SvddDualQP('linear', None, self.nu)
@@ -83,5 +84,4 @@ class LatentSVDD:
             # Hence => ||sol||^2 - max_z  2<sol,Psi(x,z)> - ||Psi(x,z)||^2
             max_obj, lats[i], foo = pred_sobj.argmax(self.sol, i, opt_type='quadratic')
             vals[i] = norm2 - max_obj
-
         return vals, lats

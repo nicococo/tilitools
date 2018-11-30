@@ -35,7 +35,7 @@ class BDD:
         C_inv = np.linalg.inv(C)
         # the diagonal matrix containing the sum of the rowa of the kernel matrix
         D = self.diagonal
-        # parameter 0 < nu < 1, controling the sparsity of the solution
+        # parameter 0 < nu < 1, controlling the sparsity of the solution
         nu = self.nu
         # the mean vector
         m = -np.dot(D, np.ones(n))**nu
@@ -47,7 +47,6 @@ class BDD:
         self.alphas = sol['x']
         # BDD is trained
         self.is_trained = True
-
 
     def apply(self, test_data, kernel_map, norms):
         """
@@ -76,7 +75,4 @@ class BDD:
         # compute the scores
         K_sum = np.dot(np.dot(alphas.T, self.kernel),alphas)
         scores = (K_sum + norms - 2.*np.sum(K_map,axis=1))[0]
-        # sort the test data by their scores
-        sort_indices = np.argsort(scores)
-        sorted_data =  matrix(X[:, sort_indices])
-        return scores, sorted_data
+        return scores
