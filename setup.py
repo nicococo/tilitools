@@ -23,7 +23,7 @@ config = {
                          'cvxopt',
                          'numba',
                          'pandas',  # for notebooks only
-                         'pyod',  # for notebooks only
+                         # 'pyod',
                          'h5py',  # for notebooks only
                          # 'pytorch',
                          'scikit-image'],

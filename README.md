@@ -65,3 +65,7 @@ The data sub-directory contains well-known benchmark datasets which are
 modified to fit in the anomaly detection setting. These modified datasets
 can be downloaded from ODDS website ([outlier detection database](http://odds.cs.stonybrook.edu)).
 
+installation:
+There are two packages that need to be installed separately
+- pyOD (for LODA)
+- pytorch / torchvision
