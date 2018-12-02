@@ -1,12 +1,11 @@
 import numpy as np
 import cvxopt as co
 
-import torchvision.datasets as datasets
-
 
 def load_mnist_dataset():
-    mnist_train = datasets.MNIST(root='./data/mnist', train=True, download=True, transform=None)
-    mnist_test = datasets.MNIST(root='./data/mnist', train=False, download=True, transform=None)
+    import torchvision.datasets as datasets
+    mnist_train = datasets.MNIST(root='../data/mnist', train=True, download=True, transform=None)
+    mnist_test = datasets.MNIST(root='../data/mnist', train=False, download=True, transform=None)
     test_labels = np.array([mnist_test[i][1].numpy() for i in range(len(mnist_test))], dtype=np.int)
     train_labels = np.array([mnist_train[i][1].numpy() for i in range(len(mnist_train))], dtype=np.int)
     test = np.array([np.asarray(mnist_test[i][0]).reshape(28*28) for i in range(len(mnist_test))], dtype=np.float)
@@ -17,8 +16,9 @@ def load_mnist_dataset():
 
 
 def load_fashion_mnist_dataset():
-    mnist_train = datasets.FashionMNIST(root='./data/fashion-mnist', train=True, download=True, transform=None)
-    mnist_test = datasets.FashionMNIST(root='./data/fashion-mnist', train=False, download=True, transform=None)
+    import torchvision.datasets as datasets
+    mnist_train = datasets.FashionMNIST(root='../data/fashion-mnist', train=True, download=True, transform=None)
+    mnist_test = datasets.FashionMNIST(root='../data/fashion-mnist', train=False, download=True, transform=None)
     test_labels = np.array([mnist_test[i][1].numpy() for i in range(len(mnist_test))], dtype=np.int)
     train_labels = np.array([mnist_train[i][1].numpy() for i in range(len(mnist_train))], dtype=np.int)
     test = np.array([np.asarray(mnist_test[i][0]).reshape(28*28) for i in range(len(mnist_test))], dtype=np.float)
@@ -29,8 +29,9 @@ def load_fashion_mnist_dataset():
 
 
 def load_emnist_dataset():
-    mnist_train = datasets.EMNIST(root='./data/emnist', split='balanced', train=True, download=True, transform=None)
-    mnist_test = datasets.EMNIST(root='./data/emnist', split='balanced', train=False, download=True, transform=None)
+    import torchvision.datasets as datasets
+    mnist_train = datasets.EMNIST(root='../data/emnist', split='balanced', train=True, download=True, transform=None)
+    mnist_test = datasets.EMNIST(root='../data/emnist', split='balanced', train=False, download=True, transform=None)
     test_labels = np.array([mnist_test[i][1].numpy() for i in range(len(mnist_test))], dtype=np.int)
     train_labels = np.array([mnist_train[i][1].numpy() for i in range(len(mnist_train))], dtype=np.int)
     test = np.array([np.asarray(mnist_test[i][0]).reshape(28*28) for i in range(len(mnist_test))], dtype=np.float)
@@ -41,8 +42,9 @@ def load_emnist_dataset():
 
 
 def load_cifar10_dataset():
-    cifar_train = datasets.CIFAR10(root='./data/cifar10', train=True, download=True, transform=None)
-    cifar_test = datasets.CIFAR10(root='./data/cifar10', train=False, download=True, transform=None)
+    import torchvision.datasets as datasets
+    cifar_train = datasets.CIFAR10(root='../data/cifar10', train=True, download=True, transform=None)
+    cifar_test = datasets.CIFAR10(root='../data/cifar10', train=False, download=True, transform=None)
     test_labels = np.array([cifar_test[i][1] for i in range(len(cifar_test))], dtype=np.int)
     train_labels = np.array([cifar_train[i][1] for i in range(len(cifar_train))], dtype=np.int)
     test = np.array([np.asarray(cifar_test[i][0].convert('F')).reshape(32*32) for i in range(len(cifar_test))], dtype=np.float)
